@@ -39,6 +39,7 @@ import io.a2a.spec.TaskNotCancelableError;
 import io.a2a.spec.TaskState;
 import io.a2a.spec.TaskStatus;
 import io.a2a.spec.TextPart;
+import io.reactivex.Flowable;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import org.apache.commons.lang3.StringUtils;
@@ -62,13 +63,15 @@ public class AgentExecutorProducer {
                 }
                 TaskUpdater taskUpdater = new TaskUpdater(context, eventQueue);
                 try {
-                    String response = appCall(userMessage);
-                    List<String> chunks = splitStringIntoChunks(response, 100);
-                    for (String chunk : chunks) {
-                        List<Part<?>> parts = List.of(new TextPart(chunk, null));
-                        Thread.sleep(500);
-                        System.out.println("update artifact!!");
-                        taskUpdater.addArtifact(parts);
+                    Flowable<ApplicationResult> applicationResultFlowable = appCallStream(userMessage);
+                    String lastOutput = "";
+                    for (ApplicationResult msg : applicationResultFlowable.blockingIterable()) {
+                        String currentText = msg.getOutput().getText();
+                        if (currentText.length() > lastOutput.length()) {
+                            List<Part<?>> parts = List.of(new TextPart(currentText.substring(lastOutput.length()), null));
+                            taskUpdater.addArtifact(parts);
+                        }
+                        lastOutput = currentText;
                     }
                     taskUpdater.complete();
                 } catch (Exception e) {
@@ -127,6 +130,18 @@ public class AgentExecutorProducer {
         String contextId = !StringUtils.isEmpty(request.getContextId()) ? request.getContextId() : UUID.randomUUID().toString();
         return new Task(id, contextId, new TaskStatus(TaskState.SUBMITTED), null, List.of(request), null);
     }
+
+    public static Flowable<ApplicationResult> appCallStream(String prompt) throws ApiException, NoApiKeyException, InputRequiredException {
+        ApplicationParam param = ApplicationParam.builder()
+            .apiKey(ApiKey)
+            .appId(AppId)
+            .prompt(prompt)
+            .build();
+        Application application = new Application();
+        Flowable<ApplicationResult> applicationResultFlowable = application.streamCall(param);
+        return applicationResultFlowable;
+    }
+
 
     public static List<String> splitStringIntoChunks(String input, int maxLength) {
         if (maxLength <= 0) {
