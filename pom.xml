@@ -18,11 +18,74 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <parent>
+        <groupId>org.apache</groupId>
+        <artifactId>apache</artifactId>
+        <version>18</version>
+    </parent>
+
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-a2a</artifactId>
     <version>1.0.5</version>
+
+    <name>Apache RocketMQ A2A ${project.version}</name>
+    <description>Integrate Apache RocketMQ with A2A</description>
+    <url>https://github.com/apache/rocketmq-a2a</url>
+
+    <scm>
+        <url>git@github.com:apache/rocketmq-a2a.git</url>
+        <connection>scm:git:git@github.com:apache/rocketmq-a2a.git</connection>
+        <developerConnection>scm:git:git@github.com:apache/rocketmq-a2a.git</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
+
+    <mailingLists>
+        <mailingList>
+            <name>Development List</name>
+            <subscribe>dev-subscribe@rocketmq.apache.org</subscribe>
+            <unsubscribe>dev-unsubscribe@rocketmq.apache.org</unsubscribe>
+            <post>dev@rocketmq.apache.org</post>
+        </mailingList>
+        <mailingList>
+            <name>User List</name>
+            <subscribe>users-subscribe@rocketmq.apache.org</subscribe>
+            <unsubscribe>users-unsubscribe@rocketmq.apache.org</unsubscribe>
+            <post>users@rocketmq.apache.org</post>
+        </mailingList>
+        <mailingList>
+            <name>Commits List</name>
+            <subscribe>commits-subscribe@rocketmq.apache.org</subscribe>
+            <unsubscribe>commits-unsubscribe@rocketmq.apache.org</unsubscribe>
+            <post>commits@rocketmq.apache.org</post>
+        </mailingList>
+    </mailingLists>
+
+    <organization>
+        <name>Apache Software Foundation</name>
+        <url>http://www.apache.org</url>
+    </organization>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+            <comments>A business-friendly OSS license</comments>
+        </license>
+    </licenses>
+
+    <organization>
+        <name>Apache Software Foundation</name>
+        <url>http://www.apache.org</url>
+    </organization>
+
+    <issueManagement>
+        <system>jira</system>
+        <url>https://issues.apache.org/jira/browse/RocketMQ</url>
+    </issueManagement>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
