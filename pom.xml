@@ -77,11 +77,6 @@
         </license>
     </licenses>
 
-    <organization>
-        <name>Apache Software Foundation</name>
-        <url>http://www.apache.org</url>
-    </organization>
-
     <issueManagement>
         <system>jira</system>
         <url>https://issues.apache.org/jira/browse/RocketMQ</url>
