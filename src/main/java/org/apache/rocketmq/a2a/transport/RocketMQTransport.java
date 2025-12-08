@@ -263,14 +263,14 @@ public class RocketMQTransport implements ClientTransport {
                 String liteTopic = (String)request.metadata().get(RocketMQA2AConstant.LITE_TOPIC);
                 if (null != litePushConsumer && !StringUtils.isEmpty(liteTopic)) {
                     litePushConsumer.subscribeLite(liteTopic);
-                    System.out.println("litePushConsumer subscribeLite liteTopic: " + liteTopic);
+                    log.info("litePushConsumer subscribeLite liteTopic: {}", liteTopic);
                     LITE_TOPIC_USE_DEFAULT_RECOVER_MAP.computeIfAbsent(this.rocketMQInstanceID, k -> new HashMap<>()).put(liteTopic, this.useDefaultRecoverMode);
                 }
 
                 String closeLiteTopic = (String)request.metadata().get(RocketMQA2AConstant.CLOSE_LITE_TOPIC);
                 if (null != litePushConsumer && !StringUtils.isEmpty(closeLiteTopic)) {
                     litePushConsumer.unsubscribeLite(closeLiteTopic);
-                    System.out.println("litePushConsumer unsubscribeLite " + closeLiteTopic);
+                    log.info("litePushConsumer unsubscribeLite liteTopic: {}", closeLiteTopic);
                     LITE_TOPIC_USE_DEFAULT_RECOVER_MAP.computeIfAbsent(this.rocketMQInstanceID, k -> new HashMap<>()).remove(closeLiteTopic);
                 }
             }
@@ -540,7 +540,9 @@ public class RocketMQTransport implements ClientTransport {
             try {
                 litePushConsumer.subscribeLite(contextId);
                 liteTopic = contextId;
-            } catch (ClientException e) {}
+            } catch (ClientException e) {
+
+            }
         }
         return liteTopic;
     }
