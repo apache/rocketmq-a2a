@@ -16,8 +16,6 @@
  */
 package agent;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -140,23 +138,6 @@ public class AgentExecutorProducer {
         Application application = new Application();
         Flowable<ApplicationResult> applicationResultFlowable = application.streamCall(param);
         return applicationResultFlowable;
-    }
-
-
-    public static List<String> splitStringIntoChunks(String input, int maxLength) {
-        if (maxLength <= 0) {
-            throw new IllegalArgumentException("maxLength must be positive");
-        }
-        if (StringUtils.isEmpty(input)) {
-            return Collections.emptyList();
-        }
-        List<String> chunks = new ArrayList<>();
-        int length = input.length();
-        for (int i = 0; i < length; i += maxLength) {
-            int end = Math.min(i + maxLength, length);
-            chunks.add(input.substring(i, end));
-        }
-        return chunks;
     }
 
 }

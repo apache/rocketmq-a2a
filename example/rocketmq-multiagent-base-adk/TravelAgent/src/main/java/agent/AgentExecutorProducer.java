@@ -16,8 +16,6 @@
  */
 package agent;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -136,26 +134,9 @@ public class AgentExecutorProducer {
         return applicationResultFlowable;
     }
 
-
     private Task createTask(io.a2a.spec.Message request) {
         String id = !StringUtils.isEmpty(request.getTaskId()) ? request.getTaskId() : UUID.randomUUID().toString();
         String contextId = !StringUtils.isEmpty(request.getContextId()) ? request.getContextId() : UUID.randomUUID().toString();
         return new Task(id, contextId, new TaskStatus(TaskState.SUBMITTED), null, List.of(request), null);
-    }
-
-    public static List<String> splitStringIntoChunks(String input, int maxLength) {
-        if (maxLength <= 0) {
-            throw new IllegalArgumentException("maxLength must be positive");
-        }
-        if (StringUtils.isEmpty(input)) {
-            return Collections.emptyList();
-        }
-        List<String> chunks = new ArrayList<>();
-        int length = input.length();
-        for (int i = 0; i < length; i += maxLength) {
-            int end = Math.min(i + maxLength, length);
-            chunks.add(input.substring(i, end));
-        }
-        return chunks;
     }
 }
