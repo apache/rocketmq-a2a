@@ -77,8 +77,8 @@ cd SupervisorAgent-Web/target
 java -DrocketMQInstanceID= -DworkAgentResponseTopic=WorkerAgentResponse -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE -DapiKey= -DweatherAgentTaskTopic=WeatherAgentTask -DtravelAgentTaskTopic=TravelAgentTask -DrocketMQAK= -DrocketMQSK= -jar SupervisorAgent-Web-1.0.3-SNAPSHOT.jar
 ```
 - 打开浏览器，访问 localhost:9090
-- 下面的示例展示了以RocketMQ作为底层Transport过程中的断点续传功能
-- 咨询杭州明天天气怎么样的过程中，点击中断按钮模拟网络中断，点击重连实现网络重连，数据流实现恢复重传
+- 下面的示例展示了以RocketMQ作为底层Transport过程中实现异步通信以及断点重传功能
+- 咨询杭州明天天气怎么样的过程中，点击中断按钮模拟网络中断，点击重连实现网络重连，数据流恢复重传
 
 ![img_2.png](img_2.png)
 ![img_3.png](img_3.png)
