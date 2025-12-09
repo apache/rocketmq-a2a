@@ -338,10 +338,10 @@ public class SupervisorAgentA2ASDKMainStream {
                         System.out.println("解析过程出现异常");
                     }
                 } else {
-                    System.out.println(content);
+                    //System.out.println(content);
                 }
             } else {
-                System.out.println(content);
+                //System.out.println(content);
                 log.debug("Agent 响应: {}", content);
             }
         });
