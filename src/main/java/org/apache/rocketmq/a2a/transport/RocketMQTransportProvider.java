@@ -30,7 +30,7 @@ public class RocketMQTransportProvider implements ClientTransportProvider<Rocket
         if (clientTransportConfig == null) {
             clientTransportConfig = new RocketMQTransportConfig(new JdkA2AHttpClient());
         }
-        return new RocketMQTransport(clientTransportConfig.getRocketMQInstanceID(), clientTransportConfig.getAccessKey(), clientTransportConfig.getSecretKey(), clientTransportConfig.getWorkAgentResponseTopic(), clientTransportConfig.getWorkAgentResponseGroupID(), clientTransportConfig.getInterceptors(), clientTransportConfig.getAgentUrl(), clientTransportConfig.getHttpClient(), clientTransportConfig.getLiteTopic(), clientTransportConfig.isUseDefaultRecoverMode(), agentCard);
+        return new RocketMQTransport(clientTransportConfig.getRocketMQNamespace(), clientTransportConfig.getAccessKey(), clientTransportConfig.getSecretKey(), clientTransportConfig.getWorkAgentResponseTopic(), clientTransportConfig.getWorkAgentResponseGroupID(), clientTransportConfig.getInterceptors(), clientTransportConfig.getAgentUrl(), clientTransportConfig.getHttpClient(), clientTransportConfig.getLiteTopic(), clientTransportConfig.isUseDefaultRecoverMode(), agentCard);
     }
 
     @Override

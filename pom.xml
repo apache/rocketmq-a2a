@@ -29,7 +29,7 @@
 
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-a2a</artifactId>
-    <version>1.0.5</version>
+    <version>1.0.6</version>
 
     <name>Apache RocketMQ A2A ${project.version}</name>
     <description>Integrate Apache RocketMQ with A2A</description>

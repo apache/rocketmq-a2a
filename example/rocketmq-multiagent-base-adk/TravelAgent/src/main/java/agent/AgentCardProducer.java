@@ -31,7 +31,7 @@ import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.ROCKETMQ_PROTOC
 @ApplicationScoped
 public class AgentCardProducer {
     private static final String ROCKETMQ_ENDPOINT = System.getProperty("rocketMQEndpoint", "");
-    private static final String ROCKETMQ_INSTANCE_ID = System.getProperty("rocketMQInstanceID", "");
+    private static final String ROCKETMQ_NAMESPACE = System.getProperty("rocketMQNamespace", "");
     private static final String BIZ_TOPIC = System.getProperty("bizTopic", "");
 
     @Produces
@@ -64,10 +64,10 @@ public class AgentCardProducer {
     }
 
     private static String buildRocketMQUrl() {
-        if (StringUtils.isEmpty(ROCKETMQ_ENDPOINT) || StringUtils.isEmpty(ROCKETMQ_INSTANCE_ID) || StringUtils.isEmpty(BIZ_TOPIC)) {
+        if (StringUtils.isEmpty(ROCKETMQ_ENDPOINT) || StringUtils.isEmpty(BIZ_TOPIC)) {
             throw new RuntimeException("buildRocketMQUrl param error, please check rocketmq config");
         }
-        return "http://" + ROCKETMQ_ENDPOINT + "/" + ROCKETMQ_INSTANCE_ID + "/" + BIZ_TOPIC;
+        return "http://" + ROCKETMQ_ENDPOINT + "/" + ROCKETMQ_NAMESPACE + "/" + BIZ_TOPIC;
     }
 
 }
