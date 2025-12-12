@@ -94,7 +94,7 @@ import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.METHOD;
 public class RocketMQA2AServerRoutes extends A2AServerRoutes {
     private static final Logger log = LoggerFactory.getLogger(RocketMQA2AServerRoutes.class);
     private static final String ROCKETMQ_ENDPOINT = System.getProperty("rocketMQEndpoint", "");
-    private static final String ROCKETMQ_INSTANCE_ID = System.getProperty("rocketMQInstanceID", "");
+    private static final String ROCKETMQ_NAMESPACE = System.getProperty("rocketMQNamespace", "");
     private static final String BIZ_TOPIC = System.getProperty("bizTopic", "");
     private static final String BIZ_CONSUMER_GROUP = System.getProperty("bizConsumerGroup", "");
     private static final String ACCESS_KEY = System.getProperty("rocketMQAk", "");
@@ -134,7 +134,7 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
         SessionCredentialsProvider sessionCredentialsProvider = new StaticSessionCredentialsProvider(ACCESS_KEY, SECRET_KEY);
         ClientConfiguration clientConfiguration = ClientConfiguration.newBuilder()
             .setEndpoints(ROCKETMQ_ENDPOINT)
-            .setNamespace(ROCKETMQ_INSTANCE_ID)
+            .setNamespace(ROCKETMQ_NAMESPACE)
             .setCredentialProvider(sessionCredentialsProvider)
             .setRequestTimeout(Duration.ofSeconds(15))
             .build();
@@ -147,7 +147,7 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
         SessionCredentialsProvider sessionCredentialsProvider = new StaticSessionCredentialsProvider(ACCESS_KEY, SECRET_KEY);
         ClientConfiguration clientConfiguration = ClientConfiguration.newBuilder()
             .setEndpoints(ROCKETMQ_ENDPOINT)
-            .setNamespace(ROCKETMQ_INSTANCE_ID)
+            .setNamespace(ROCKETMQ_NAMESPACE)
             .setCredentialProvider(sessionCredentialsProvider)
             .build();
         String tag = "*";
@@ -409,25 +409,15 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
     }
 
     private void checkConfigParam() {
-        if (StringUtils.isEmpty(ROCKETMQ_ENDPOINT) || StringUtils.isEmpty(ROCKETMQ_INSTANCE_ID) || StringUtils.isEmpty(BIZ_TOPIC) ||
-            StringUtils.isEmpty(BIZ_CONSUMER_GROUP) || StringUtils.isEmpty(ACCESS_KEY) || StringUtils.isEmpty(SECRET_KEY)) {
+        if (StringUtils.isEmpty(ROCKETMQ_ENDPOINT) || StringUtils.isEmpty(BIZ_TOPIC) || StringUtils.isEmpty(BIZ_CONSUMER_GROUP)) {
             if (StringUtils.isEmpty(ROCKETMQ_ENDPOINT)) {
                 log.info("rocketMQEndpoint is empty");
-            }
-            if (StringUtils.isEmpty(ROCKETMQ_INSTANCE_ID)) {
-                log.info("rocketMQInstanceID is empty");
             }
             if (StringUtils.isEmpty(BIZ_TOPIC)) {
                 log.info("bizTopic is empty");
             }
             if (StringUtils.isEmpty(BIZ_CONSUMER_GROUP)) {
                 log.info("bizConsumerGroup is empty");
-            }
-            if (StringUtils.isEmpty(ACCESS_KEY)) {
-                log.info("rocketMQAK is empty");
-            }
-            if (StringUtils.isEmpty(SECRET_KEY)) {
-                log.info("rocketMQSK is empty");
             }
             throw new RuntimeException("RocketMQA2AServerRoutes check init rocketmq param error, init failed!!!");
         }

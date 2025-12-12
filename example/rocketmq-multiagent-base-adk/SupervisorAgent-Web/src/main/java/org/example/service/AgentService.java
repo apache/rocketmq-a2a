@@ -77,7 +77,7 @@ public class AgentService {
     private static final String TRAVEL_AGENT_URL = "http://localhost:8888";
     private static final String WORK_AGENT_RESPONSE_TOPIC = System.getProperty("workAgentResponseTopic");
     private static final String WORK_AGENT_RESPONSE_GROUP_ID = System.getProperty("workAgentResponseGroupID");
-    private static final String ROCKETMQ_INSTANCE_ID = System.getProperty("rocketMQInstanceID");
+    private static final String ROCKETMQ_NAMESPACE = System.getProperty("rocketMQNamespace");
     private static final String ACCESS_KEY = System.getProperty("rocketMQAK");
     private static final String SECRET_KEY = System.getProperty("rocketMQSK");
     private static final String API_KEY = System.getProperty("apiKey");
@@ -106,21 +106,12 @@ public class AgentService {
     }
 
     private static boolean checkConfigParam() {
-        if (StringUtils.isEmpty(ROCKETMQ_INSTANCE_ID) || StringUtils.isEmpty(WORK_AGENT_RESPONSE_TOPIC) || StringUtils.isEmpty(WORK_AGENT_RESPONSE_GROUP_ID) || StringUtils.isEmpty(ACCESS_KEY) || StringUtils.isEmpty(SECRET_KEY) || StringUtils.isEmpty(API_KEY)) {
-            if (StringUtils.isEmpty(ROCKETMQ_INSTANCE_ID)) {
-                log.error("请配置RocketMQ 的实例信息 rocketMQInstanceID");
-            }
+        if (StringUtils.isEmpty(WORK_AGENT_RESPONSE_TOPIC) || StringUtils.isEmpty(WORK_AGENT_RESPONSE_GROUP_ID) || StringUtils.isEmpty(API_KEY)) {
             if (StringUtils.isEmpty(WORK_AGENT_RESPONSE_TOPIC)) {
                 log.error("请配置RocketMQ 的轻量消息Topic workAgentResponseTopic");
             }
             if (StringUtils.isEmpty(WORK_AGENT_RESPONSE_GROUP_ID)) {
                 log.error("请配置RocketMQ 的轻量消息消费者 workAgentResponseGroupID");
-            }
-            if (StringUtils.isEmpty(ACCESS_KEY)) {
-                log.error("请配置RocketMQ 的访问控制-用户名 rocketMQAK");
-            }
-            if (StringUtils.isEmpty(SECRET_KEY)) {
-                log.error("请配置RocketMQ 的访问控制-密码 rocketMQSK");
             }
             if (StringUtils.isEmpty(API_KEY)) {
                 log.error("请配置SupervisorAgent qwen-plus apiKey");
@@ -279,8 +270,8 @@ public class AgentService {
     }
 
     private void initAgentCardInfo(String accessKey, String secretKey, String agentName, String agentUrl) {
-        if (StringUtils.isEmpty(accessKey) || StringUtils.isEmpty(secretKey) || StringUtils.isEmpty(agentName) || StringUtils.isEmpty(agentUrl)) {
-            log.error("initAgentCardInfo param error, accessKey: {}, secretKey: {}, agentName: {}, agentUrl: {}", accessKey, secretKey, agentName, agentUrl);
+        if (StringUtils.isEmpty(agentName) || StringUtils.isEmpty(agentUrl)) {
+            log.error("initAgentCardInfo param error, agentName: {}, agentUrl: {}", agentName, agentUrl);
             return;
         }
         AgentCard finalAgentCard = new A2ACardResolver(agentUrl).getAgentCard();
@@ -322,7 +313,7 @@ public class AgentService {
         };
         //config rocketmq info
         RocketMQTransportConfig rocketMQTransportConfig = new RocketMQTransportConfig();
-        rocketMQTransportConfig.setRocketMQInstanceID(ROCKETMQ_INSTANCE_ID);
+        rocketMQTransportConfig.setRocketMQNamespace(ROCKETMQ_NAMESPACE);
         rocketMQTransportConfig.setAccessKey(accessKey);
         rocketMQTransportConfig.setSecretKey(secretKey);
         rocketMQTransportConfig.setWorkAgentResponseGroupID(WORK_AGENT_RESPONSE_GROUP_ID);

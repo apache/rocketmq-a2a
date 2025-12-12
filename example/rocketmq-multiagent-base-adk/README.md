@@ -44,7 +44,7 @@ cd WeatherAgent
 ```
 
 ```shell
-MAVEN_OPTS="-DrocketMQEndpoint= -DrocketMQInstanceID= -DbizTopic=WeatherAgentTask -DbizConsumerGroup=WeatherAgentTaskConsumerGroup -DrocketMQAk= -DrocketMQSk= -DapiKey= -DappId= " mvn quarkus:dev
+MAVEN_OPTS="-DrocketMQEndpoint= -DrocketMQNamespace= -DbizTopic=WeatherAgentTask -DbizConsumerGroup=WeatherAgentTaskConsumerGroup -DrocketMQAk= -DrocketMQSk= -DapiKey= -DappId= " mvn quarkus:dev
 ```
 ![img.png](img.png)
 
@@ -54,7 +54,7 @@ cd TravelAgent
 ```
 
 ```shell
- MAVEN_OPTS="-DrocketMQEndpoint= -DrocketMQInstanceID= -DbizTopic=TravelAgentTask -DbizConsumerGroup=TravelAgentTaskConsumerGroup -DrocketMQAk= -DrocketMQSk= -DapiKey= -DappId= " mvn quarkus:dev
+ MAVEN_OPTS="-DrocketMQEndpoint= -DrocketMQNamespace= -DbizTopic=TravelAgentTask -DbizConsumerGroup=TravelAgentTaskConsumerGroup -DrocketMQAk= -DrocketMQSk= -DapiKey= -DappId= " mvn quarkus:dev
 ```
 ![img_1.png](img_1.png)
 
@@ -63,7 +63,7 @@ cd TravelAgent
 cd SupervisorAgent/target
 ```
 ```shell
-java -DrocketMQInstanceID= -DworkAgentResponseTopic=WorkerAgentResponse -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE -DapiKey= -DweatherAgentTaskTopic=WeatherAgentTask -DtravelAgentTaskTopic=TravelAgentTask -DrocketMQAK= -DrocketMQSK= -jar SupervisorAgent-2.1.1-SNAPSHOT-jar-with-dependencies.jar 
+java -DrocketMQNamespace= -DworkAgentResponseTopic=WorkerAgentResponse -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE -DapiKey= -DweatherAgentTaskTopic=WeatherAgentTask -DtravelAgentTaskTopic=TravelAgentTask -DrocketMQAK= -DrocketMQSK= -jar SupervisorAgent-2.1.1-SNAPSHOT-jar-with-dependencies.jar 
 ```
 ![img_5.png](img_5.png)
 
@@ -74,7 +74,7 @@ cd SupervisorAgent-Web/target
 ```
 
 ```shell
-java -DrocketMQInstanceID= -DworkAgentResponseTopic=WorkerAgentResponse -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE -DapiKey= -DweatherAgentTaskTopic=WeatherAgentTask -DtravelAgentTaskTopic=TravelAgentTask -DrocketMQAK= -DrocketMQSK= -jar SupervisorAgent-Web-1.0.3-SNAPSHOT.jar
+java -DrocketMQNamespace= -DworkAgentResponseTopic=WorkerAgentResponse -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE -DapiKey= -DweatherAgentTaskTopic=WeatherAgentTask -DtravelAgentTaskTopic=TravelAgentTask -DrocketMQAK= -DrocketMQSK= -jar SupervisorAgent-Web-2.1.1-SNAPSHOT.jar
 ```
 - 打开浏览器，访问 localhost:9090
 - 下面的示例展示了以RocketMQ作为底层Transport过程中实现异步通信以及断点重传功能

@@ -23,7 +23,7 @@ public class RocketMQTransportConfig extends ClientTransportConfig<RocketMQTrans
     private String accessKey;
     private String secretKey;
     private String globalEndpoint;
-    private String rocketMQInstanceID;
+    private String rocketMQNamespace;
     private String workAgentResponseTopic;
     private String workAgentResponseGroupID;
     private String agentTopic;
@@ -31,24 +31,24 @@ public class RocketMQTransportConfig extends ClientTransportConfig<RocketMQTrans
     private String liteTopic;
     private boolean useDefaultRecoverMode = false;
 
-    public RocketMQTransportConfig(String accessKey, String secretKey, String globalEndpoint, String rocketMQInstanceID,
+    public RocketMQTransportConfig(String accessKey, String secretKey, String globalEndpoint, String rocketMQNamespace,
         String workAgentResponseTopic, String workAgentResponseGroupID, String agentTopic, A2AHttpClient httpClient) {
         this.accessKey = accessKey;
         this.secretKey = secretKey;
         this.globalEndpoint = globalEndpoint;
-        this.rocketMQInstanceID = rocketMQInstanceID;
+        this.rocketMQNamespace = rocketMQNamespace;
         this.workAgentResponseTopic = workAgentResponseTopic;
         this.workAgentResponseGroupID = workAgentResponseGroupID;
         this.agentTopic = agentTopic;
         this.httpClient = httpClient;
     }
 
-    public RocketMQTransportConfig(String accessKey, String secretKey, String globalEndpoint, String rocketMQInstanceID,
+    public RocketMQTransportConfig(String accessKey, String secretKey, String globalEndpoint, String rocketMQNamespace,
         String workAgentResponseTopic, String workAgentResponseGroupID, String agentTopic, A2AHttpClient httpClient, String liteTopic, boolean useDefaultRecoverMode) {
         this.accessKey = accessKey;
         this.secretKey = secretKey;
         this.globalEndpoint = globalEndpoint;
-        this.rocketMQInstanceID = rocketMQInstanceID;
+        this.rocketMQNamespace = rocketMQNamespace;
         this.workAgentResponseTopic = workAgentResponseTopic;
         this.workAgentResponseGroupID = workAgentResponseGroupID;
         this.agentTopic = agentTopic;
@@ -57,11 +57,11 @@ public class RocketMQTransportConfig extends ClientTransportConfig<RocketMQTrans
         this.useDefaultRecoverMode = useDefaultRecoverMode;
     }
 
-    public RocketMQTransportConfig(String accessKey, String secretKey, String globalEndpoint, String rocketMQInstanceID, String agentTopic, A2AHttpClient httpClient) {
+    public RocketMQTransportConfig(String accessKey, String secretKey, String globalEndpoint, String rocketMQNamespace, String agentTopic, A2AHttpClient httpClient) {
         this.accessKey = accessKey;
         this.secretKey = secretKey;
         this.globalEndpoint = globalEndpoint;
-        this.rocketMQInstanceID = rocketMQInstanceID;
+        this.rocketMQNamespace = rocketMQNamespace;
         this.agentTopic = agentTopic;
         this.httpClient = httpClient;
     }
@@ -96,12 +96,12 @@ public class RocketMQTransportConfig extends ClientTransportConfig<RocketMQTrans
         this.globalEndpoint = globalEndpoint;
     }
 
-    public String getRocketMQInstanceID() {
-        return rocketMQInstanceID;
+    public String getRocketMQNamespace() {
+        return rocketMQNamespace;
     }
 
-    public void setRocketMQInstanceID(String rocketMQInstanceID) {
-        this.rocketMQInstanceID = rocketMQInstanceID;
+    public void setRocketMQNamespace(String rocketMQNamespace) {
+        this.rocketMQNamespace = rocketMQNamespace;
     }
 
     public String getWorkAgentResponseTopic() {

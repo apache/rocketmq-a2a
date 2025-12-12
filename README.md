@@ -52,7 +52,7 @@ Create an A2A Client Using RocketMQTransport and RocketMQTransportConfig
         rocketMQTransportConfig.setSecretKey(secretKey);
         rocketMQTransportConfig.setWorkAgentResponseGroupID(WorkAgentResponseGroupID);
         rocketMQTransportConfig.setWorkAgentResponseTopic(WorkAgentResponseTopic);
-        rocketMQTransportConfig.setRocketMQInstanceID(RocketMQInstanceId);
+        rocketMQTransportConfig.setRocketMQNamespace(RocketMQNamespace);
         Client client=Client.builder(finalAgentCard)
         .addConsumers(consumers)
         .streamingErrorHandler(streamingErrorHandler)
