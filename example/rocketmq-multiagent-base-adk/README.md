@@ -44,7 +44,7 @@ cd WeatherAgent
 ```
 
 ```shell
-MAVEN_OPTS="-DrocketMQEndpoint= -DrocketMQNamespace= -DbizTopic=WeatherAgentTask -DbizConsumerGroup=WeatherAgentTaskConsumerGroup -DrocketMQAk= -DrocketMQSk= -DapiKey= -DappId= " mvn quarkus:dev
+MAVEN_OPTS="-DrocketMQEndpoint= -DrocketMQNamespace= -DbizTopic=WeatherAgentTask -DbizConsumerGroup=WeatherAgentTaskConsumerGroup -DrocketMQAK= -DrocketMQSK= -DapiKey= -DappId= " mvn quarkus:dev
 ```
 ![img.png](img.png)
 
@@ -54,7 +54,7 @@ cd TravelAgent
 ```
 
 ```shell
- MAVEN_OPTS="-DrocketMQEndpoint= -DrocketMQNamespace= -DbizTopic=TravelAgentTask -DbizConsumerGroup=TravelAgentTaskConsumerGroup -DrocketMQAk= -DrocketMQSk= -DapiKey= -DappId= " mvn quarkus:dev
+ MAVEN_OPTS="-DrocketMQEndpoint= -DrocketMQNamespace= -DbizTopic=TravelAgentTask -DbizConsumerGroup=TravelAgentTaskConsumerGroup -DrocketMQAK= -DrocketMQSK= -DapiKey= -DappId= " mvn quarkus:dev
 ```
 ![img_1.png](img_1.png)
 

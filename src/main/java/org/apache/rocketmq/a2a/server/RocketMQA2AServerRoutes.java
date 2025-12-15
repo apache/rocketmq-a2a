@@ -97,8 +97,8 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
     private static final String ROCKETMQ_NAMESPACE = System.getProperty("rocketMQNamespace", "");
     private static final String BIZ_TOPIC = System.getProperty("bizTopic", "");
     private static final String BIZ_CONSUMER_GROUP = System.getProperty("bizConsumerGroup", "");
-    private static final String ACCESS_KEY = System.getProperty("rocketMQAk", "");
-    private static final String SECRET_KEY = System.getProperty("rocketMQSk", "");
+    private static final String ACCESS_KEY = System.getProperty("rocketMQAK", "");
+    private static final String SECRET_KEY = System.getProperty("rocketMQSK", "");
 
     @Inject
     JSONRPCHandler jsonRpcHandler;
@@ -241,7 +241,7 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
 
     private static Message buildMessage(String topic, String liteTopic, RocketMQResponse response) {
         if (StringUtils.isEmpty(topic) || StringUtils.isEmpty(liteTopic)) {
-            log.info("RocketMQA2AServerRoutes buildMessage param error, topic: {}, liteTopic: {}, response: {}", topic, liteTopic, JSON.toJSONString(response));
+            log.error("RocketMQA2AServerRoutes buildMessage param error, topic: {}, liteTopic: {}, response: {}", topic, liteTopic, JSON.toJSONString(response));
             return null;
         }
         String missionJsonStr = JSON.toJSONString(response);
@@ -375,7 +375,7 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
                         SendReceipt send = producer.send(buildMessage(workAgentResponseTopic, liteTopic, response));
                         log.info("MultiSseSupport send response success, msgId: {}, time: {}, response: {}", send.getMessageId(), System.currentTimeMillis(), JSON.toJSONString(response));
                     } catch (ClientException e) {
-                        log.info("MultiSseSupport error send complete, msgId: {}", e.getMessage());
+                        log.error("MultiSseSupport error send complete, msgId: {}", e.getMessage());
                     }
                     completableFuture.complete(true);
                 }
@@ -411,13 +411,13 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
     private void checkConfigParam() {
         if (StringUtils.isEmpty(ROCKETMQ_ENDPOINT) || StringUtils.isEmpty(BIZ_TOPIC) || StringUtils.isEmpty(BIZ_CONSUMER_GROUP)) {
             if (StringUtils.isEmpty(ROCKETMQ_ENDPOINT)) {
-                log.info("rocketMQEndpoint is empty");
+                log.error("rocketMQEndpoint is empty");
             }
             if (StringUtils.isEmpty(BIZ_TOPIC)) {
-                log.info("bizTopic is empty");
+                log.error("bizTopic is empty");
             }
             if (StringUtils.isEmpty(BIZ_CONSUMER_GROUP)) {
-                log.info("bizConsumerGroup is empty");
+                log.error("bizConsumerGroup is empty");
             }
             throw new RuntimeException("RocketMQA2AServerRoutes check init rocketmq param error, init failed!!!");
         }

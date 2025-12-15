@@ -313,7 +313,7 @@ public class AgentService {
         };
         //config rocketmq info
         RocketMQTransportConfig rocketMQTransportConfig = new RocketMQTransportConfig();
-        rocketMQTransportConfig.setRocketMQNamespace(ROCKETMQ_NAMESPACE);
+        rocketMQTransportConfig.setNamespace(ROCKETMQ_NAMESPACE);
         rocketMQTransportConfig.setAccessKey(accessKey);
         rocketMQTransportConfig.setSecretKey(secretKey);
         rocketMQTransportConfig.setWorkAgentResponseGroupID(WORK_AGENT_RESPONSE_GROUP_ID);

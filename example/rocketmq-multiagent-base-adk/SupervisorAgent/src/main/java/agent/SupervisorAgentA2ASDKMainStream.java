@@ -263,7 +263,7 @@ public class SupervisorAgentA2ASDKMainStream {
             System.err.println("Streaming error occurred: " + error.getMessage());
         };
         RocketMQTransportConfig rocketMQTransportConfig = new RocketMQTransportConfig();
-        rocketMQTransportConfig.setRocketMQNamespace(ROCKETMQ_NAMESPACE);
+        rocketMQTransportConfig.setNamespace(ROCKETMQ_NAMESPACE);
         rocketMQTransportConfig.setAccessKey(accessKey);
         rocketMQTransportConfig.setSecretKey(secretKey);
         rocketMQTransportConfig.setWorkAgentResponseGroupID(WORK_AGENT_RESPONSE_GROUP_ID);
@@ -328,11 +328,8 @@ public class SupervisorAgentA2ASDKMainStream {
                     } catch (Exception e) {
                         System.out.println("解析过程出现异常");
                     }
-                } else {
-                    //System.out.println(content);
                 }
             } else {
-                //System.out.println(content);
                 log.debug("Agent 响应: {}", content);
             }
         });
