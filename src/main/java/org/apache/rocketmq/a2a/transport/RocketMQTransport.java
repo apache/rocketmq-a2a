@@ -117,8 +117,8 @@ public class RocketMQTransport implements ClientTransport {
     private final String agentTopic;
     private final String accessKey;
     private final String secretKey;
-    private final String rocketMQEndpoint;
-    private final String rocketNamespace;
+    private final String endpoint;
+    private final String namespace;
     private final String workAgentResponseTopic;
     private final String workAgentResponseGroupID;
     private final List<ClientCallInterceptor> interceptors;
@@ -131,7 +131,7 @@ public class RocketMQTransport implements ClientTransport {
     private LitePushConsumer litePushConsumer;
     private Producer producer;
 
-    public RocketMQTransport(String rocketNamespace, String accessKey, String secretKey, String workAgentResponseTopic, String workAgentResponseGroupID,
+    public RocketMQTransport(String namespace, String accessKey, String secretKey, String workAgentResponseTopic, String workAgentResponseGroupID,
         List<ClientCallInterceptor> interceptors, String agentUrl, A2AHttpClient httpClient, String liteTopic, boolean useDefaultRecoverMode, AgentCard agentCard) {
         this.accessKey = accessKey;
         this.secretKey = secretKey;
@@ -150,23 +150,23 @@ public class RocketMQTransport implements ClientTransport {
         if (null == rocketAgentCardInfo) {
             throw new RuntimeException("RocketMQTransport rocketAgentCardInfo pare error");
         }
-        if (null != rocketNamespace && !rocketNamespace.equals(rocketAgentCardInfo.getNamespace())) {
+        if (null != namespace && !namespace.equals(rocketAgentCardInfo.getNamespace())) {
             throw new RuntimeException("RocketMQTransport rocketAgentCardInfo namespace do not match, please check the config info");
         }
-        this.rocketMQEndpoint = rocketAgentCardInfo.getEndpoint();
+        this.endpoint = rocketAgentCardInfo.getEndpoint();
         this.agentTopic = rocketAgentCardInfo.getTopic();
-        this.rocketNamespace = StringUtils.isEmpty(rocketAgentCardInfo.getNamespace()) ? "" : rocketAgentCardInfo.getNamespace();
-        LITE_TOPIC_USE_DEFAULT_RECOVER_MAP.computeIfAbsent(this.rocketNamespace, k -> new HashMap<>()).put(this.liteTopic, useDefaultRecoverMode);
+        this.namespace = StringUtils.isEmpty(rocketAgentCardInfo.getNamespace()) ? "" : rocketAgentCardInfo.getNamespace();
+        LITE_TOPIC_USE_DEFAULT_RECOVER_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>()).put(this.liteTopic, useDefaultRecoverMode);
         checkConfigParam();
         initRocketMQProducerAndConsumer();
     }
 
     private void initRocketMQProducerAndConsumer() {
-        if (StringUtils.isEmpty(this.rocketMQEndpoint) || StringUtils.isEmpty(this.workAgentResponseTopic) || StringUtils.isEmpty(this.liteTopic)) {
+        if (StringUtils.isEmpty(this.endpoint) || StringUtils.isEmpty(this.workAgentResponseTopic) || StringUtils.isEmpty(this.liteTopic)) {
             throw new A2AClientException("RocketMQTransport initRocketMQProducerAndConsumer param error");
         }
         try {
-            Map<String, LitePushConsumer> consumerMap = ROCKETMQ_CONSUMER_MAP.computeIfAbsent(this.rocketNamespace, k -> new HashMap<>());
+            Map<String, LitePushConsumer> consumerMap = ROCKETMQ_CONSUMER_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>());
             if (consumerMap.containsKey(this.workAgentResponseTopic)) {
                 this.litePushConsumer = consumerMap.get(this.workAgentResponseTopic);
                 this.litePushConsumer.subscribeLite(this.liteTopic);
@@ -184,14 +184,14 @@ public class RocketMQTransport implements ClientTransport {
                     this.litePushConsumer = litePushConsumer;
                 }
             }
-            Map<String, Producer> producerMap = ROCKETMQ_PRODUCER_MAP.computeIfAbsent(this.rocketNamespace, k -> new HashMap<>());
+            Map<String, Producer> producerMap = ROCKETMQ_PRODUCER_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>());
             if (!producerMap.containsKey(this.agentTopic)) {
                 this.producer = buildProducer(this.agentTopic);
                 producerMap.put(this.agentTopic, this.producer);
             }
             log.info("RocketMQTransport initRocketMQProducerAndConsumer success");
         } catch (Exception e) {
-            log.info("RocketMQTransport initRocketMQProducerAndConsumer error: {}", e.getMessage());
+            log.error("RocketMQTransport initRocketMQProducerAndConsumer error: {}", e.getMessage());
         }
     }
 
@@ -210,7 +210,7 @@ public class RocketMQTransport implements ClientTransport {
                 log.error("RocketMQTransport sendMessage error, responseMessageId is null");
                 return null;
             }
-            Map<String, CompletableFuture<String>> completableFutureMap = MESSAGE_RESPONSE_MAP.computeIfAbsent(this.rocketNamespace, k -> new HashMap<>());
+            Map<String, CompletableFuture<String>> completableFutureMap = MESSAGE_RESPONSE_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>());
             CompletableFuture<String> objectCompletableFuture = new CompletableFuture<>();
             completableFutureMap.put(responseMessageId, objectCompletableFuture);
             String result = objectCompletableFuture.get(120, TimeUnit.SECONDS);
@@ -241,7 +241,7 @@ public class RocketMQTransport implements ClientTransport {
                 log.error("RocketMQTransport sendMessageStreaming error, responseMessageId is null");
                 return;
             }
-            MESSAGE_STREAM_RESPONSE_MAP.computeIfAbsent(this.rocketNamespace, k -> new HashMap<>()).put(responseMessageId, sseEventListener);
+            MESSAGE_STREAM_RESPONSE_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>()).put(responseMessageId, sseEventListener);
             log.info("RocketMQTransport sendMessageStreaming success, responseMessageId: {}", responseMessageId);
         } catch (Exception e) {
             throw new A2AClientException("RocketMQTransport Failed to send streaming message request: " + e, e);
@@ -258,24 +258,24 @@ public class RocketMQTransport implements ClientTransport {
             if (null != request.metadata()) {
                 String responseMessageId = (String)request.metadata().get(RocketMQA2AConstant.MESSAGE_RESPONSE_ID);
                 if (!StringUtils.isEmpty(responseMessageId)) {
-                    MESSAGE_STREAM_RESPONSE_MAP.computeIfAbsent(this.rocketNamespace, k -> new HashMap<>()).put(responseMessageId, sseEventListener);
+                    MESSAGE_STREAM_RESPONSE_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>()).put(responseMessageId, sseEventListener);
                 }
                 String liteTopic = (String)request.metadata().get(RocketMQA2AConstant.LITE_TOPIC);
                 if (null != litePushConsumer && !StringUtils.isEmpty(liteTopic)) {
                     litePushConsumer.subscribeLite(liteTopic);
                     log.info("litePushConsumer subscribeLite liteTopic: {}", liteTopic);
-                    LITE_TOPIC_USE_DEFAULT_RECOVER_MAP.computeIfAbsent(this.rocketNamespace, k -> new HashMap<>()).put(liteTopic, this.useDefaultRecoverMode);
+                    LITE_TOPIC_USE_DEFAULT_RECOVER_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>()).put(liteTopic, this.useDefaultRecoverMode);
                 }
 
                 String closeLiteTopic = (String)request.metadata().get(RocketMQA2AConstant.CLOSE_LITE_TOPIC);
                 if (null != litePushConsumer && !StringUtils.isEmpty(closeLiteTopic)) {
                     litePushConsumer.unsubscribeLite(closeLiteTopic);
                     log.info("litePushConsumer unsubscribeLite liteTopic: {}", closeLiteTopic);
-                    LITE_TOPIC_USE_DEFAULT_RECOVER_MAP.computeIfAbsent(this.rocketNamespace, k -> new HashMap<>()).remove(closeLiteTopic);
+                    LITE_TOPIC_USE_DEFAULT_RECOVER_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>()).remove(closeLiteTopic);
                 }
             }
             if (this.useDefaultRecoverMode) {
-                RECOVER_MESSAGE_STREAM_RESPONSE_MAP.computeIfAbsent(rocketNamespace, k -> new HashMap<>()).put(RocketMQA2AConstant.DEFAULT_STREAM_RECOVER, sseEventListener);
+                RECOVER_MESSAGE_STREAM_RESPONSE_MAP.computeIfAbsent(namespace, k -> new HashMap<>()).put(RocketMQA2AConstant.DEFAULT_STREAM_RECOVER, sseEventListener);
             }
         } catch (Exception e) {
             throw new A2AClientException("RocketMQTransport failed to resubscribe streaming message request: " + e, e);
@@ -296,7 +296,7 @@ public class RocketMQTransport implements ClientTransport {
                 log.error("RocketMQTransport getTask error, responseMessageId is null");
                 return null;
             }
-            Map<String, CompletableFuture<String>> completableFutureMap = MESSAGE_RESPONSE_MAP.computeIfAbsent(this.rocketNamespace, k -> new HashMap<>());
+            Map<String, CompletableFuture<String>> completableFutureMap = MESSAGE_RESPONSE_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>());
             CompletableFuture<String> objectCompletableFuture = new CompletableFuture<>();
             completableFutureMap.put(responseMessageId, objectCompletableFuture);
             String result = objectCompletableFuture.get(120, TimeUnit.SECONDS);
@@ -324,7 +324,7 @@ public class RocketMQTransport implements ClientTransport {
                 log.error("RocketMQTransport cancelTask error, responseMessageId is null");
                 return null;
             }
-            Map<String, CompletableFuture<String>> completableFutureMap = MESSAGE_RESPONSE_MAP.computeIfAbsent(this.rocketNamespace, k -> new HashMap<>());
+            Map<String, CompletableFuture<String>> completableFutureMap = MESSAGE_RESPONSE_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>());
             CompletableFuture<String> objectCompletableFuture = new CompletableFuture<>();
             completableFutureMap.put(responseMessageId, objectCompletableFuture);
             String result = objectCompletableFuture.get(120, TimeUnit.SECONDS);
@@ -353,7 +353,7 @@ public class RocketMQTransport implements ClientTransport {
                 log.error("RocketMQTransport setTaskPushNotificationConfiguration error, responseMessageId is null");
                 return null;
             }
-            Map<String, CompletableFuture<String>> completableFutureMap = MESSAGE_RESPONSE_MAP.computeIfAbsent(this.rocketNamespace, k -> new HashMap<>());
+            Map<String, CompletableFuture<String>> completableFutureMap = MESSAGE_RESPONSE_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>());
             CompletableFuture<String> objectCompletableFuture = new CompletableFuture<>();
             completableFutureMap.put(responseMessageId, objectCompletableFuture);
             String result = objectCompletableFuture.get(120, TimeUnit.SECONDS);
@@ -383,7 +383,7 @@ public class RocketMQTransport implements ClientTransport {
                 log.error("RocketMQTransport getTaskPushNotificationConfiguration error, responseMessageId is null");
                 return null;
             }
-            Map<String, CompletableFuture<String>> completableFutureMap = MESSAGE_RESPONSE_MAP.computeIfAbsent(this.rocketNamespace, k -> new HashMap<>());
+            Map<String, CompletableFuture<String>> completableFutureMap = MESSAGE_RESPONSE_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>());
             CompletableFuture<String> completableFuture = new CompletableFuture<>();
             completableFutureMap.put(responseMessageId, completableFuture);
             String result = completableFuture.get(120, TimeUnit.SECONDS);
@@ -411,7 +411,7 @@ public class RocketMQTransport implements ClientTransport {
                 log.error("RocketMQTransport listTaskPushNotificationConfigurations error, responseMessageId is null");
                 return null;
             }
-            Map<String, CompletableFuture<String>> completableFutureMap = MESSAGE_RESPONSE_MAP.computeIfAbsent(this.rocketNamespace, k -> new HashMap<>());
+            Map<String, CompletableFuture<String>> completableFutureMap = MESSAGE_RESPONSE_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>());
             CompletableFuture<String> objectCompletableFuture = new CompletableFuture<>();
             completableFutureMap.put(responseMessageId, objectCompletableFuture);
             String result = objectCompletableFuture.get(120, TimeUnit.SECONDS);
@@ -439,7 +439,7 @@ public class RocketMQTransport implements ClientTransport {
                 log.error("RocketMQTransport deleteTaskPushNotificationConfigurations error, responseMessageId is null");
                 return;
             }
-            Map<String, CompletableFuture<String>> completableFutureMap = MESSAGE_RESPONSE_MAP.computeIfAbsent(this.rocketNamespace, k -> new HashMap<>());
+            Map<String, CompletableFuture<String>> completableFutureMap = MESSAGE_RESPONSE_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>());
             CompletableFuture<String> objectCompletableFuture = new CompletableFuture<>();
             completableFutureMap.put(responseMessageId, objectCompletableFuture);
             objectCompletableFuture.get(120, TimeUnit.SECONDS);
@@ -472,7 +472,7 @@ public class RocketMQTransport implements ClientTransport {
                     log.error("RocketMQTransport getAgentCard responseMessageId is null");
                     return null;
                 }
-                Map<String, CompletableFuture<String>> completableFutureMap = MESSAGE_RESPONSE_MAP.computeIfAbsent(this.rocketNamespace, k -> new HashMap<>());
+                Map<String, CompletableFuture<String>> completableFutureMap = MESSAGE_RESPONSE_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>());
                 CompletableFuture<String> objectCompletableFuture = new CompletableFuture<>();
                 completableFutureMap.put(responseMessageId, objectCompletableFuture);
                 String result = objectCompletableFuture.get(120, TimeUnit.SECONDS);
@@ -503,23 +503,23 @@ public class RocketMQTransport implements ClientTransport {
     }
 
     private void checkConfigParam() {
-        if (StringUtils.isEmpty(this.rocketMQEndpoint) || StringUtils.isEmpty(this.workAgentResponseTopic) ||
+        if (StringUtils.isEmpty(this.endpoint) || StringUtils.isEmpty(this.workAgentResponseTopic) ||
             StringUtils.isEmpty(this.workAgentResponseGroupID) || StringUtils.isEmpty(this.liteTopic) || StringUtils.isEmpty(agentTopic)) {
 
-            if (StringUtils.isEmpty(this.rocketMQEndpoint)) {
-                log.info("RocketMQTransport checkConfigParam rocketMQEndpoint is empty");
+            if (StringUtils.isEmpty(this.endpoint)) {
+                log.error("RocketMQTransport checkConfigParam endpoint is empty");
             }
             if (StringUtils.isEmpty(this.workAgentResponseTopic)) {
-                log.info("RocketMQTransport checkConfigParam workAgentResponseTopic is empty");
+                log.error("RocketMQTransport checkConfigParam workAgentResponseTopic is empty");
             }
             if (StringUtils.isEmpty(this.workAgentResponseGroupID)) {
-                log.info("RocketMQTransport checkConfigParam workAgentResponseGroupID is empty");
+                log.error("RocketMQTransport checkConfigParam workAgentResponseGroupID is empty");
             }
             if (StringUtils.isEmpty(this.liteTopic)) {
-                log.info("RocketMQTransport checkConfigParam liteTopic is empty");
+                log.error("RocketMQTransport checkConfigParam liteTopic is empty");
             }
             if (StringUtils.isEmpty(this.agentTopic)) {
-                log.info("RocketMQTransport checkConfigParam agentTopic is empty");
+                log.error("RocketMQTransport checkConfigParam agentTopic is empty");
             }
             throw new RuntimeException("RocketMQTransport checkConfigParam error, init failed !!!");
         }
@@ -539,15 +539,15 @@ public class RocketMQTransport implements ClientTransport {
     }
 
     private LitePushConsumer buildConsumer() throws ClientException {
-        if (StringUtils.isEmpty(this.rocketMQEndpoint) || StringUtils.isEmpty(this.workAgentResponseGroupID) || StringUtils.isEmpty(this.workAgentResponseTopic)) {
+        if (StringUtils.isEmpty(this.endpoint) || StringUtils.isEmpty(this.workAgentResponseGroupID) || StringUtils.isEmpty(this.workAgentResponseTopic)) {
             log.error("RocketMQTransport buildConsumer check param error");
             return null;
         }
         final ClientServiceProvider provider = ClientServiceProvider.loadService();
         SessionCredentialsProvider sessionCredentialsProvider = new StaticSessionCredentialsProvider(accessKey, secretKey);
         ClientConfiguration clientConfiguration = ClientConfiguration.newBuilder()
-            .setEndpoints(this.rocketMQEndpoint)
-            .setNamespace(this.rocketNamespace)
+            .setEndpoints(this.endpoint)
+            .setNamespace(this.namespace)
             .setCredentialProvider(sessionCredentialsProvider)
             .build();
         LitePushConsumer litePushConsumer = provider.newLitePushConsumerBuilder()
@@ -571,9 +571,9 @@ public class RocketMQTransport implements ClientTransport {
                         return ConsumeResult.SUCCESS;
                     }
                     if (!response.isStream()) {
-                        return dealNonStreamResult(response, this.rocketNamespace);
+                        return dealNonStreamResult(response, this.namespace);
                     }
-                    return dealStreamResult(response, this.rocketNamespace, liteTopic);
+                    return dealStreamResult(response, this.namespace, liteTopic);
                 } catch (Exception e) {
                     log.error("RocketMQTransport litePushConsumer consumer error, msgId: {}, error: {}", messageView.getMessageId(), e.getMessage());
                     return ConsumeResult.SUCCESS;
@@ -582,20 +582,20 @@ public class RocketMQTransport implements ClientTransport {
         return litePushConsumer;
     }
 
-    private ConsumeResult dealStreamResult(RocketMQResponse response, String rocketMQNamespace, String liteTopic) {
+    private ConsumeResult dealStreamResult(RocketMQResponse response, String namespace, String liteTopic) {
         if (null == response || StringUtils.isEmpty(response.getMessageId()) || StringUtils.isEmpty(liteTopic) || !response.isEnd() && StringUtils.isEmpty(response.getResponseBody())) {
             log.error("RocketMQTransport dealStreamResult param is error, response: {}, liteTopic: {}", JSON.toJSONString(response), liteTopic);
             return ConsumeResult.SUCCESS;
         }
 
-        Map<String, SSEEventListener> sseEventListenerMap = MESSAGE_STREAM_RESPONSE_MAP.get(rocketMQNamespace);
+        Map<String, SSEEventListener> sseEventListenerMap = MESSAGE_STREAM_RESPONSE_MAP.get(namespace);
         if (null == sseEventListenerMap) {
             log.error("RocketMQTransport dealStreamResult sseEventListenerMap is null");
             return ConsumeResult.SUCCESS;
         }
         SSEEventListener sseEventListener = sseEventListenerMap.get(response.getMessageId());
         if (null == sseEventListener) {
-            Map<String, Boolean> booleanMap = LITE_TOPIC_USE_DEFAULT_RECOVER_MAP.get(rocketMQNamespace);
+            Map<String, Boolean> booleanMap = LITE_TOPIC_USE_DEFAULT_RECOVER_MAP.get(namespace);
             if (null == booleanMap) {
                 log.error("RocketMQTransport dealStreamResult booleanMap is null");
                 return ConsumeResult.SUCCESS;
@@ -604,8 +604,8 @@ public class RocketMQTransport implements ClientTransport {
             if (null == useDefaultRecoverModeConsumer || !useDefaultRecoverModeConsumer) {
                 return ConsumeResult.SUCCESS;
             }
-            if (!RECOVER_MESSAGE_STREAM_RESPONSE_MAP.isEmpty() && RECOVER_MESSAGE_STREAM_RESPONSE_MAP.containsKey(rocketMQNamespace)) {
-                Map<String, SSEEventListener> sseEventListenerMapRecover = RECOVER_MESSAGE_STREAM_RESPONSE_MAP.get(rocketMQNamespace);
+            if (!RECOVER_MESSAGE_STREAM_RESPONSE_MAP.isEmpty() && RECOVER_MESSAGE_STREAM_RESPONSE_MAP.containsKey(namespace)) {
+                Map<String, SSEEventListener> sseEventListenerMapRecover = RECOVER_MESSAGE_STREAM_RESPONSE_MAP.get(namespace);
                 if (null == sseEventListenerMapRecover) {
                     log.error("RocketMQTransport dealStreamResult sseEventListenerMapRecover is null");
                     return ConsumeResult.SUCCESS;
@@ -638,12 +638,12 @@ public class RocketMQTransport implements ClientTransport {
         return ConsumeResult.SUCCESS;
     }
 
-    private ConsumeResult dealNonStreamResult(RocketMQResponse response, String rocketMQNamespace) {
+    private ConsumeResult dealNonStreamResult(RocketMQResponse response, String namespace) {
         if (null == response || StringUtils.isEmpty(response.getMessageId()) || StringUtils.isEmpty(response.getResponseBody())) {
             log.error("RocketMQTransport dealNonStreamResult param is error, response: {}", JSON.toJSONString(response));
             return ConsumeResult.SUCCESS;
         }
-        Map<String, CompletableFuture<String>> completableFutureMap = MESSAGE_RESPONSE_MAP.get(rocketMQNamespace);
+        Map<String, CompletableFuture<String>> completableFutureMap = MESSAGE_RESPONSE_MAP.get(namespace);
         if (null != completableFutureMap && completableFutureMap.containsKey(response.getMessageId())) {
             CompletableFuture<String> completableFuture = completableFutureMap.get(response.getMessageId());
             completableFuture.complete(response.getResponseBody());
@@ -715,8 +715,8 @@ public class RocketMQTransport implements ClientTransport {
         final ClientServiceProvider provider = ClientServiceProvider.loadService();
         SessionCredentialsProvider sessionCredentialsProvider = new StaticSessionCredentialsProvider(accessKey, secretKey);
         ClientConfiguration clientConfiguration = ClientConfiguration.newBuilder()
-            .setEndpoints(this.rocketMQEndpoint)
-            .setNamespace(this.rocketNamespace)
+            .setEndpoints(this.endpoint)
+            .setNamespace(this.namespace)
             .setCredentialProvider(sessionCredentialsProvider)
             .setRequestTimeout(Duration.ofSeconds(15))
             .build();
@@ -742,7 +742,7 @@ public class RocketMQTransport implements ClientTransport {
 
     private RocketMQResourceInfo parseAgentCardAddition(AgentCard agentCard) {
         if (null == agentCard || StringUtils.isEmpty(agentCard.preferredTransport()) || StringUtils.isEmpty(agentCard.url()) || null == agentCard.additionalInterfaces() || agentCard.additionalInterfaces().isEmpty()) {
-            log.info("parseAgentCardAddition param error, agentCard: {}", JSON.toJSONString(agentCard));
+            log.error("parseAgentCardAddition param error, agentCard: {}", JSON.toJSONString(agentCard));
             return null;
         }
         RocketMQResourceInfo rocketMQResourceInfo = null;
@@ -750,8 +750,7 @@ public class RocketMQTransport implements ClientTransport {
         if (RocketMQA2AConstant.ROCKETMQ_PROTOCOL.equals(preferredTransport)) {
             String url = agentCard.url();
             rocketMQResourceInfo = pareAgentCardUrl(url);
-            if (null != rocketMQResourceInfo && !StringUtils.isEmpty(rocketMQResourceInfo.getEndpoint()) && !StringUtils.isEmpty(
-                rocketMQResourceInfo.getTopic())) {
+            if (null != rocketMQResourceInfo && !StringUtils.isEmpty(rocketMQResourceInfo.getEndpoint()) && !StringUtils.isEmpty(rocketMQResourceInfo.getTopic())) {
                 log.info("RocketMQTransport get rocketMQResourceInfo from preferredTransport");
                 return rocketMQResourceInfo;
             }
@@ -762,9 +761,8 @@ public class RocketMQTransport implements ClientTransport {
             if (!StringUtils.isEmpty(transport) && RocketMQA2AConstant.ROCKETMQ_PROTOCOL.equals(transport)) {
                 String url = agentInterface.url();
                 rocketMQResourceInfo = pareAgentCardUrl(url);
-                if (null != rocketMQResourceInfo && !StringUtils.isEmpty(rocketMQResourceInfo.getEndpoint()) && !StringUtils.isEmpty(
-                    rocketMQResourceInfo.getTopic())) {
-                    log.info("RocketMQTransport get rocketMQResourceInfo from additionalInterfaces");
+                if (null != rocketMQResourceInfo && !StringUtils.isEmpty(rocketMQResourceInfo.getEndpoint()) && !StringUtils.isEmpty(rocketMQResourceInfo.getTopic())) {
+                    log.error("RocketMQTransport get rocketMQResourceInfo from additionalInterfaces");
                     return rocketMQResourceInfo;
                 }
             }
