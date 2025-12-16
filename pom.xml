@@ -27,7 +27,7 @@
 
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-a2a</artifactId>
-    <version>1.0.7-SNAPSHOT</version>
+    <version>1.0.8-SNAPSHOT</version>
 
     <name>Apache RocketMQ A2A ${project.version}</name>
     <description>Integrate Apache RocketMQ with A2A</description>
@@ -89,8 +89,8 @@
         <jakarta.ws.rs-api.version>3.1.0</jakarta.ws.rs-api.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <a2a-java-sdk-version>0.3.3.Final</a2a-java-sdk-version>
-        <rocket-client-version>5.1.0</rocket-client-version>
-        <fast-json-version>1.2.83_noneautotype</fast-json-version>
+        <rocketmq-client-version>5.1.0</rocketmq-client-version>
+        <fastjson-version>1.2.83_noneautotype</fastjson-version>
         <slfj-version>2.0.13</slfj-version>
     </properties>
     <dependencies>
@@ -105,19 +105,14 @@
             <version>${a2a-java-sdk-version}</version>
         </dependency>
         <dependency>
-            <groupId>io.github.a2asdk</groupId>
-            <artifactId>a2a-java-sdk-client</artifactId>
-            <version>${a2a-java-sdk-version}</version>
-        </dependency>
-        <dependency>
             <groupId>org.apache.rocketmq</groupId>
             <artifactId>rocketmq-client-java</artifactId>
-            <version>${rocket-client-version}</version>
+            <version>${rocketmq-client-version}</version>
         </dependency>
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>fastjson</artifactId>
-            <version>${fast-json-version}</version>
+            <version>${fastjson-version}</version>
         </dependency>
         <dependency>
             <groupId>jakarta.enterprise</groupId>
