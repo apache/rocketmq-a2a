@@ -105,11 +105,6 @@
             <version>${a2a-java-sdk-version}</version>
         </dependency>
         <dependency>
-            <groupId>io.github.a2asdk</groupId>
-            <artifactId>a2a-java-sdk-client</artifactId>
-            <version>${a2a-java-sdk-version}</version>
-        </dependency>
-        <dependency>
             <groupId>org.apache.rocketmq</groupId>
             <artifactId>rocketmq-client-java</artifactId>
             <version>${rocket-client-version}</version>
