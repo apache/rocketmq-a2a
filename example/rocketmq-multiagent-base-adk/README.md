@@ -7,7 +7,7 @@
 
 ### 1. 部署 Apache RocketMQ
 
-部署 [Apache RocketMQ](http://rocketmq.apache.org/) 的 LiteTopic 版本，或购买支持 LiteTopic 的 RocketMQ 实例，并创建以下资源：
+部署 [Apache RocketMQ](http://rocketmq.apache.org/) 的 LiteTopic 版本(关于开源版本，预计在12月底发布)，或购买支持 LiteTopic 的 RocketMQ 商业版实例，并创建以下资源：
 
 - **1.1** 创建 LiteTopic：`WorkerAgentResponse`
 - **1.2** 为 `WorkerAgentResponse` 创建绑定的 Lite 消费者 ID：`CID_HOST_AGENT_LITE`
