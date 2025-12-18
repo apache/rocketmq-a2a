@@ -99,21 +99,6 @@
                 <artifactId>jakarta.ws.rs-api</artifactId>
                 <version>3.1.0</version>
             </dependency>
-            <dependency>
-                <groupId>com.alibaba</groupId>
-                <artifactId>fastjson</artifactId>
-                <version>1.2.83_noneautotype</version>
-            </dependency>
-            <dependency>
-                <groupId>com.alibaba</groupId>
-                <artifactId>dashscope-sdk-java</artifactId>
-                <version>2.21.6</version>
-            </dependency>
-            <dependency>
-                <groupId>com.openai</groupId>
-                <artifactId>openai-java</artifactId>
-                <version>2.6.0</version>
-            </dependency>
         </dependencies>
     </dependencyManagement>
 
