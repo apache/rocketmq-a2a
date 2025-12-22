@@ -26,11 +26,11 @@
 
 ### 3. 以下示例以阿里云百炼平台提供的大模型与 Agent 调用服务为例。欢迎社区开发者贡献更多来自其他厂商的集成案例。
 
-1. [进入阿里云百炼平台](https://bailian.console.aliyun.com/?spm=a2c6h.28997786.0.0.7cc11833r0cOJH#/home)
+1. 进入阿里云百炼平台
 
-2. [创建对应的模型调用服务与Agent调用服务的apiKey](https://bailian.console.aliyun.com/?spm=a2c6h.28997786.0.0.7cc11833r0cOJH&tab=model#/api-key) 
+2. 创建对应的模型调用服务与Agent调用服务的apiKey
 
-3. [在百炼平台中创建天气助手应用与创建行程助手应用](https://bailian.console.aliyun.com/?spm=a2c6h.28997786.0.0.15d91833sq0PBK&tab=app#/app-center)
+3. 在百炼平台中创建天气助手应用与创建行程助手应用
 
 4. 创建天气助手Agent
 - 在阿里云百炼的应用管理页面，单击创建应用按钮。
