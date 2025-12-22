@@ -632,7 +632,7 @@ public class RocketMQTransport implements ClientTransport {
                 }
             }
             if (response.isEnd() && !StringUtils.isEmpty(response.getMessageId())) {
-                MESSAGE_STREAM_RESPONSE_MAP.remove(response.getMessageId());
+                sseEventListenerMap.remove(response.getMessageId());
             }
         }
         return ConsumeResult.SUCCESS;
