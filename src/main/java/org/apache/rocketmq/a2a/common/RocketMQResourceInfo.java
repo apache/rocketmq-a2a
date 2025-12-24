@@ -13,7 +13,6 @@ import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.HTTP_URL_PREFIX
 
 public class RocketMQResourceInfo {
     private static final Logger log = LoggerFactory.getLogger(RocketMQResourceInfo.class);
-
     private String endpoint;
     private String topic;
     private String namespace;
