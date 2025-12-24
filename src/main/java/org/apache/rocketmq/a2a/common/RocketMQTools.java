@@ -1,0 +1,250 @@
+package org.apache.rocketmq.a2a.common;
+
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import com.alibaba.fastjson.JSON;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import io.a2a.client.transport.jsonrpc.sse.SSEEventListener;
+import io.a2a.client.transport.spi.interceptors.PayloadAndHeaders;
+import io.a2a.spec.A2AClientException;
+import io.a2a.spec.JSONRPCError;
+import io.a2a.spec.JSONRPCResponse;
+import io.a2a.util.Utils;
+import org.apache.rocketmq.client.apis.ClientConfiguration;
+import org.apache.rocketmq.client.apis.ClientException;
+import org.apache.rocketmq.client.apis.ClientServiceProvider;
+import org.apache.rocketmq.client.apis.SessionCredentialsProvider;
+import org.apache.rocketmq.client.apis.StaticSessionCredentialsProvider;
+import org.apache.rocketmq.client.apis.consumer.ConsumeResult;
+import org.apache.rocketmq.client.apis.consumer.LitePushConsumer;
+import org.apache.rocketmq.client.apis.message.Message;
+import org.apache.rocketmq.client.apis.producer.Producer;
+import org.apache.rocketmq.client.apis.producer.ProducerBuilder;
+import org.apache.rocketmq.client.apis.producer.SendReceipt;
+import org.apache.rocketmq.shaded.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.DATA_PREFIX;
+
+public class RocketMQTools {
+    private static final Logger log = LoggerFactory.getLogger(RocketMQTools.class);
+    public static final ConcurrentMap<String /* namespace */, Map<String /* WorkerAgentResponseTopic */, LitePushConsumer>> ROCKETMQ_CONSUMER_MAP = new ConcurrentHashMap<>();
+    public static final ConcurrentMap<String /* namespace */, Map<String /* agentTopic */, Producer>> ROCKETMQ_PRODUCER_MAP = new ConcurrentHashMap<>();
+    public static final ConcurrentMap<String /* namespace */, Map<String /* msgId */, CompletableFuture<String>>> MESSAGE_RESPONSE_MAP = new ConcurrentHashMap<>();
+    public static final ConcurrentMap<String /* namespace */, Map<String /* msgId */, SSEEventListener>> MESSAGE_STREAM_RESPONSE_MAP = new ConcurrentHashMap<>();
+    public static final ConcurrentMap<String /* namespace */, Map<String /* liteTopic */, Boolean>> LITE_TOPIC_USE_DEFAULT_RECOVER_MAP = new ConcurrentHashMap<>();
+    public static final ConcurrentMap<String /* namespace */, Map<String /* Key */, SSEEventListener>> RECOVER_MESSAGE_STREAM_RESPONSE_MAP = new ConcurrentHashMap<>();
+
+    public static String sendRocketMQRequest(PayloadAndHeaders payloadAndHeaders, String agentTopic, String liteTopic, String workAgentResponseTopic, Producer producer) throws JsonProcessingException {
+        if (null == payloadAndHeaders || StringUtils.isEmpty(agentTopic) || StringUtils.isEmpty(liteTopic) || StringUtils.isEmpty(workAgentResponseTopic) || null == producer) {
+            log.error("RocketMQTransport sendRocketMQRequest error, payloadAndHeaders: {}, agentTopic: {}, workAgentResponseTopic: {}, liteTopic: {}, producer: {}", payloadAndHeaders, agentTopic, workAgentResponseTopic, liteTopic, producer);
+            return null;
+        }
+        RocketMQRequest request = new RocketMQRequest();
+        request.setRequestBody(Utils.OBJECT_MAPPER.writeValueAsString(payloadAndHeaders.getPayload()));
+        request.setAgentTopic(agentTopic);
+        request.setWorkAgentResponseTopic(workAgentResponseTopic);
+        request.setLiteTopic(liteTopic);
+        if (payloadAndHeaders.getHeaders() != null) {
+            for (Map.Entry<String, String> entry : payloadAndHeaders.getHeaders().entrySet()) {
+                request.addHeader(entry.getKey(), entry.getValue());
+            }
+        }
+        String messageBodyStr = serialText(request);
+        if (StringUtils.isEmpty(messageBodyStr)) {
+            return null;
+        }
+        final ClientServiceProvider provider = ClientServiceProvider.loadService();
+        if (null == producer) {
+            log.error("RocketMQTransport sendRocketMQRequest producer is null, agentTopic: {}", agentTopic);
+            return null;
+        }
+        byte[] body = messageBodyStr.getBytes(StandardCharsets.UTF_8);
+        final Message message = provider.newMessageBuilder()
+            .setTopic(agentTopic)
+            .setBody(body)
+            .build();
+        try {
+            final SendReceipt sendReceipt = producer.send(message);
+            if (!StringUtils.isEmpty(sendReceipt.getMessageId().toString())) {
+                return sendReceipt.getMessageId().toString();
+            }
+        } catch (Throwable t) {
+            return null;
+        }
+        return null;
+    }
+
+    public static void checkConfigParam(String endpoint, String workAgentResponseTopic, String workAgentResponseGroupID,
+        String liteTopic, String agentTopic) {
+        if (StringUtils.isEmpty(endpoint) || StringUtils.isEmpty(workAgentResponseTopic) || StringUtils.isEmpty(workAgentResponseGroupID) || StringUtils.isEmpty(liteTopic) || StringUtils.isEmpty(agentTopic)) {
+            if (StringUtils.isEmpty(endpoint)) {
+                log.error("RocketMQTransport checkConfigParam endpoint is empty");
+            }
+            if (StringUtils.isEmpty(workAgentResponseTopic)) {
+                log.error("RocketMQTransport checkConfigParam workAgentResponseTopic is empty");
+            }
+            if (StringUtils.isEmpty(workAgentResponseGroupID)) {
+                log.error("RocketMQTransport checkConfigParam workAgentResponseGroupID is empty");
+            }
+            if (StringUtils.isEmpty(liteTopic)) {
+                log.error("RocketMQTransport checkConfigParam liteTopic is empty");
+            }
+            if (StringUtils.isEmpty(agentTopic)) {
+                log.error("RocketMQTransport checkConfigParam agentTopic is empty");
+            }
+            throw new RuntimeException("RocketMQTransport checkConfigParam error, init failed !!!");
+        }
+    }
+
+    public static Producer buildProducer(String endpoint, String namespace, String accessKey, String secretKey, String... topics) throws ClientException {
+        final ClientServiceProvider provider = ClientServiceProvider.loadService();
+        SessionCredentialsProvider sessionCredentialsProvider = new StaticSessionCredentialsProvider(accessKey, secretKey);
+        ClientConfiguration clientConfiguration = ClientConfiguration.newBuilder()
+            .setEndpoints(endpoint)
+            .setNamespace(namespace)
+            .setCredentialProvider(sessionCredentialsProvider)
+            .setRequestTimeout(Duration.ofSeconds(15))
+            .build();
+        final ProducerBuilder builder = provider.newProducerBuilder()
+            .setClientConfiguration(clientConfiguration)
+            .setTopics(topics);
+        return builder.build();
+    }
+
+    public static LitePushConsumer buildConsumer(String endpoint, String namespace, String accessKey, String secretKey, String workAgentResponseGroupID, String workAgentResponseTopic) throws ClientException {
+        if (StringUtils.isEmpty(endpoint) || StringUtils.isEmpty(workAgentResponseGroupID) || StringUtils.isEmpty(workAgentResponseTopic)) {
+            log.error("RocketMQTransport buildConsumer check param error");
+            return null;
+        }
+        final ClientServiceProvider provider = ClientServiceProvider.loadService();
+        SessionCredentialsProvider sessionCredentialsProvider = new StaticSessionCredentialsProvider(accessKey, secretKey);
+        ClientConfiguration clientConfiguration = ClientConfiguration.newBuilder()
+            .setEndpoints(endpoint)
+            .setNamespace(namespace)
+            .setCredentialProvider(sessionCredentialsProvider)
+            .build();
+        LitePushConsumer litePushConsumer = provider.newLitePushConsumerBuilder()
+            .setClientConfiguration(clientConfiguration)
+            .setConsumerGroup(workAgentResponseGroupID)
+            .bindTopic(workAgentResponseTopic)
+            .setMessageListener(messageView -> {
+                try {
+                    Optional<String> liteTopicOpt = messageView.getLiteTopic();
+                    String liteTopic = liteTopicOpt.get();
+                    if (StringUtils.isEmpty(liteTopic)) {
+                        log.error("RocketMQTransport buildConsumer liteTopic is empty");
+                        return ConsumeResult.SUCCESS;
+                    }
+                    byte[] result = new byte[messageView.getBody().remaining()];
+                    messageView.getBody().get(result);
+                    String resultStr = new String(result, StandardCharsets.UTF_8);
+                    RocketMQResponse response = JSON.parseObject(resultStr, RocketMQResponse.class);
+                    if (null == response || StringUtils.isEmpty(response.getMessageId())) {
+                        log.error("RocketMQTransport litePushConsumer consumer error, response is null or messageId is empty");
+                        return ConsumeResult.SUCCESS;
+                    }
+                    if (!response.isStream()) {
+                        return dealNonStreamResult(response, namespace);
+                    }
+                    return dealStreamResult(response, namespace, liteTopic);
+                } catch (Exception e) {
+                    log.error("RocketMQTransport litePushConsumer consumer error, msgId: {}, error: {}", messageView.getMessageId(), e.getMessage());
+                    return ConsumeResult.SUCCESS;
+                }
+            }).build();
+        return litePushConsumer;
+    }
+
+    private static ConsumeResult dealStreamResult(RocketMQResponse response, String namespace, String liteTopic) {
+        if (null == response || StringUtils.isEmpty(response.getMessageId()) || StringUtils.isEmpty(liteTopic) || !response.isEnd() && StringUtils.isEmpty(response.getResponseBody())) {
+            log.error("RocketMQTransport dealStreamResult param is error, response: {}, liteTopic: {}", JSON.toJSONString(response), liteTopic);
+            return ConsumeResult.SUCCESS;
+        }
+
+        Map<String, SSEEventListener> sseEventListenerMap = MESSAGE_STREAM_RESPONSE_MAP.get(namespace);
+        if (null == sseEventListenerMap) {
+            log.error("RocketMQTransport dealStreamResult sseEventListenerMap is null");
+            return ConsumeResult.SUCCESS;
+        }
+        SSEEventListener sseEventListener = sseEventListenerMap.get(response.getMessageId());
+        if (null == sseEventListener) {
+            Map<String, Boolean> booleanMap = LITE_TOPIC_USE_DEFAULT_RECOVER_MAP.get(namespace);
+            if (null == booleanMap) {
+                log.error("RocketMQTransport dealStreamResult booleanMap is null");
+                return ConsumeResult.SUCCESS;
+            }
+            Boolean useDefaultRecoverModeConsumer = booleanMap.get(liteTopic);
+            if (null == useDefaultRecoverModeConsumer || !useDefaultRecoverModeConsumer) {
+                return ConsumeResult.SUCCESS;
+            }
+            if (!RECOVER_MESSAGE_STREAM_RESPONSE_MAP.isEmpty() && RECOVER_MESSAGE_STREAM_RESPONSE_MAP.containsKey(namespace)) {
+                Map<String, SSEEventListener> sseEventListenerMapRecover = RECOVER_MESSAGE_STREAM_RESPONSE_MAP.get(namespace);
+                if (null == sseEventListenerMapRecover) {
+                    log.error("RocketMQTransport dealStreamResult sseEventListenerMapRecover is null");
+                    return ConsumeResult.SUCCESS;
+                }
+                sseEventListener = sseEventListenerMapRecover.get(RocketMQA2AConstant.DEFAULT_STREAM_RECOVER);
+                if (null == sseEventListener) {
+                    log.error("RocketMQTransport dealStreamResult sseEventListenerMapRecover get sseEventListener is null");
+                    return ConsumeResult.SUCCESS;
+                }
+            }
+            if (null == sseEventListener) {
+                return ConsumeResult.SUCCESS;
+            }
+        }
+        String item = response.getResponseBody();
+        if (!StringUtils.isEmpty(item) && item.startsWith(DATA_PREFIX)) {
+            item = item.substring(5).trim();
+            if (!item.isEmpty()) {
+                try {
+                    sseEventListener.onMessage(item, new CompletableFuture<>());
+                } catch (Throwable e) {
+                    log.error("RocketMQTransport dealStreamResult error: {}", e.getMessage());
+                    return ConsumeResult.FAILURE;
+                }
+            }
+            if (response.isEnd() && !StringUtils.isEmpty(response.getMessageId())) {
+                sseEventListenerMap.remove(response.getMessageId());
+            }
+        }
+        return ConsumeResult.SUCCESS;
+    }
+
+    private static ConsumeResult dealNonStreamResult(RocketMQResponse response, String namespace) {
+        if (null == response || StringUtils.isEmpty(response.getMessageId()) || StringUtils.isEmpty(response.getResponseBody())) {
+            log.error("RocketMQTransport dealNonStreamResult param is error, response: {}", JSON.toJSONString(response));
+            return ConsumeResult.SUCCESS;
+        }
+        Map<String, CompletableFuture<String>> completableFutureMap = MESSAGE_RESPONSE_MAP.get(namespace);
+        if (null != completableFutureMap && completableFutureMap.containsKey(response.getMessageId())) {
+            CompletableFuture<String> completableFuture = completableFutureMap.get(response.getMessageId());
+            completableFuture.complete(response.getResponseBody());
+        }
+        return ConsumeResult.SUCCESS;
+    }
+
+    public static <T extends JSONRPCResponse<?>> T unmarshalResponse(String response, TypeReference<T> typeReference)
+        throws A2AClientException, JsonProcessingException {
+        T value = Utils.unmarshalFrom(response, typeReference);
+        JSONRPCError error = value.getError();
+        if (error != null) {
+            throw new A2AClientException(error.getMessage() + (error.getData() != null ? ": " + error.getData() : ""), error);
+        }
+        return value;
+    }
+
+    public static String serialText(RocketMQRequest rocketMQRequest) {
+        if (null == rocketMQRequest || StringUtils.isEmpty(rocketMQRequest.getRequestBody()) || StringUtils.isEmpty(rocketMQRequest.getWorkAgentResponseTopic()) || StringUtils.isEmpty(rocketMQRequest.getLiteTopic()) || StringUtils.isEmpty(rocketMQRequest.getAgentTopic())) {
+            return null;
+        }
+        return JSON.toJSONString(rocketMQRequest);
+    }
+}
