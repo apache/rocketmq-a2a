@@ -22,7 +22,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -191,12 +193,7 @@ public class RocketMQTransport implements ClientTransport {
                 log.error("RocketMQTransport sendMessage error, responseMessageId is null");
                 return null;
             }
-            Map<String, CompletableFuture<String>> completableFutureMap = MESSAGE_RESPONSE_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>());
-            CompletableFuture<String> objectCompletableFuture = new CompletableFuture<>();
-            completableFutureMap.put(responseMessageId, objectCompletableFuture);
-            String result = objectCompletableFuture.get(120, TimeUnit.SECONDS);
-            completableFutureMap.remove(responseMessageId);
-            SendMessageResponse response = unmarshalResponse(String.valueOf(result), SEND_MESSAGE_RESPONSE_REFERENCE);
+            SendMessageResponse response = unmarshalResponse(String.valueOf(getResult(responseMessageId)), SEND_MESSAGE_RESPONSE_REFERENCE);
             return response.getResult();
         } catch (Exception e) {
             log.error("RocketMQTransport sendMessage error: {}", e.getMessage());
@@ -277,12 +274,7 @@ public class RocketMQTransport implements ClientTransport {
                 log.error("RocketMQTransport getTask error, responseMessageId is null");
                 return null;
             }
-            Map<String, CompletableFuture<String>> completableFutureMap = MESSAGE_RESPONSE_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>());
-            CompletableFuture<String> objectCompletableFuture = new CompletableFuture<>();
-            completableFutureMap.put(responseMessageId, objectCompletableFuture);
-            String result = objectCompletableFuture.get(120, TimeUnit.SECONDS);
-            completableFutureMap.remove(responseMessageId);
-            GetTaskResponse response = unmarshalResponse(result, GET_TASK_RESPONSE_REFERENCE);
+            GetTaskResponse response = unmarshalResponse(getResult(responseMessageId), GET_TASK_RESPONSE_REFERENCE);
             return response.getResult();
         } catch (Exception e) {
             log.error("RocketMQTransport getTask error: {}", e.getMessage());
@@ -305,12 +297,7 @@ public class RocketMQTransport implements ClientTransport {
                 log.error("RocketMQTransport cancelTask error, responseMessageId is null");
                 return null;
             }
-            Map<String, CompletableFuture<String>> completableFutureMap = MESSAGE_RESPONSE_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>());
-            CompletableFuture<String> objectCompletableFuture = new CompletableFuture<>();
-            completableFutureMap.put(responseMessageId, objectCompletableFuture);
-            String result = objectCompletableFuture.get(120, TimeUnit.SECONDS);
-            completableFutureMap.remove(responseMessageId);
-            CancelTaskResponse response = unmarshalResponse(result, CANCEL_TASK_RESPONSE_REFERENCE);
+            CancelTaskResponse response = unmarshalResponse(getResult(responseMessageId), CANCEL_TASK_RESPONSE_REFERENCE);
             return response.getResult();
         } catch (Exception e) {
             log.error("RocketMQTransport cancelTask error: {}", e.getMessage());
@@ -326,7 +313,6 @@ public class RocketMQTransport implements ClientTransport {
             .method(SetTaskPushNotificationConfigRequest.METHOD)
             .params(request)
             .build();
-
         PayloadAndHeaders payloadAndHeaders = applyInterceptors(SetTaskPushNotificationConfigRequest.METHOD, setTaskPushNotificationRequest, agentCard, context);
         try {
             String responseMessageId = sendRocketMQRequest(payloadAndHeaders, this.agentTopic, liteTopic, this.workAgentResponseTopic, this.producer);
@@ -334,12 +320,7 @@ public class RocketMQTransport implements ClientTransport {
                 log.error("RocketMQTransport setTaskPushNotificationConfiguration error, responseMessageId is null");
                 return null;
             }
-            Map<String, CompletableFuture<String>> completableFutureMap = MESSAGE_RESPONSE_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>());
-            CompletableFuture<String> objectCompletableFuture = new CompletableFuture<>();
-            completableFutureMap.put(responseMessageId, objectCompletableFuture);
-            String result = objectCompletableFuture.get(120, TimeUnit.SECONDS);
-            completableFutureMap.remove(responseMessageId);
-            SetTaskPushNotificationConfigResponse response = unmarshalResponse(result, SET_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE);
+            SetTaskPushNotificationConfigResponse response = unmarshalResponse(getResult(responseMessageId), SET_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE);
             return response.getResult();
         } catch (Exception e) {
             log.error("RocketMQTransport setTaskPushNotificationConfiguration error: {}", e.getMessage());
@@ -364,12 +345,7 @@ public class RocketMQTransport implements ClientTransport {
                 log.error("RocketMQTransport getTaskPushNotificationConfiguration error, responseMessageId is null");
                 return null;
             }
-            Map<String, CompletableFuture<String>> completableFutureMap = MESSAGE_RESPONSE_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>());
-            CompletableFuture<String> completableFuture = new CompletableFuture<>();
-            completableFutureMap.put(responseMessageId, completableFuture);
-            String result = completableFuture.get(120, TimeUnit.SECONDS);
-            completableFutureMap.remove(responseMessageId);
-            GetTaskPushNotificationConfigResponse response = unmarshalResponse(result, GET_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE);
+            GetTaskPushNotificationConfigResponse response = unmarshalResponse(getResult(responseMessageId), GET_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE);
             return response.getResult();
         } catch (Exception e) {
             log.error("RocketMQTransport getTaskPushNotificationConfiguration error: {}", e.getMessage());
@@ -392,12 +368,7 @@ public class RocketMQTransport implements ClientTransport {
                 log.error("RocketMQTransport listTaskPushNotificationConfigurations error, responseMessageId is null");
                 return null;
             }
-            Map<String, CompletableFuture<String>> completableFutureMap = MESSAGE_RESPONSE_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>());
-            CompletableFuture<String> objectCompletableFuture = new CompletableFuture<>();
-            completableFutureMap.put(responseMessageId, objectCompletableFuture);
-            String result = objectCompletableFuture.get(120, TimeUnit.SECONDS);
-            completableFutureMap.remove(responseMessageId);
-            ListTaskPushNotificationConfigResponse response = unmarshalResponse(result, LIST_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE);
+            ListTaskPushNotificationConfigResponse response = unmarshalResponse(getResult(responseMessageId), LIST_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE);
             return response.getResult();
         } catch (Exception e) {
             log.error("RocketMQTransport listTaskPushNotificationConfigurations error: {}", e.getMessage());
@@ -481,6 +452,15 @@ public class RocketMQTransport implements ClientTransport {
         } catch (Exception e) {
             log.error("RocketMQTransport close error: {}", e.getMessage());
         }
+    }
+
+    private String getResult(String responseMessageId) throws ExecutionException, InterruptedException, TimeoutException {
+        Map<String, CompletableFuture<String>> completableFutureMap = MESSAGE_RESPONSE_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>());
+        CompletableFuture<String> objectCompletableFuture = new CompletableFuture<>();
+        completableFutureMap.put(responseMessageId, objectCompletableFuture);
+        String result = objectCompletableFuture.get(120, TimeUnit.SECONDS);
+        completableFutureMap.remove(responseMessageId);
+        return result;
     }
 
     private String dealLiteTopic(String contextId) {
