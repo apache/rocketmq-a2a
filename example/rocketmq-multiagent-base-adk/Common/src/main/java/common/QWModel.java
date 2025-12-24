@@ -66,6 +66,7 @@ public class QWModel extends BaseLlm {
             .apiKey(API_KEY)
             .model(MODEL_NAME)
             .messages(messages)
+            .enableThinking(false)
             .resultFormat(GenerationParam.ResultFormat.MESSAGE)
             .build();
         return gen.call(param);
