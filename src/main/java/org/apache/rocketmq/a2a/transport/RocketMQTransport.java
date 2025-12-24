@@ -426,7 +426,7 @@ public class RocketMQTransport implements ClientTransport {
                 litePushConsumer.subscribeLite(contextId);
                 liteTopic = contextId;
             } catch (ClientException e) {
-                log.error("dealLiteTopic error: {}", e.getMessage());
+                log.error("dealLiteTopic error: {}" , e.getMessage());
             }
         }
         return liteTopic;
