@@ -23,6 +23,7 @@ public class TaskInfo {
     private String taskDesc;
     private String userId;
     private String sessionId;
+    private String lastOutput = "";
     private Sinks.Many<String> sink;
 
     public TaskInfo(String taskId, String taskDesc, String sessionId, String userId, Sinks.Many<String> sink) {
@@ -30,6 +31,16 @@ public class TaskInfo {
         this.taskDesc = taskDesc;
         this.sessionId = sessionId;
         this.userId = userId;
+        this.sink = sink;
+    }
+
+    public TaskInfo(String taskId, String taskDesc, String userId, String sessionId, String lastOutput,
+        Many<String> sink) {
+        this.taskId = taskId;
+        this.taskDesc = taskDesc;
+        this.userId = userId;
+        this.sessionId = sessionId;
+        this.lastOutput = lastOutput;
         this.sink = sink;
     }
 
@@ -74,5 +85,13 @@ public class TaskInfo {
 
     public void setSink(Many<String> sink) {
         this.sink = sink;
+    }
+
+    public String getLastOutput() {
+        return lastOutput;
+    }
+
+    public void setLastOutput(String lastOutput) {
+        this.lastOutput = lastOutput;
     }
 }
