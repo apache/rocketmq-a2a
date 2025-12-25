@@ -80,12 +80,10 @@ import static org.apache.rocketmq.a2a.common.RocketMQResourceInfo.parseAgentCard
 import static org.apache.rocketmq.a2a.common.RocketMQTools.LITE_TOPIC_USE_DEFAULT_RECOVER_MAP;
 import static org.apache.rocketmq.a2a.common.RocketMQTools.MESSAGE_STREAM_RESPONSE_MAP;
 import static org.apache.rocketmq.a2a.common.RocketMQTools.RECOVER_MESSAGE_STREAM_RESPONSE_MAP;
-import static org.apache.rocketmq.a2a.common.RocketMQTools.ROCKETMQ_CONSUMER_MAP;
-import static org.apache.rocketmq.a2a.common.RocketMQTools.ROCKETMQ_PRODUCER_MAP;
-import static org.apache.rocketmq.a2a.common.RocketMQTools.buildConsumer;
-import static org.apache.rocketmq.a2a.common.RocketMQTools.buildProducer;
 import static org.apache.rocketmq.a2a.common.RocketMQTools.checkConfigParam;
 import static org.apache.rocketmq.a2a.common.RocketMQTools.getResult;
+import static org.apache.rocketmq.a2a.common.RocketMQTools.initAndGetConsumer;
+import static org.apache.rocketmq.a2a.common.RocketMQTools.initAndGetProducer;
 import static org.apache.rocketmq.a2a.common.RocketMQTools.sendRocketMQRequest;
 import static org.apache.rocketmq.a2a.common.RocketMQTools.unmarshalResponse;
 
@@ -109,7 +107,7 @@ public class RocketMQTransport implements ClientTransport {
     private Producer producer;
 
     public RocketMQTransport(String namespace, String accessKey, String secretKey, String workAgentResponseTopic, String workAgentResponseGroupID,
-        List<ClientCallInterceptor> interceptors, String agentUrl, A2AHttpClient httpClient, String liteTopic, boolean useDefaultRecoverMode, AgentCard agentCard) {
+        List<ClientCallInterceptor> interceptors, String agentUrl, A2AHttpClient httpClient, String liteTopic, boolean useDefaultRecoverMode, AgentCard agentCard) throws ClientException {
         this.accessKey = accessKey;
         this.secretKey = secretKey;
         this.workAgentResponseTopic = workAgentResponseTopic;
@@ -135,41 +133,8 @@ public class RocketMQTransport implements ClientTransport {
         this.namespace = StringUtils.isEmpty(rocketAgentCardInfo.getNamespace()) ? "" : rocketAgentCardInfo.getNamespace();
         LITE_TOPIC_USE_DEFAULT_RECOVER_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>()).put(this.liteTopic, useDefaultRecoverMode);
         checkConfigParam(this.endpoint, this.workAgentResponseTopic, this.workAgentResponseGroupID, this.liteTopic, this.agentTopic);
-        initRocketMQProducerAndConsumer();
-    }
-
-    private void initRocketMQProducerAndConsumer() {
-        if (StringUtils.isEmpty(this.endpoint) || StringUtils.isEmpty(this.workAgentResponseTopic) || StringUtils.isEmpty(this.liteTopic)) {
-            throw new A2AClientException("RocketMQTransport initRocketMQProducerAndConsumer param error");
-        }
-        try {
-            Map<String, LitePushConsumer> consumerMap = ROCKETMQ_CONSUMER_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>());
-            if (consumerMap.containsKey(this.workAgentResponseTopic)) {
-                this.litePushConsumer = consumerMap.get(this.workAgentResponseTopic);
-                this.litePushConsumer.subscribeLite(this.liteTopic);
-            } else {
-                LitePushConsumer litePushConsumer = consumerMap.computeIfAbsent(this.workAgentResponseTopic, k -> {
-                    try {
-                        return buildConsumer(this.endpoint, this.namespace, this.accessKey, this.secretKey, this.workAgentResponseGroupID, this.workAgentResponseTopic);
-                    } catch (ClientException e) {
-                        log.error("RocketMQTransport initRocketMQProducerAndConsumer buildConsumer error: {}", e.getMessage());
-                        throw new RuntimeException(e);
-                    }
-                });
-                if (null != litePushConsumer) {
-                    litePushConsumer.subscribeLite(this.liteTopic);
-                    this.litePushConsumer = litePushConsumer;
-                }
-            }
-            Map<String, Producer> producerMap = ROCKETMQ_PRODUCER_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>());
-            if (!producerMap.containsKey(this.agentTopic)) {
-                this.producer = buildProducer(this.endpoint, this.namespace, this.accessKey, this.secretKey, this.agentTopic);
-                producerMap.put(this.agentTopic, this.producer);
-            }
-            log.info("RocketMQTransport initRocketMQProducerAndConsumer success");
-        } catch (Exception e) {
-            log.error("RocketMQTransport initRocketMQProducerAndConsumer error: {}", e.getMessage());
-        }
+        this.litePushConsumer = initAndGetConsumer(this.namespace, this.endpoint, this.accessKey, this.secretKey, this.workAgentResponseTopic, this.workAgentResponseGroupID, this.liteTopic);
+        this.producer = initAndGetProducer(this.namespace, this.endpoint, this.accessKey, this.secretKey, this.agentTopic);
     }
 
     @Override
@@ -356,17 +321,7 @@ public class RocketMQTransport implements ClientTransport {
 
     @Override
     public void close() {
-        try {
-            if (null != this.producer) {
-                this.producer.close();
-            }
-            if (null != this.litePushConsumer) {
-                this.litePushConsumer.close();
-            }
-            log.info("RocketMQTransport close success");
-        } catch (Exception e) {
-            log.error("RocketMQTransport close error: {}", e.getMessage());
-        }
+        //todo
     }
 
     private String dealLiteTopic(String contextId) {
