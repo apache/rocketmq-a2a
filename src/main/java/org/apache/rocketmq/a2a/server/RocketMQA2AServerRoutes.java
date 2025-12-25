@@ -111,7 +111,7 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
     public void init() {
         try {
             checkConfigParam();
-            this.producer = buildProducer(ROCKETMQ_ENDPOINT, ROCKETMQ_NAMESPACE, ACCESS_KEY, SECRET_KEY);
+            this.producer = buildProducer(ROCKETMQ_NAMESPACE, ROCKETMQ_ENDPOINT, ACCESS_KEY, SECRET_KEY);
             this.pushConsumer = buildConsumer(ROCKETMQ_ENDPOINT, ROCKETMQ_NAMESPACE, ACCESS_KEY, SECRET_KEY,
                 BIZ_CONSUMER_GROUP, BIZ_TOPIC, buildMessageListener());
             this.multiSseSupport = new MultiSseSupport(this.producer);
@@ -181,11 +181,8 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
                         response.setResponseBody(toJsonString(nonStreamingResponse));
                     }
                     if (null != response) {
-                        SendReceipt send = this.producer.send(
-                            buildMessage(request.getWorkAgentResponseTopic(), request.getLiteTopic(), response));
-                        log.info("RocketMQA2AServerRoutes send nonStreamingResponse success, msgId: {}, time: {}, "
-                                + "response: {}", send.getMessageId(), System.currentTimeMillis(),
-                            JSON.toJSONString(response));
+                        SendReceipt send = this.producer.send(buildMessage(request.getWorkAgentResponseTopic(), request.getLiteTopic(), response));
+                        log.info("RocketMQA2AServerRoutes send nonStreamingResponse success, msgId: {}, time: {}, " + "response: {}", send.getMessageId(), System.currentTimeMillis(), JSON.toJSONString(response));
                     }
                 }
             } catch (Exception e) {

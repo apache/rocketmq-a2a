@@ -55,7 +55,6 @@ import org.apache.rocketmq.client.apis.producer.SendReceipt;
 import org.apache.rocketmq.shaded.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import static io.a2a.util.Utils.OBJECT_MAPPER;
 import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.DATA_PREFIX;
 
@@ -71,21 +70,21 @@ public class RocketMQTools {
     public static void checkConfigParam(String endpoint, String workAgentResponseTopic, String workAgentResponseGroupID, String liteTopic, String agentTopic) {
         if (StringUtils.isEmpty(endpoint) || StringUtils.isEmpty(workAgentResponseTopic) || StringUtils.isEmpty(workAgentResponseGroupID) || StringUtils.isEmpty(liteTopic) || StringUtils.isEmpty(agentTopic)) {
             if (StringUtils.isEmpty(endpoint)) {
-                log.error("RocketMQTransport checkConfigParam endpoint is empty");
+                log.error("checkRocketMQConfigParam endpoint is empty");
             }
             if (StringUtils.isEmpty(workAgentResponseTopic)) {
-                log.error("RocketMQTransport checkConfigParam workAgentResponseTopic is empty");
+                log.error("checkRocketMQConfigParam workAgentResponseTopic is empty");
             }
             if (StringUtils.isEmpty(workAgentResponseGroupID)) {
-                log.error("RocketMQTransport checkConfigParam workAgentResponseGroupID is empty");
+                log.error("checkRocketMQConfigParam workAgentResponseGroupID is empty");
             }
             if (StringUtils.isEmpty(liteTopic)) {
-                log.error("RocketMQTransport checkConfigParam liteTopic is empty");
+                log.error("checkRocketMQConfigParam liteTopic is empty");
             }
             if (StringUtils.isEmpty(agentTopic)) {
-                log.error("RocketMQTransport checkConfigParam agentTopic is empty");
+                log.error("checkRocketMQConfigParam agentTopic is empty");
             }
-            throw new RuntimeException("RocketMQTransport checkConfigParam error, init failed !!!");
+            throw new RuntimeException("checkRocketMQConfigParam error, init failed !!!");
         }
     }
 
@@ -96,15 +95,15 @@ public class RocketMQTools {
         Map<String, Producer> producerMap = ROCKETMQ_PRODUCER_MAP.computeIfAbsent(namespace, k -> new HashMap<>());
         return producerMap.computeIfAbsent(agentTopic, k -> {
             try {
-                return buildProducer(endpoint, namespace, accessKey, secretKey, k);
+                return buildProducer(namespace, endpoint, accessKey, secretKey, k);
             } catch (ClientException e) {
                 throw new RuntimeException(e);
             }
         });
     }
 
-    public static Producer buildProducer(String endpoint, String namespace, String accessKey, String secretKey, String... topics) throws ClientException {
-        if (StringUtils.isEmpty(endpoint)) {
+    public static Producer buildProducer(String namespace, String endpoint, String accessKey, String secretKey, String... topics) throws ClientException {
+        if (null == namespace || StringUtils.isEmpty(endpoint)) {
             log.error("buildProducer param error, endpoint: {}", endpoint);
             return null;
         }
@@ -124,30 +123,25 @@ public class RocketMQTools {
 
     public static LitePushConsumer initAndGetConsumer(String namespace, String endpoint, String accessKey, String secretKey, String workAgentResponseTopic, String workAgentResponseGroupID, String liteTopic) throws ClientException {
         if (null == namespace || StringUtils.isEmpty(endpoint) || StringUtils.isEmpty(workAgentResponseTopic) || StringUtils.isEmpty(workAgentResponseGroupID) || StringUtils.isEmpty(liteTopic)) {
-            log.error("initAndGetConsumer param error, namespace: {}, endpoint: {}, workAgentResponseTopic: {}, workAgentResponseGroupID: {}, liteTopic: {}", namespace, endpoint, workAgentResponseTopic, workAgentResponseGroupID, liteTopic);
+            log.error("initAndGetConsumer param error, namespace: {}, endpoint: {}, workAgentResponseTopic: {}, " + "workAgentResponseGroupID: {}, liteTopic: {}", namespace, endpoint, workAgentResponseTopic, workAgentResponseGroupID, liteTopic);
             return null;
         }
         Map<String, LitePushConsumer> consumerMap = ROCKETMQ_CONSUMER_MAP.computeIfAbsent(namespace, k -> new HashMap<>());
-        LitePushConsumer litePushConsumer = null;
-        if (consumerMap.containsKey(workAgentResponseTopic)) {
-            litePushConsumer = consumerMap.get(workAgentResponseTopic);
-            litePushConsumer.subscribeLite(liteTopic);
-        } else {
-            litePushConsumer = consumerMap.computeIfAbsent(workAgentResponseTopic, k -> {
-                try {
-                    return buildConsumer(endpoint, namespace, accessKey, secretKey, workAgentResponseGroupID, workAgentResponseTopic);
-                } catch (ClientException e) {
-                    log.error("RocketMQTransport initRocketMQProducerAndConsumer buildConsumer error: {}", e.getMessage());
-                    throw new RuntimeException(e);
-                }
-            });
-            if (null != litePushConsumer) {
-                litePushConsumer.subscribeLite(liteTopic);
+        LitePushConsumer litePushConsumer = consumerMap.computeIfAbsent(workAgentResponseTopic, k -> {
+            try {
+                return buildConsumer(endpoint, namespace, accessKey, secretKey, workAgentResponseGroupID, workAgentResponseTopic);
+            } catch (ClientException e) {
+                log.error("RocketMQTransport initRocketMQProducerAndConsumer buildConsumer error: {}", e.getMessage());
+                throw new RuntimeException(e);
             }
+        });
+        if (null != litePushConsumer) {
+            litePushConsumer.subscribeLite(liteTopic);
         }
         return litePushConsumer;
     }
 
+    //todo
     public static LitePushConsumer buildConsumer(String endpoint, String namespace, String accessKey, String secretKey, String workAgentResponseGroupID, String workAgentResponseTopic) throws ClientException {
         if (StringUtils.isEmpty(endpoint) || StringUtils.isEmpty(workAgentResponseGroupID) || StringUtils.isEmpty(workAgentResponseTopic)) {
             log.error("RocketMQTransport buildConsumer check param error");
@@ -200,23 +194,12 @@ public class RocketMQTools {
             .setCredentialProvider(sessionCredentialsProvider)
             .build();
         String tag = "*";
-        FilterExpression filterExpression = new FilterExpression(tag, FilterExpressionType.TAG);
-        PushConsumer consumer = provider.newPushConsumerBuilder()
+        return provider.newPushConsumerBuilder()
             .setClientConfiguration(clientConfiguration)
             .setConsumerGroup(bizGroup)
-            .setSubscriptionExpressions(Collections.singletonMap(bizTopic, filterExpression))
+            .setSubscriptionExpressions(Collections.singletonMap(bizTopic, new FilterExpression(tag, FilterExpressionType.TAG)))
             .setMessageListener(messageListener).build();
-        return consumer;
     }
-
-    public static String toJsonString(Object o) {
-        try {
-            return OBJECT_MAPPER.writeValueAsString(o);
-        } catch (JsonProcessingException ex) {
-            throw new RuntimeException(ex);
-        }
-    }
-
 
     public static Message buildMessage(String topic, String liteTopic, RocketMQResponse response) {
         if (StringUtils.isEmpty(topic) || StringUtils.isEmpty(liteTopic)) {
@@ -225,12 +208,11 @@ public class RocketMQTools {
         }
         String missionJsonStr = JSON.toJSONString(response);
         final ClientServiceProvider provider = ClientServiceProvider.loadService();
-        final Message message = provider.newMessageBuilder()
+        return provider.newMessageBuilder()
             .setTopic(topic)
             .setBody(missionJsonStr.getBytes(StandardCharsets.UTF_8))
             .setLiteTopic(liteTopic)
             .build();
-        return message;
     }
 
     public static String sendRocketMQRequest(PayloadAndHeaders payloadAndHeaders, String agentTopic, String liteTopic, String workAgentResponseTopic, Producer producer) throws JsonProcessingException {
@@ -262,7 +244,6 @@ public class RocketMQTools {
             }
         } catch (Throwable t) {
             log.error("sendRocketMQRequest send message failed, error: {}", t.getMessage());
-            return null;
         }
         return null;
     }
@@ -353,8 +334,21 @@ public class RocketMQTools {
         return value;
     }
 
+    public static String toJsonString(Object o) {
+        if (null == o) {
+            log.error("toJsonString param is null");
+            return null;
+        }
+        try {
+            return OBJECT_MAPPER.writeValueAsString(o);
+        } catch (JsonProcessingException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
     public static String serialText(RocketMQRequest rocketMQRequest) {
         if (null == rocketMQRequest || StringUtils.isEmpty(rocketMQRequest.getRequestBody()) || StringUtils.isEmpty(rocketMQRequest.getWorkAgentResponseTopic()) || StringUtils.isEmpty(rocketMQRequest.getLiteTopic()) || StringUtils.isEmpty(rocketMQRequest.getAgentTopic())) {
+            log.error("serialText param error rocketMQRequest: {}", JSON.toJSONString(rocketMQRequest));
             return null;
         }
         return JSON.toJSONString(rocketMQRequest);
