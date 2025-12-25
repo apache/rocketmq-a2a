@@ -95,7 +95,6 @@ import static org.apache.rocketmq.a2a.common.RocketMQTools.unmarshalResponse;
 
 public class RocketMQTransport implements ClientTransport {
     private static final Logger log = LoggerFactory.getLogger(RocketMQTransport.class);
-
     private final String agentTopic;
     private final String accessKey;
     private final String secretKey;
@@ -355,11 +354,7 @@ public class RocketMQTransport implements ClientTransport {
                 log.error("RocketMQTransport deleteTaskPushNotificationConfigurations error, responseMessageId is null");
                 return;
             }
-            Map<String, CompletableFuture<String>> completableFutureMap = MESSAGE_RESPONSE_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>());
-            CompletableFuture<String> objectCompletableFuture = new CompletableFuture<>();
-            completableFutureMap.put(responseMessageId, objectCompletableFuture);
-            objectCompletableFuture.get(120, TimeUnit.SECONDS);
-            completableFutureMap.remove(responseMessageId);
+            getResult(responseMessageId);
         } catch (Exception e) {
             log.error("RocketMQTransport deleteTaskPushNotificationConfigurations error: {}", e.getMessage());
         }

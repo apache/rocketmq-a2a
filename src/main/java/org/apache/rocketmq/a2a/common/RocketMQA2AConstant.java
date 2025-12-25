@@ -42,6 +42,4 @@ public class RocketMQA2AConstant {
     public static final String DEFAULT_STREAM_RECOVER = "default";
     public static final String DATA_PREFIX = "data:";
     public static final String METHOD = "method";
-
-
 }
