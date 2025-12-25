@@ -137,7 +137,7 @@ public class RocketMQTransport implements ClientTransport {
             this.litePushConsumer = initAndGetConsumer(this.namespace, this.endpoint, this.accessKey, this.secretKey, this.workAgentResponseTopic, this.workAgentResponseGroupID, this.liteTopic);
             this.producer = initAndGetProducer(this.namespace, this.endpoint, this.accessKey, this.secretKey, this.agentTopic);
         } catch (ClientException e) {
-           log.error("RocketMQTransport init rocketmq client error, e: {}", e.getMessage());
+            log.error("RocketMQTransport init rocketmq client error, e: {}", e.getMessage());
             throw new RuntimeException("RocketMQTransport init rocketmq client error");
         }
     }
@@ -334,7 +334,7 @@ public class RocketMQTransport implements ClientTransport {
                 litePushConsumer.subscribeLite(contextId);
                 liteTopic = contextId;
             } catch (ClientException e) {
-                log.error("dealLiteTopic error: {}" , e.getMessage());
+                log.error("dealLiteTopic error: {}", e.getMessage());
             }
         }
         return liteTopic;
