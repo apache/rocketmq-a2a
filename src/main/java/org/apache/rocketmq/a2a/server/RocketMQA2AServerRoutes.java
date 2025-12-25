@@ -17,8 +17,6 @@
 package org.apache.rocketmq.a2a.server;
 
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.util.Collections;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Flow;
@@ -27,7 +25,9 @@ import java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
+
 import com.alibaba.fastjson.JSON;
+
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.io.JsonEOFException;
@@ -70,24 +70,22 @@ import io.vertx.ext.web.RoutingContext;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import org.apache.rocketmq.client.apis.ClientConfiguration;
 import org.apache.rocketmq.client.apis.ClientException;
-import org.apache.rocketmq.client.apis.ClientServiceProvider;
-import org.apache.rocketmq.client.apis.SessionCredentialsProvider;
-import org.apache.rocketmq.client.apis.StaticSessionCredentialsProvider;
 import org.apache.rocketmq.client.apis.consumer.ConsumeResult;
-import org.apache.rocketmq.client.apis.consumer.FilterExpression;
-import org.apache.rocketmq.client.apis.consumer.FilterExpressionType;
+import org.apache.rocketmq.client.apis.consumer.MessageListener;
 import org.apache.rocketmq.client.apis.consumer.PushConsumer;
-import org.apache.rocketmq.client.apis.message.Message;
 import org.apache.rocketmq.client.apis.producer.Producer;
-import org.apache.rocketmq.client.apis.producer.ProducerBuilder;
 import org.apache.rocketmq.client.apis.producer.SendReceipt;
 import org.apache.rocketmq.shaded.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import static io.a2a.util.Utils.OBJECT_MAPPER;
 import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.METHOD;
+import static org.apache.rocketmq.a2a.common.RocketMQTools.buildConsumer;
+import static org.apache.rocketmq.a2a.common.RocketMQTools.buildMessage;
+import static org.apache.rocketmq.a2a.common.RocketMQTools.buildProducer;
+import static org.apache.rocketmq.a2a.common.RocketMQTools.toJsonString;
 
 @Startup
 @Singleton
@@ -99,159 +97,118 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
     private static final String BIZ_CONSUMER_GROUP = System.getProperty("bizConsumerGroup", "");
     private static final String ACCESS_KEY = System.getProperty("rocketMQAK", "");
     private static final String SECRET_KEY = System.getProperty("rocketMQSK", "");
-
-    @Inject
-    JSONRPCHandler jsonRpcHandler;
-
     private static volatile Runnable streamingMultiSseSupportSubscribedRunnable;
-
-    private final ThreadPoolExecutor executor = new ThreadPoolExecutor(
-        6,
-        6,
-        60, TimeUnit.SECONDS,
-        new ArrayBlockingQueue<>(10_0000),
-        new CallerRunsPolicy()
-    );
-
+    private final ThreadPoolExecutor executor = new ThreadPoolExecutor(6, 6, 60, TimeUnit.SECONDS,
+        new ArrayBlockingQueue<>(10_0000), new CallerRunsPolicy());
     private Producer producer;
     private PushConsumer pushConsumer;
     private MultiSseSupport multiSseSupport;
+
+    @Inject
+    JSONRPCHandler jsonRpcHandler;
 
     @PostConstruct
     public void init() {
         try {
             checkConfigParam();
-            this.producer = buildProducer();
-            this.pushConsumer = buildConsumer();
+            this.producer = buildProducer(ROCKETMQ_ENDPOINT, ROCKETMQ_NAMESPACE, ACCESS_KEY, SECRET_KEY);
+            this.pushConsumer = buildConsumer(ROCKETMQ_ENDPOINT, ROCKETMQ_NAMESPACE, ACCESS_KEY, SECRET_KEY,
+                BIZ_CONSUMER_GROUP, BIZ_TOPIC, buildMessageListener());
             this.multiSseSupport = new MultiSseSupport(this.producer);
             log.info("RocketMQA2AServerRoutes init success");
         } catch (Exception e) {
             log.error("RocketMQA2AServerRoutes error: {}", e.getMessage());
         }
     }
-    private Producer buildProducer() throws ClientException {
-        final ClientServiceProvider provider = ClientServiceProvider.loadService();
-        SessionCredentialsProvider sessionCredentialsProvider = new StaticSessionCredentialsProvider(ACCESS_KEY, SECRET_KEY);
-        ClientConfiguration clientConfiguration = ClientConfiguration.newBuilder()
-            .setEndpoints(ROCKETMQ_ENDPOINT)
-            .setNamespace(ROCKETMQ_NAMESPACE)
-            .setCredentialProvider(sessionCredentialsProvider)
-            .setRequestTimeout(Duration.ofSeconds(15))
-            .build();
-        final ProducerBuilder builder = provider.newProducerBuilder().setClientConfiguration(clientConfiguration);
-        return builder.build();
-    }
 
-    private PushConsumer buildConsumer() throws ClientException {
-        final ClientServiceProvider provider = ClientServiceProvider.loadService();
-        SessionCredentialsProvider sessionCredentialsProvider = new StaticSessionCredentialsProvider(ACCESS_KEY, SECRET_KEY);
-        ClientConfiguration clientConfiguration = ClientConfiguration.newBuilder()
-            .setEndpoints(ROCKETMQ_ENDPOINT)
-            .setNamespace(ROCKETMQ_NAMESPACE)
-            .setCredentialProvider(sessionCredentialsProvider)
-            .build();
-        String tag = "*";
-        FilterExpression filterExpression = new FilterExpression(tag, FilterExpressionType.TAG);
-        PushConsumer consumer = provider.newPushConsumerBuilder()
-            .setClientConfiguration(clientConfiguration)
-            .setConsumerGroup(BIZ_CONSUMER_GROUP)
-            .setSubscriptionExpressions(Collections.singletonMap(BIZ_TOPIC, filterExpression))
-            .setMessageListener(messageView -> {
-                CompletableFuture<Boolean> completableFuture = null;
+    private MessageListener buildMessageListener() {
+        return messageView -> {
+            CompletableFuture<Boolean> completableFuture = null;
+            try {
+                byte[] result = new byte[messageView.getBody().remaining()];
+                messageView.getBody().get(result);
+                String messageStr = new String(result, StandardCharsets.UTF_8);
+                RocketMQRequest request = JSON.parseObject(messageStr, RocketMQRequest.class);
+                boolean streaming = false;
+                String body = request.getRequestBody();
+                JSONRPCResponse<?> nonStreamingResponse = null;
+                Multi<? extends JSONRPCResponse<?>> streamingResponse = null;
+                JSONRPCErrorResponse error = null;
                 try {
-                    byte[] result = new byte[messageView.getBody().remaining()];
-                    messageView.getBody().get(result);
-                    String messageStr = new String(result, StandardCharsets.UTF_8);
-                    RocketMQRequest request = JSON.parseObject(messageStr, RocketMQRequest.class);
-                    boolean streaming = false;
-                    String body = request.getRequestBody();
-                    JSONRPCResponse<?> nonStreamingResponse = null;
-                    Multi<? extends JSONRPCResponse<?>> streamingResponse = null;
-                    JSONRPCErrorResponse error = null;
-                    try {
-                        JsonNode node = OBJECT_MAPPER.readTree(body);
-                        JsonNode method = node != null ? node.get(METHOD) : null;
-                        streaming = method != null && (SendStreamingMessageRequest.METHOD.equals(method.asText()) || TaskResubscriptionRequest.METHOD.equals(method.asText()));
-                        if (streaming) {
-                            StreamingJSONRPCRequest<?> streamingJSONRPCRequest = OBJECT_MAPPER.treeToValue(node, StreamingJSONRPCRequest.class);
-                            streamingResponse = processStreamingRequest(streamingJSONRPCRequest, null);
-                        } else {
-                            NonStreamingJSONRPCRequest<?> nonStreamingJSONRPCRequest = OBJECT_MAPPER.treeToValue(node, NonStreamingJSONRPCRequest.class);
-                            nonStreamingResponse = processNonStreamingRequest(nonStreamingJSONRPCRequest, null);
-                        }
-                    } catch (JsonProcessingException e) {
-                        error = handleError(e);
-                    } catch (Throwable t) {
-                        error = new JSONRPCErrorResponse(new InternalError(t.getMessage()));
-                    } finally {
-                        RocketMQResponse response = null;
-                        if (error != null) {
-                            response = new RocketMQResponse();
-                            response.setEnd(true);
-                            response.setStream(false);
-                            response.setLiteTopic(request.getLiteTopic());
-                            response.setContextId(response.getContextId());
-                            response.setResponseBody(JSON.toJSONString(error));
-                            response.setMessageId(messageView.getMessageId().toString());
-                        } else if (streaming) {
-                            final Multi<? extends JSONRPCResponse<?>> finalStreamingResponse = streamingResponse;
-                            log.info("RocketMQA2AServerRoutes streaming finalStreamingResponse: {}", JSON.toJSONString(finalStreamingResponse));
-                            completableFuture = new CompletableFuture<>();
-                            CompletableFuture<Boolean> finalCompletableFuture = completableFuture;
-                            this.executor.execute(() -> {
-                                this.multiSseSupport.subscribeObjectRocketmq(finalStreamingResponse.map(i -> (Object)i), null, request.getWorkAgentResponseTopic(), request.getLiteTopic(), messageView.getMessageId().toString(), finalCompletableFuture);
-                            });
-                        } else {
-                            response = new RocketMQResponse();
-                            response.setEnd(true);
-                            response.setStream(false);
-                            response.setLiteTopic(request.getLiteTopic());
-                            response.setContextId(response.getContextId());
-                            response.setMessageId(messageView.getMessageId().toString());
-                            response.setResponseBody(toJsonString(nonStreamingResponse));
-                        }
-                        if (null != response) {
-                            SendReceipt send = this.producer.send(buildMessage(request.getWorkAgentResponseTopic(), request.getLiteTopic(), response));
-                            log.info("RocketMQA2AServerRoutes send nonStreamingResponse success, msgId: {}, time: {}, response: {}", send.getMessageId(), System.currentTimeMillis(), JSON.toJSONString(response));
-                        }
+                    JsonNode node = OBJECT_MAPPER.readTree(body);
+                    JsonNode method = node != null ? node.get(METHOD) : null;
+                    streaming = method != null && (SendStreamingMessageRequest.METHOD.equals(method.asText())
+                        || TaskResubscriptionRequest.METHOD.equals(method.asText()));
+                    if (streaming) {
+                        StreamingJSONRPCRequest<?> streamingJSONRPCRequest = OBJECT_MAPPER.treeToValue(node,
+                            StreamingJSONRPCRequest.class);
+                        streamingResponse = processStreamingRequest(streamingJSONRPCRequest, null);
+                    } else {
+                        NonStreamingJSONRPCRequest<?> nonStreamingJSONRPCRequest = OBJECT_MAPPER.treeToValue(node,
+                            NonStreamingJSONRPCRequest.class);
+                        nonStreamingResponse = processNonStreamingRequest(nonStreamingJSONRPCRequest, null);
+                    }
+                } catch (JsonProcessingException e) {
+                    error = handleError(e);
+                } catch (Throwable t) {
+                    error = new JSONRPCErrorResponse(new InternalError(t.getMessage()));
+                } finally {
+                    RocketMQResponse response = null;
+                    if (error != null) {
+                        response = new RocketMQResponse();
+                        response.setEnd(true);
+                        response.setStream(false);
+                        response.setLiteTopic(request.getLiteTopic());
+                        response.setResponseBody(JSON.toJSONString(error));
+                        response.setMessageId(messageView.getMessageId().toString());
+                    } else if (streaming) {
+                        final Multi<? extends JSONRPCResponse<?>> finalStreamingResponse = streamingResponse;
+                        log.info("RocketMQA2AServerRoutes streaming finalStreamingResponse: {}",
+                            JSON.toJSONString(finalStreamingResponse));
+                        completableFuture = new CompletableFuture<>();
+                        CompletableFuture<Boolean> finalCompletableFuture = completableFuture;
+                        this.executor.execute(() -> {
+                            this.multiSseSupport.subscribeObjectRocketmq(finalStreamingResponse.map(i -> (Object)i),
+                                null, request.getWorkAgentResponseTopic(), request.getLiteTopic(),
+                                messageView.getMessageId().toString(), finalCompletableFuture);
+                        });
+                    } else {
+                        response = new RocketMQResponse();
+                        response.setEnd(true);
+                        response.setStream(false);
+                        response.setLiteTopic(request.getLiteTopic());
+                        response.setMessageId(messageView.getMessageId().toString());
+                        response.setResponseBody(toJsonString(nonStreamingResponse));
+                    }
+                    if (null != response) {
+                        SendReceipt send = this.producer.send(
+                            buildMessage(request.getWorkAgentResponseTopic(), request.getLiteTopic(), response));
+                        log.info("RocketMQA2AServerRoutes send nonStreamingResponse success, msgId: {}, time: {}, "
+                                + "response: {}", send.getMessageId(), System.currentTimeMillis(),
+                            JSON.toJSONString(response));
+                    }
+                }
+            } catch (Exception e) {
+                log.error("RocketMQA2AServerRoutes error: {}", e.getMessage());
+                return ConsumeResult.FAILURE;
+            }
+            if (null != completableFuture) {
+                try {
+                    Boolean streamResult = completableFuture.get(15, TimeUnit.MINUTES);
+                    if (null != streamResult && streamResult) {
+                        log.info("RocketMQA2AServerRoutes deal msg success");
+                        return ConsumeResult.SUCCESS;
+                    } else {
+                        log.info("RocketMQA2AServerRoutes deal msg failed");
+                        return ConsumeResult.FAILURE;
                     }
                 } catch (Exception e) {
                     log.error("RocketMQA2AServerRoutes error: {}", e.getMessage());
                     return ConsumeResult.FAILURE;
                 }
-                if (null != completableFuture) {
-                    try {
-                        Boolean streamResult = completableFuture.get(15, TimeUnit.MINUTES);
-                        if (null != streamResult && streamResult) {
-                            log.info("RocketMQA2AServerRoutes deal msg success");
-                            return ConsumeResult.SUCCESS;
-                        } else {
-                            log.info("RocketMQA2AServerRoutes deal msg failed");
-                            return ConsumeResult.FAILURE;
-                        }
-                    } catch (Exception e) {
-                        log.error("RocketMQA2AServerRoutes error: {}", e.getMessage());
-                        return ConsumeResult.FAILURE;
-                    }
-                }
-                return ConsumeResult.SUCCESS;
-            }).build();
-        return consumer;
-    }
-
-    private static Message buildMessage(String topic, String liteTopic, RocketMQResponse response) {
-        if (StringUtils.isEmpty(topic) || StringUtils.isEmpty(liteTopic)) {
-            log.error("RocketMQA2AServerRoutes buildMessage param error, topic: {}, liteTopic: {}, response: {}", topic, liteTopic, JSON.toJSONString(response));
-            return null;
-        }
-        String missionJsonStr = JSON.toJSONString(response);
-        final ClientServiceProvider provider = ClientServiceProvider.loadService();
-        final Message message = provider.newMessageBuilder()
-            .setTopic(topic)
-            .setBody(missionJsonStr.getBytes(StandardCharsets.UTF_8))
-            .setLiteTopic(liteTopic)
-            .build();
-        return message;
+            }
+            return ConsumeResult.SUCCESS;
+        };
     }
 
     private JSONRPCErrorResponse handleError(JsonProcessingException exception) {
@@ -276,8 +233,8 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
         return new JSONRPCErrorResponse(id, jsonRpcError);
     }
 
-    private JSONRPCResponse<?> processNonStreamingRequest(
-        NonStreamingJSONRPCRequest<?> request, ServerCallContext context) {
+    private JSONRPCResponse<?> processNonStreamingRequest(NonStreamingJSONRPCRequest<?> request,
+        ServerCallContext context) {
         if (request instanceof GetTaskRequest req) {
             return jsonRpcHandler.onGetTask(req, context);
         } else if (request instanceof CancelTaskRequest req) {
@@ -299,8 +256,8 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
         }
     }
 
-    private Multi<? extends JSONRPCResponse<?>> processStreamingRequest(
-        JSONRPCRequest<?> request, ServerCallContext context) {
+    private Multi<? extends JSONRPCResponse<?>> processStreamingRequest(JSONRPCRequest<?> request,
+        ServerCallContext context) {
         Flow.Publisher<? extends JSONRPCResponse<?>> publisher;
         if (request instanceof SendStreamingMessageRequest req) {
             publisher = jsonRpcHandler.onMessageSendStream(req, context);
@@ -326,9 +283,12 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
         private MultiSseSupport(Producer producer) {
             this.producer = producer;
         }
-        public void writeRocketmq(Multi<Buffer> multi, RoutingContext rc, String workAgentResponseTopic, String liteTopic, String msgId, CompletableFuture<Boolean> completableFuture) {
+
+        public void writeRocketmq(Multi<Buffer> multi, RoutingContext rc, String workAgentResponseTopic,
+            String liteTopic, String msgId, CompletableFuture<Boolean> completableFuture) {
             multi.subscribe().withSubscriber(new Flow.Subscriber<Buffer>() {
                 Flow.Subscription upstream;
+
                 @Override
                 public void onSubscribe(Flow.Subscription subscription) {
                     this.upstream = subscription;
@@ -342,15 +302,11 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
                 @Override
                 public void onNext(Buffer item) {
                     try {
-                        RocketMQResponse response = new RocketMQResponse();
-                        response.setEnd(false);
-                        response.setStream(true);
-                        response.setLiteTopic(liteTopic);
-                        response.setContextId(response.getContextId());
-                        response.setMessageId(msgId);
-                        response.setResponseBody(item.toString());
+                        RocketMQResponse response = new RocketMQResponse(liteTopic, null, item.toString(), msgId, true,
+                            false);
                         SendReceipt send = producer.send(buildMessage(workAgentResponseTopic, liteTopic, response));
-                        log.info("MultiSseSupport send response success, msgId: {}, time: {}, response: {}", send.getMessageId(), System.currentTimeMillis(), JSON.toJSONString(response));
+                        log.info("MultiSseSupport send response success, msgId: {}, time: {}", send.getMessageId(),
+                            System.currentTimeMillis(), JSON.toJSONString(response));
                     } catch (Exception e) {
                         log.error("MultiSseSupport send stream error, {}", e.getMessage());
                     }
@@ -365,15 +321,11 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
 
                 @Override
                 public void onComplete() {
+                    RocketMQResponse response = new RocketMQResponse(liteTopic, null, null, msgId, true, true);
                     try {
-                        RocketMQResponse response = new RocketMQResponse();
-                        response.setEnd(true);
-                        response.setStream(true);
-                        response.setLiteTopic(liteTopic);
-                        response.setContextId(response.getContextId());
-                        response.setMessageId(msgId);
                         SendReceipt send = producer.send(buildMessage(workAgentResponseTopic, liteTopic, response));
-                        log.info("MultiSseSupport send response success, msgId: {}, time: {}, response: {}", send.getMessageId(), System.currentTimeMillis(), JSON.toJSONString(response));
+                        log.info("MultiSseSupport send response success, msgId: {}, time: {}, response: {}",
+                            send.getMessageId(), System.currentTimeMillis(), JSON.toJSONString(response));
                     } catch (ClientException e) {
                         log.error("MultiSseSupport error send complete, msgId: {}", e.getMessage());
                     }
@@ -382,7 +334,8 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
             });
         }
 
-        public void subscribeObjectRocketmq(Multi<Object> multi, RoutingContext rc, String workAgentResponseTopic, String liteTopic, String msgId, CompletableFuture<Boolean> completableFuture) {
+        public void subscribeObjectRocketmq(Multi<Object> multi, RoutingContext rc, String workAgentResponseTopic,
+            String liteTopic, String msgId, CompletableFuture<Boolean> completableFuture) {
             AtomicLong count = new AtomicLong();
             Multi<Buffer> map = multi.map(new Function<Object, Buffer>() {
                 @Override
@@ -400,16 +353,9 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
         }
     }
 
-    private static String toJsonString(Object o) {
-        try {
-            return OBJECT_MAPPER.writeValueAsString(o);
-        } catch (JsonProcessingException ex) {
-            throw new RuntimeException(ex);
-        }
-    }
-
     private void checkConfigParam() {
-        if (StringUtils.isEmpty(ROCKETMQ_ENDPOINT) || StringUtils.isEmpty(BIZ_TOPIC) || StringUtils.isEmpty(BIZ_CONSUMER_GROUP)) {
+        if (StringUtils.isEmpty(ROCKETMQ_ENDPOINT) || StringUtils.isEmpty(BIZ_TOPIC) || StringUtils.isEmpty(
+            BIZ_CONSUMER_GROUP)) {
             if (StringUtils.isEmpty(ROCKETMQ_ENDPOINT)) {
                 log.error("rocketMQEndpoint is empty");
             }
