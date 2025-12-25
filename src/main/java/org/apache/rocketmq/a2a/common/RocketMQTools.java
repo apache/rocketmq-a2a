@@ -61,44 +61,7 @@ public class RocketMQTools {
     public static final ConcurrentMap<String /* namespace */, Map<String /* liteTopic */, Boolean>> LITE_TOPIC_USE_DEFAULT_RECOVER_MAP = new ConcurrentHashMap<>();
     public static final ConcurrentMap<String /* namespace */, Map<String /* Key */, SSEEventListener>> RECOVER_MESSAGE_STREAM_RESPONSE_MAP = new ConcurrentHashMap<>();
 
-    public static String sendRocketMQRequest(PayloadAndHeaders payloadAndHeaders, String agentTopic, String liteTopic, String workAgentResponseTopic, Producer producer) throws JsonProcessingException {
-        if (null == payloadAndHeaders || StringUtils.isEmpty(agentTopic) || StringUtils.isEmpty(liteTopic) || StringUtils.isEmpty(workAgentResponseTopic) || null == producer) {
-            log.error("RocketMQTransport sendRocketMQRequest error, payloadAndHeaders: {}, agentTopic: {}, workAgentResponseTopic: {}, liteTopic: {}, producer: {}", payloadAndHeaders, agentTopic, workAgentResponseTopic, liteTopic, producer);
-            return null;
-        }
-        RocketMQRequest request = new RocketMQRequest();
-        request.setRequestBody(Utils.OBJECT_MAPPER.writeValueAsString(payloadAndHeaders.getPayload()));
-        request.setAgentTopic(agentTopic);
-        request.setWorkAgentResponseTopic(workAgentResponseTopic);
-        request.setLiteTopic(liteTopic);
-        if (payloadAndHeaders.getHeaders() != null) {
-            for (Map.Entry<String, String> entry : payloadAndHeaders.getHeaders().entrySet()) {
-                request.addHeader(entry.getKey(), entry.getValue());
-            }
-        }
-        String messageBodyStr = serialText(request);
-        if (StringUtils.isEmpty(messageBodyStr)) {
-            return null;
-        }
-        final ClientServiceProvider provider = ClientServiceProvider.loadService();
-        byte[] body = messageBodyStr.getBytes(StandardCharsets.UTF_8);
-        final Message message = provider.newMessageBuilder()
-            .setTopic(agentTopic)
-            .setBody(body)
-            .build();
-        try {
-            final SendReceipt sendReceipt = producer.send(message);
-            if (!StringUtils.isEmpty(sendReceipt.getMessageId().toString())) {
-                return sendReceipt.getMessageId().toString();
-            }
-        } catch (Throwable t) {
-            return null;
-        }
-        return null;
-    }
-
-    public static void checkConfigParam(String endpoint, String workAgentResponseTopic, String workAgentResponseGroupID,
-        String liteTopic, String agentTopic) {
+    public static void checkConfigParam(String endpoint, String workAgentResponseTopic, String workAgentResponseGroupID, String liteTopic, String agentTopic) {
         if (StringUtils.isEmpty(endpoint) || StringUtils.isEmpty(workAgentResponseTopic) || StringUtils.isEmpty(workAgentResponseGroupID) || StringUtils.isEmpty(liteTopic) || StringUtils.isEmpty(agentTopic)) {
             if (StringUtils.isEmpty(endpoint)) {
                 log.error("RocketMQTransport checkConfigParam endpoint is empty");
@@ -120,6 +83,10 @@ public class RocketMQTools {
     }
 
     public static Producer buildProducer(String endpoint, String namespace, String accessKey, String secretKey, String... topics) throws ClientException {
+        if (StringUtils.isEmpty(endpoint)) {
+            log.error("buildProducer param error, endpoint: {}", endpoint);
+            return null;
+        }
         final ClientServiceProvider provider = ClientServiceProvider.loadService();
         SessionCredentialsProvider sessionCredentialsProvider = new StaticSessionCredentialsProvider(accessKey, secretKey);
         ClientConfiguration clientConfiguration = ClientConfiguration.newBuilder()
@@ -134,8 +101,11 @@ public class RocketMQTools {
         return builder.build();
     }
 
-    public static LitePushConsumer initAndGetConsumer(String namespace, String endpoint, String accessKey, String secretKey, String workAgentResponseTopic, String workAgentResponseGroupID, String liteTopic)
-        throws ClientException {
+    public static LitePushConsumer initAndGetConsumer(String namespace, String endpoint, String accessKey, String secretKey, String workAgentResponseTopic, String workAgentResponseGroupID, String liteTopic) throws ClientException {
+        if (null == namespace || StringUtils.isEmpty(endpoint) || StringUtils.isEmpty(workAgentResponseTopic) || StringUtils.isEmpty(workAgentResponseGroupID) || StringUtils.isEmpty(liteTopic)) {
+            log.error("initAndGetConsumer param error, namespace: {}, endpoint: {}, workAgentResponseTopic: {}, workAgentResponseGroupID: {}, liteTopic: {}", namespace, endpoint, workAgentResponseTopic, workAgentResponseGroupID, liteTopic);
+            return null;
+        }
         Map<String, LitePushConsumer> consumerMap = ROCKETMQ_CONSUMER_MAP.computeIfAbsent(namespace, k -> new HashMap<>());
         LitePushConsumer litePushConsumer = null;
         if (consumerMap.containsKey(workAgentResponseTopic)) {
@@ -158,15 +128,51 @@ public class RocketMQTools {
     }
 
     public static Producer initAndGetProducer(String namespace, String endpoint, String accessKey, String secretKey, String agentTopic) throws ClientException {
-        Map<String, Producer> producerMap = ROCKETMQ_PRODUCER_MAP.computeIfAbsent(namespace, k -> new HashMap<>());
-        Producer producer = null;
-        if (!producerMap.containsKey(agentTopic)) {
-            producer = buildProducer(endpoint, namespace, accessKey, secretKey, agentTopic);
-            producerMap.put(agentTopic, producer);
-        } else {
-            producer = producerMap.get(agentTopic);
+        if (null == namespace || StringUtils.isEmpty(endpoint) || StringUtils.isEmpty(agentTopic)) {
+            log.error("initAndGetProducer param error, namespace: {}, endpoint: {}, agentTopic: {}", namespace, endpoint, agentTopic);
         }
-        return producer;
+        Map<String, Producer> producerMap = ROCKETMQ_PRODUCER_MAP.computeIfAbsent(namespace, k -> new HashMap<>());
+        return producerMap.computeIfAbsent(agentTopic, k -> {
+            try {
+                return buildProducer(endpoint, namespace, accessKey, secretKey, k);
+            } catch (ClientException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    public static String sendRocketMQRequest(PayloadAndHeaders payloadAndHeaders, String agentTopic, String liteTopic, String workAgentResponseTopic, Producer producer) throws JsonProcessingException {
+        if (null == payloadAndHeaders || StringUtils.isEmpty(agentTopic) || StringUtils.isEmpty(liteTopic) || StringUtils.isEmpty(workAgentResponseTopic) || null == producer) {
+            log.error("RocketMQTransport sendRocketMQRequest param error, payloadAndHeaders: {}, agentTopic: {}, workAgentResponseTopic: {}, liteTopic: {}, producer: {}", payloadAndHeaders, agentTopic, workAgentResponseTopic, liteTopic, producer);
+            return null;
+        }
+        RocketMQRequest request = new RocketMQRequest();
+        request.setRequestBody(Utils.OBJECT_MAPPER.writeValueAsString(payloadAndHeaders.getPayload()));
+        request.setAgentTopic(agentTopic);
+        request.setWorkAgentResponseTopic(workAgentResponseTopic);
+        request.setLiteTopic(liteTopic);
+        if (payloadAndHeaders.getHeaders() != null) {
+            for (Map.Entry<String, String> entry : payloadAndHeaders.getHeaders().entrySet()) {
+                request.addHeader(entry.getKey(), entry.getValue());
+            }
+        }
+        String messageBodyStr = serialText(request);
+        if (StringUtils.isEmpty(messageBodyStr)) {
+            return null;
+        }
+        final ClientServiceProvider provider = ClientServiceProvider.loadService();
+        byte[] body = messageBodyStr.getBytes(StandardCharsets.UTF_8);
+        final Message message = provider.newMessageBuilder().setTopic(agentTopic).setBody(body).build();
+        try {
+            final SendReceipt sendReceipt = producer.send(message);
+            if (!StringUtils.isEmpty(sendReceipt.getMessageId().toString())) {
+                return sendReceipt.getMessageId().toString();
+            }
+        } catch (Throwable t) {
+            log.error("sendRocketMQRequest send message failed, error: {}", t.getMessage());
+            return null;
+        }
+        return null;
     }
 
     public static LitePushConsumer buildConsumer(String endpoint, String namespace, String accessKey, String secretKey, String workAgentResponseGroupID, String workAgentResponseTopic) throws ClientException {
@@ -217,7 +223,6 @@ public class RocketMQTools {
             log.error("RocketMQTransport dealStreamResult param is error, response: {}, liteTopic: {}", JSON.toJSONString(response), liteTopic);
             return ConsumeResult.SUCCESS;
         }
-
         Map<String, SSEEventListener> sseEventListenerMap = MESSAGE_STREAM_RESPONSE_MAP.get(namespace);
         if (null == sseEventListenerMap) {
             log.error("RocketMQTransport dealStreamResult sseEventListenerMap is null");
