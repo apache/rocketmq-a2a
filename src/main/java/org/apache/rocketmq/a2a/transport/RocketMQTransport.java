@@ -144,6 +144,7 @@ public class RocketMQTransport implements ClientTransport {
 
     @Override
     public EventKind sendMessage(MessageSendParams request, ClientCallContext context) throws A2AClientException {
+        checkNotNullParam("request", request);
         SendMessageRequest sendMessageRequest = new SendMessageRequest.Builder().jsonrpc(JSONRPCMessage.JSONRPC_VERSION).method(SendMessageRequest.METHOD).params(request).build();
         PayloadAndHeaders payloadAndHeaders = applyInterceptors(SendMessageRequest.METHOD, sendMessageRequest, this.agentCard, context);
         try {
@@ -213,6 +214,7 @@ public class RocketMQTransport implements ClientTransport {
 
     @Override
     public Task getTask(TaskQueryParams request, ClientCallContext context) throws A2AClientException {
+        checkNotNullParam("request", request);
         GetTaskRequest getTaskRequest = new GetTaskRequest.Builder().jsonrpc(JSONRPCMessage.JSONRPC_VERSION).method(GetTaskRequest.METHOD).params(request).build();
         PayloadAndHeaders payloadAndHeaders = applyInterceptors(GetTaskRequest.METHOD, getTaskRequest, this.agentCard, context);
         try {
