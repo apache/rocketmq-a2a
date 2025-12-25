@@ -2,11 +2,15 @@ package org.apache.rocketmq.a2a.common;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import com.alibaba.fastjson.JSON;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -61,10 +65,6 @@ public class RocketMQTools {
             return null;
         }
         final ClientServiceProvider provider = ClientServiceProvider.loadService();
-        if (null == producer) {
-            log.error("RocketMQTransport sendRocketMQRequest producer is null, agentTopic: {}", agentTopic);
-            return null;
-        }
         byte[] body = messageBodyStr.getBytes(StandardCharsets.UTF_8);
         final Message message = provider.newMessageBuilder()
             .setTopic(agentTopic)
@@ -130,7 +130,7 @@ public class RocketMQTools {
             .setNamespace(namespace)
             .setCredentialProvider(sessionCredentialsProvider)
             .build();
-        LitePushConsumer litePushConsumer = provider.newLitePushConsumerBuilder()
+        return provider.newLitePushConsumerBuilder()
             .setClientConfiguration(clientConfiguration)
             .setConsumerGroup(workAgentResponseGroupID)
             .bindTopic(workAgentResponseTopic)
@@ -159,7 +159,6 @@ public class RocketMQTools {
                     return ConsumeResult.SUCCESS;
                 }
             }).build();
-        return litePushConsumer;
     }
 
     private static ConsumeResult dealStreamResult(RocketMQResponse response, String namespace, String liteTopic) {
@@ -229,6 +228,18 @@ public class RocketMQTools {
             completableFuture.complete(response.getResponseBody());
         }
         return ConsumeResult.SUCCESS;
+    }
+
+    public static String getResult(String responseMessageId, String namespace) throws ExecutionException, InterruptedException, TimeoutException {
+        if (StringUtils.isEmpty(responseMessageId)) {
+            throw new RuntimeException("responseMessageId is null");
+        }
+        Map<String, CompletableFuture<String>> completableFutureMap = MESSAGE_RESPONSE_MAP.computeIfAbsent(namespace, k -> new HashMap<>());
+        CompletableFuture<String> objectCompletableFuture = new CompletableFuture<>();
+        completableFutureMap.put(responseMessageId, objectCompletableFuture);
+        String result = objectCompletableFuture.get(120, TimeUnit.SECONDS);
+        completableFutureMap.remove(responseMessageId);
+        return result;
     }
 
     public static <T extends JSONRPCResponse<?>> T unmarshalResponse(String response, TypeReference<T> typeReference)
