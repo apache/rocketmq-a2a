@@ -118,6 +118,41 @@ public class RocketMQTools {
         return builder.build();
     }
 
+    public static LitePushConsumer initAndGetConsumer(String namespace, String endpoint, String accessKey, String secretKey, String workAgentResponseTopic, String workAgentResponseGroupID, String liteTopic)
+        throws ClientException {
+        Map<String, LitePushConsumer> consumerMap = ROCKETMQ_CONSUMER_MAP.computeIfAbsent(namespace, k -> new HashMap<>());
+        LitePushConsumer litePushConsumer = null;
+        if (consumerMap.containsKey(workAgentResponseTopic)) {
+            litePushConsumer = consumerMap.get(workAgentResponseTopic);
+            litePushConsumer.subscribeLite(liteTopic);
+        } else {
+            litePushConsumer = consumerMap.computeIfAbsent(workAgentResponseTopic, k -> {
+                try {
+                    return buildConsumer(endpoint, namespace, accessKey, secretKey, workAgentResponseGroupID, workAgentResponseTopic);
+                } catch (ClientException e) {
+                    log.error("RocketMQTransport initRocketMQProducerAndConsumer buildConsumer error: {}", e.getMessage());
+                    throw new RuntimeException(e);
+                }
+            });
+            if (null != litePushConsumer) {
+                litePushConsumer.subscribeLite(liteTopic);
+            }
+        }
+        return litePushConsumer;
+    }
+
+    public static Producer initAndGetProducer(String namespace, String endpoint, String accessKey, String secretKey, String agentTopic) throws ClientException {
+        Map<String, Producer> producerMap = ROCKETMQ_PRODUCER_MAP.computeIfAbsent(namespace, k -> new HashMap<>());
+        Producer producer = null;
+        if (!producerMap.containsKey(agentTopic)) {
+            producer = buildProducer(endpoint, namespace, accessKey, secretKey, agentTopic);
+            producerMap.put(agentTopic, producer);
+        } else {
+            producer = producerMap.get(agentTopic);
+        }
+        return producer;
+    }
+
     public static LitePushConsumer buildConsumer(String endpoint, String namespace, String accessKey, String secretKey, String workAgentResponseGroupID, String workAgentResponseTopic) throws ClientException {
         if (StringUtils.isEmpty(endpoint) || StringUtils.isEmpty(workAgentResponseGroupID) || StringUtils.isEmpty(workAgentResponseTopic)) {
             log.error("RocketMQTransport buildConsumer check param error");
