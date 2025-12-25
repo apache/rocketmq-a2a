@@ -293,9 +293,13 @@ public class AgentService {
                     TaskState state = task.getStatus().state();
                     String msg = extractTextFromMessage(artifacts.get(artifacts.size() - 1));
                     log.info("receive msg: {}", msg);
-                    boolean result = emitMessage(sink, msg, false);
-                    if (!result) {
-                        throw new RuntimeException("client close stream");
+                    String lastOutput = taskInfo.getLastOutput();
+                    if (!lastOutput.equals(msg)) {
+                        boolean result = emitMessage(sink, msg, false);
+                        if (!result) {
+                            throw new RuntimeException("client close stream");
+                        }
+                        taskInfo.setLastOutput(msg);
                     }
                     if (state == TaskState.COMPLETED) {
                         StringBuilder stringBuilder = new StringBuilder();
@@ -361,13 +365,15 @@ public class AgentService {
         Flowable<Event> events = runner.runAsync(userId, sessionId, userMsg);
         events.blockingForEach(eventSub -> {
             boolean equals = lastQuestion.equals(eventSub.stringifyContent());
+            TaskInfo taskInfo = taskMap.get(taskId);
+            Many<String> sink = taskInfo.getSink();
             if (equals) {
+                sink.tryEmitComplete();
+                completeTask(taskInfo);
                 return;
             }
             lastQuestion = eventSub.stringifyContent();
             String content = lastQuestion;
-            TaskInfo taskInfo = taskMap.get(taskId);
-            Many<String> sink = taskInfo.getSink();
             if (!StringUtils.isEmpty(content)) {
                 if (content.startsWith("{")) {
                     try {
