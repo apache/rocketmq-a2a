@@ -107,7 +107,7 @@ public class RocketMQTransport implements ClientTransport {
     private Producer producer;
 
     public RocketMQTransport(String namespace, String accessKey, String secretKey, String workAgentResponseTopic, String workAgentResponseGroupID,
-        List<ClientCallInterceptor> interceptors, String agentUrl, A2AHttpClient httpClient, String liteTopic, boolean useDefaultRecoverMode, AgentCard agentCard) throws ClientException {
+        List<ClientCallInterceptor> interceptors, String agentUrl, A2AHttpClient httpClient, String liteTopic, boolean useDefaultRecoverMode, AgentCard agentCard) {
         this.accessKey = accessKey;
         this.secretKey = secretKey;
         this.workAgentResponseTopic = workAgentResponseTopic;
@@ -133,8 +133,13 @@ public class RocketMQTransport implements ClientTransport {
         this.namespace = StringUtils.isEmpty(rocketAgentCardInfo.getNamespace()) ? "" : rocketAgentCardInfo.getNamespace();
         LITE_TOPIC_USE_DEFAULT_RECOVER_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>()).put(this.liteTopic, useDefaultRecoverMode);
         checkConfigParam(this.endpoint, this.workAgentResponseTopic, this.workAgentResponseGroupID, this.liteTopic, this.agentTopic);
-        this.litePushConsumer = initAndGetConsumer(this.namespace, this.endpoint, this.accessKey, this.secretKey, this.workAgentResponseTopic, this.workAgentResponseGroupID, this.liteTopic);
-        this.producer = initAndGetProducer(this.namespace, this.endpoint, this.accessKey, this.secretKey, this.agentTopic);
+        try {
+            this.litePushConsumer = initAndGetConsumer(this.namespace, this.endpoint, this.accessKey, this.secretKey, this.workAgentResponseTopic, this.workAgentResponseGroupID, this.liteTopic);
+            this.producer = initAndGetProducer(this.namespace, this.endpoint, this.accessKey, this.secretKey, this.agentTopic);
+        } catch (ClientException e) {
+           log.error("RocketMQTransport init rocketmq client error, e: {}", e.getMessage());
+            throw new RuntimeException("RocketMQTransport init rocketmq client error");
+        }
     }
 
     @Override
@@ -320,9 +325,7 @@ public class RocketMQTransport implements ClientTransport {
     }
 
     @Override
-    public void close() {
-        //todo
-    }
+    public void close() {}
 
     private String dealLiteTopic(String contextId) {
         String liteTopic = this.liteTopic;
