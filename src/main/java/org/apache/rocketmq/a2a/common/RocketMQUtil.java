@@ -58,8 +58,8 @@ import org.slf4j.LoggerFactory;
 import static io.a2a.util.Utils.OBJECT_MAPPER;
 import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.DATA_PREFIX;
 
-public class RocketMQTools {
-    private static final Logger log = LoggerFactory.getLogger(RocketMQTools.class);
+public class RocketMQUtil {
+    private static final Logger log = LoggerFactory.getLogger(RocketMQUtil.class);
     public static final ConcurrentMap<String /* namespace */, Map<String /* WorkerAgentResponseTopic */, LitePushConsumer>> ROCKETMQ_CONSUMER_MAP = new ConcurrentHashMap<>();
     public static final ConcurrentMap<String /* namespace */, Map<String /* agentTopic */, Producer>> ROCKETMQ_PRODUCER_MAP = new ConcurrentHashMap<>();
     public static final ConcurrentMap<String /* namespace */, Map<String /* msgId */, CompletableFuture<String>>> MESSAGE_RESPONSE_MAP = new ConcurrentHashMap<>();
@@ -260,11 +260,7 @@ public class RocketMQTools {
         SSEEventListener sseEventListener = sseEventListenerMap.get(response.getMessageId());
         if (null == sseEventListener) {
             Map<String, Boolean> booleanMap = LITE_TOPIC_USE_DEFAULT_RECOVER_MAP.get(namespace);
-            if (null == booleanMap) {
-                return ConsumeResult.SUCCESS;
-            }
-            Boolean useDefaultRecoverModeConsumer = booleanMap.get(liteTopic);
-            if (null == useDefaultRecoverModeConsumer || !useDefaultRecoverModeConsumer) {
+            if (null == booleanMap || !Boolean.TRUE.equals(booleanMap.get(liteTopic))) {
                 return ConsumeResult.SUCCESS;
             }
             if (!RECOVER_MESSAGE_STREAM_RESPONSE_MAP.isEmpty() && RECOVER_MESSAGE_STREAM_RESPONSE_MAP.containsKey(namespace)) {

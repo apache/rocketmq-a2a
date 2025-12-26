@@ -82,10 +82,10 @@ import org.slf4j.LoggerFactory;
 
 import static io.a2a.util.Utils.OBJECT_MAPPER;
 import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.METHOD;
-import static org.apache.rocketmq.a2a.common.RocketMQTools.buildConsumer;
-import static org.apache.rocketmq.a2a.common.RocketMQTools.buildMessage;
-import static org.apache.rocketmq.a2a.common.RocketMQTools.buildProducer;
-import static org.apache.rocketmq.a2a.common.RocketMQTools.toJsonString;
+import static org.apache.rocketmq.a2a.common.RocketMQUtil.buildConsumer;
+import static org.apache.rocketmq.a2a.common.RocketMQUtil.buildMessage;
+import static org.apache.rocketmq.a2a.common.RocketMQUtil.buildProducer;
+import static org.apache.rocketmq.a2a.common.RocketMQUtil.toJsonString;
 
 @Startup
 @Singleton

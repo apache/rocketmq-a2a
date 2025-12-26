@@ -77,15 +77,15 @@ import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.LIST_TASK_PUSH_
 import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.SEND_MESSAGE_RESPONSE_REFERENCE;
 import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.SET_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE;
 import static org.apache.rocketmq.a2a.common.RocketMQResourceInfo.parseAgentCardAddition;
-import static org.apache.rocketmq.a2a.common.RocketMQTools.LITE_TOPIC_USE_DEFAULT_RECOVER_MAP;
-import static org.apache.rocketmq.a2a.common.RocketMQTools.MESSAGE_STREAM_RESPONSE_MAP;
-import static org.apache.rocketmq.a2a.common.RocketMQTools.RECOVER_MESSAGE_STREAM_RESPONSE_MAP;
-import static org.apache.rocketmq.a2a.common.RocketMQTools.checkConfigParam;
-import static org.apache.rocketmq.a2a.common.RocketMQTools.getResult;
-import static org.apache.rocketmq.a2a.common.RocketMQTools.initAndGetConsumer;
-import static org.apache.rocketmq.a2a.common.RocketMQTools.initAndGetProducer;
-import static org.apache.rocketmq.a2a.common.RocketMQTools.sendRocketMQRequest;
-import static org.apache.rocketmq.a2a.common.RocketMQTools.unmarshalResponse;
+import static org.apache.rocketmq.a2a.common.RocketMQUtil.LITE_TOPIC_USE_DEFAULT_RECOVER_MAP;
+import static org.apache.rocketmq.a2a.common.RocketMQUtil.MESSAGE_STREAM_RESPONSE_MAP;
+import static org.apache.rocketmq.a2a.common.RocketMQUtil.RECOVER_MESSAGE_STREAM_RESPONSE_MAP;
+import static org.apache.rocketmq.a2a.common.RocketMQUtil.checkConfigParam;
+import static org.apache.rocketmq.a2a.common.RocketMQUtil.getResult;
+import static org.apache.rocketmq.a2a.common.RocketMQUtil.initAndGetConsumer;
+import static org.apache.rocketmq.a2a.common.RocketMQUtil.initAndGetProducer;
+import static org.apache.rocketmq.a2a.common.RocketMQUtil.sendRocketMQRequest;
+import static org.apache.rocketmq.a2a.common.RocketMQUtil.unmarshalResponse;
 
 public class RocketMQTransport implements ClientTransport {
     private static final Logger log = LoggerFactory.getLogger(RocketMQTransport.class);
