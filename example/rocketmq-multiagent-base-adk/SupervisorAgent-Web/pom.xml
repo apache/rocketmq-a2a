@@ -119,7 +119,7 @@
         <dependency>
             <groupId>org.apache.rocketmq</groupId>
             <artifactId>rocketmq-a2a</artifactId>
-            <version>1.0.8</version>
+            <version>1.0.9-SNAPSHOT</version>
         </dependency>
     </dependencies>
 

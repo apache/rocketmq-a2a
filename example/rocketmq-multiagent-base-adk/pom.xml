@@ -29,6 +29,7 @@
         <module>WeatherAgent</module>
         <module>Common</module>
         <module>TravelAgent</module>
+        <module>WeatherAgentNonStream</module>
         <module>SupervisorAgent-Web</module>
     </modules>
 
