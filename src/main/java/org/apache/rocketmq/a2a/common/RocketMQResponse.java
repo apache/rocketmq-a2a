@@ -23,6 +23,9 @@ public class RocketMQResponse {
     private String messageId;
     private boolean isStream;
     private boolean isEnd;
+    private String taskId;
+    private String serverWorkAgentResponseTopic;
+    private String serverLiteTopic;
 
     public RocketMQResponse(String liteTopic, String contextId, String responseBody, String messageId, boolean isStream, boolean isEnd) {
         this.liteTopic = liteTopic;
@@ -31,6 +34,42 @@ public class RocketMQResponse {
         this.messageId = messageId;
         this.isStream = isStream;
         this.isEnd = isEnd;
+    }
+
+    public RocketMQResponse(String liteTopic, String contextId, String responseBody, String messageId, boolean isStream, boolean isEnd, String taskId, String serverWorkAgentResponseTopic, String serverLiteTopic) {
+        this.liteTopic = liteTopic;
+        this.contextId = contextId;
+        this.responseBody = responseBody;
+        this.messageId = messageId;
+        this.isStream = isStream;
+        this.isEnd = isEnd;
+        this.taskId = taskId;
+        this.serverWorkAgentResponseTopic = serverWorkAgentResponseTopic;
+        this.serverLiteTopic = serverLiteTopic;
+    }
+
+    public String getTaskId() {
+        return taskId;
+    }
+
+    public String getServerWorkAgentResponseTopic() {
+        return serverWorkAgentResponseTopic;
+    }
+
+    public String getServerLiteTopic() {
+        return serverLiteTopic;
+    }
+
+    public void setTaskId(String taskId) {
+        this.taskId = taskId;
+    }
+
+    public void setServerWorkAgentResponseTopic(String serverWorkAgentResponseTopic) {
+        this.serverWorkAgentResponseTopic = serverWorkAgentResponseTopic;
+    }
+
+    public void setServerLiteTopic(String serverLiteTopic) {
+        this.serverLiteTopic = serverLiteTopic;
     }
 
     public RocketMQResponse() {}

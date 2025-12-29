@@ -147,6 +147,43 @@ public class RocketMQUtil {
             log.error("RocketMQTransport buildConsumer check param error");
             return null;
         }
+        return buildConsumerForLite(endpoint, namespace, accessKey, secretKey, workAgentResponseGroupID, workAgentResponseTopic, buildClientMessageListener(namespace));
+    }
+
+    private static MessageListener buildClientMessageListener(String namespace) {
+        return messageView -> {
+            try {
+                Optional<String> liteTopicOpt = messageView.getLiteTopic();
+                String liteTopic = liteTopicOpt.get();
+                if (StringUtils.isEmpty(liteTopic)) {
+                    log.error("RocketMQTransport buildConsumer liteTopic is empty");
+                    return ConsumeResult.SUCCESS;
+                }
+                byte[] result = new byte[messageView.getBody().remaining()];
+                messageView.getBody().get(result);
+                String resultStr = new String(result, StandardCharsets.UTF_8);
+                RocketMQResponse response = JSON.parseObject(resultStr, RocketMQResponse.class);
+                if (null == response || StringUtils.isEmpty(response.getMessageId())) {
+                    log.error("RocketMQTransport litePushConsumer consumer error, response is null or messageId is empty");
+                    return ConsumeResult.SUCCESS;
+                }
+                if (!response.isStream()) {
+                    return dealNonStreamResult(response, namespace);
+                }
+                return dealStreamResult(response, namespace, liteTopic);
+            } catch (Exception e) {
+                log.error("RocketMQTransport litePushConsumer consumer error, msgId: {}, error: {}",
+                    messageView.getMessageId(), e.getMessage());
+                return ConsumeResult.SUCCESS;
+            }
+        };
+    }
+
+    public static LitePushConsumer buildConsumerForLite(String endpoint, String namespace, String accessKey, String secretKey, String workAgentResponseGroupID, String workAgentResponseTopic, MessageListener messageListener) throws ClientException {
+        if (StringUtils.isEmpty(endpoint) || StringUtils.isEmpty(workAgentResponseGroupID) || StringUtils.isEmpty(workAgentResponseTopic) || null == messageListener) {
+            log.error("RocketMQTransport buildConsumer check param error");
+            return null;
+        }
         final ClientServiceProvider provider = ClientServiceProvider.loadService();
         SessionCredentialsProvider sessionCredentialsProvider = new StaticSessionCredentialsProvider(accessKey, secretKey);
         ClientConfiguration clientConfiguration = ClientConfiguration.newBuilder()
@@ -158,31 +195,7 @@ public class RocketMQUtil {
             .setClientConfiguration(clientConfiguration)
             .setConsumerGroup(workAgentResponseGroupID)
             .bindTopic(workAgentResponseTopic)
-            .setMessageListener(messageView -> {
-                try {
-                    Optional<String> liteTopicOpt = messageView.getLiteTopic();
-                    String liteTopic = liteTopicOpt.get();
-                    if (StringUtils.isEmpty(liteTopic)) {
-                        log.error("RocketMQTransport buildConsumer liteTopic is empty");
-                        return ConsumeResult.SUCCESS;
-                    }
-                    byte[] result = new byte[messageView.getBody().remaining()];
-                    messageView.getBody().get(result);
-                    String resultStr = new String(result, StandardCharsets.UTF_8);
-                    RocketMQResponse response = JSON.parseObject(resultStr, RocketMQResponse.class);
-                    if (null == response || StringUtils.isEmpty(response.getMessageId())) {
-                        log.error("RocketMQTransport litePushConsumer consumer error, response is null or messageId is empty");
-                        return ConsumeResult.SUCCESS;
-                    }
-                    if (!response.isStream()) {
-                        return dealNonStreamResult(response, namespace);
-                    }
-                    return dealStreamResult(response, namespace, liteTopic);
-                } catch (Exception e) {
-                    log.error("RocketMQTransport litePushConsumer consumer error, msgId: {}, error: {}", messageView.getMessageId(), e.getMessage());
-                    return ConsumeResult.SUCCESS;
-                }
-            }).build();
+            .setMessageListener(messageListener).build();
     }
 
     public static PushConsumer buildConsumer(String endpoint, String namespace, String accessKey, String secretKey, String bizGroup, String bizTopic, MessageListener messageListener) throws ClientException {
