@@ -17,6 +17,7 @@
 package org.apache.rocketmq.a2a.server;
 
 import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Flow;
@@ -72,6 +73,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.apache.rocketmq.client.apis.ClientException;
 import org.apache.rocketmq.client.apis.consumer.ConsumeResult;
+import org.apache.rocketmq.client.apis.consumer.LitePushConsumer;
 import org.apache.rocketmq.client.apis.consumer.MessageListener;
 import org.apache.rocketmq.client.apis.consumer.PushConsumer;
 import org.apache.rocketmq.client.apis.producer.Producer;
@@ -83,6 +85,7 @@ import org.slf4j.LoggerFactory;
 import static io.a2a.util.Utils.OBJECT_MAPPER;
 import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.METHOD;
 import static org.apache.rocketmq.a2a.common.RocketMQUtil.buildConsumer;
+import static org.apache.rocketmq.a2a.common.RocketMQUtil.buildConsumerForLite;
 import static org.apache.rocketmq.a2a.common.RocketMQUtil.buildMessage;
 import static org.apache.rocketmq.a2a.common.RocketMQUtil.buildProducer;
 import static org.apache.rocketmq.a2a.common.RocketMQUtil.toJsonString;
@@ -97,11 +100,16 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
     private static final String BIZ_CONSUMER_GROUP = System.getProperty("bizConsumerGroup", "");
     private static final String ACCESS_KEY = System.getProperty("rocketMQAK", "");
     private static final String SECRET_KEY = System.getProperty("rocketMQSK", "");
+    private static final String WORK_AGENT_RESPONSE_TOPIC = System.getProperty("workAgentResponseTopic");
+    private static final String WORK_AGENT_RESPONSE_GROUP_ID = System.getProperty("workAgentResponseGroupID");
+
     private static volatile Runnable streamingMultiSseSupportSubscribedRunnable;
-    private final ThreadPoolExecutor executor = new ThreadPoolExecutor(6, 6, 60, TimeUnit.SECONDS,
-        new ArrayBlockingQueue<>(10_0000), new CallerRunsPolicy());
+    private final ThreadPoolExecutor executor = new ThreadPoolExecutor(6, 6, 60, TimeUnit.SECONDS, new ArrayBlockingQueue<>(10_0000), new CallerRunsPolicy());
     private Producer producer;
     private PushConsumer pushConsumer;
+    private LitePushConsumer litePushConsumer;
+    private String serverLiteTopic;
+
     private MultiSseSupport multiSseSupport;
 
     @Inject
@@ -112,10 +120,12 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
         try {
             checkConfigParam();
             this.producer = buildProducer(ROCKETMQ_NAMESPACE, ROCKETMQ_ENDPOINT, ACCESS_KEY, SECRET_KEY);
-            this.pushConsumer = buildConsumer(ROCKETMQ_ENDPOINT, ROCKETMQ_NAMESPACE, ACCESS_KEY, SECRET_KEY,
-                BIZ_CONSUMER_GROUP, BIZ_TOPIC, buildMessageListener());
+            this.pushConsumer = buildConsumer(ROCKETMQ_ENDPOINT, ROCKETMQ_NAMESPACE, ACCESS_KEY, SECRET_KEY, BIZ_CONSUMER_GROUP, BIZ_TOPIC, buildMessageListener());
             this.multiSseSupport = new MultiSseSupport(this.producer);
-            log.info("RocketMQA2AServerRoutes init success");
+            this.litePushConsumer = buildConsumerForLite(ROCKETMQ_ENDPOINT, ROCKETMQ_NAMESPACE, ACCESS_KEY, SECRET_KEY, WORK_AGENT_RESPONSE_GROUP_ID, WORK_AGENT_RESPONSE_TOPIC, buildMessageListener());
+            this.serverLiteTopic = UUID.randomUUID().toString();
+            this.litePushConsumer.subscribeLite(serverLiteTopic);
+            log.info("RocketMQA2AServerRoutes init success, server liteTopic: {}", serverLiteTopic);
         } catch (Exception e) {
             log.error("RocketMQA2AServerRoutes error: {}", e.getMessage());
         }
@@ -137,15 +147,12 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
                 try {
                     JsonNode node = OBJECT_MAPPER.readTree(body);
                     JsonNode method = node != null ? node.get(METHOD) : null;
-                    streaming = method != null && (SendStreamingMessageRequest.METHOD.equals(method.asText())
-                        || TaskResubscriptionRequest.METHOD.equals(method.asText()));
+                    streaming = method != null && (SendStreamingMessageRequest.METHOD.equals(method.asText()) || TaskResubscriptionRequest.METHOD.equals(method.asText()));
                     if (streaming) {
-                        StreamingJSONRPCRequest<?> streamingJSONRPCRequest = OBJECT_MAPPER.treeToValue(node,
-                            StreamingJSONRPCRequest.class);
+                        StreamingJSONRPCRequest<?> streamingJSONRPCRequest = OBJECT_MAPPER.treeToValue(node, StreamingJSONRPCRequest.class);
                         streamingResponse = processStreamingRequest(streamingJSONRPCRequest, null);
                     } else {
-                        NonStreamingJSONRPCRequest<?> nonStreamingJSONRPCRequest = OBJECT_MAPPER.treeToValue(node,
-                            NonStreamingJSONRPCRequest.class);
+                        NonStreamingJSONRPCRequest<?> nonStreamingJSONRPCRequest = OBJECT_MAPPER.treeToValue(node, NonStreamingJSONRPCRequest.class);
                         nonStreamingResponse = processNonStreamingRequest(nonStreamingJSONRPCRequest, null);
                     }
                 } catch (JsonProcessingException e) {
@@ -158,24 +165,25 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
                         response = new RocketMQResponse();
                         response.setEnd(true);
                         response.setStream(false);
+                        response.setServerLiteTopic(serverLiteTopic);
+                        response.setServerWorkAgentResponseTopic(WORK_AGENT_RESPONSE_TOPIC);
                         response.setLiteTopic(request.getLiteTopic());
                         response.setResponseBody(JSON.toJSONString(error));
                         response.setMessageId(messageView.getMessageId().toString());
                     } else if (streaming) {
                         final Multi<? extends JSONRPCResponse<?>> finalStreamingResponse = streamingResponse;
-                        log.info("RocketMQA2AServerRoutes streaming finalStreamingResponse: {}",
-                            JSON.toJSONString(finalStreamingResponse));
+                        log.info("RocketMQA2AServerRoutes streaming finalStreamingResponse: {}", JSON.toJSONString(finalStreamingResponse));
                         completableFuture = new CompletableFuture<>();
                         CompletableFuture<Boolean> finalCompletableFuture = completableFuture;
                         this.executor.execute(() -> {
-                            this.multiSseSupport.subscribeObjectRocketmq(finalStreamingResponse.map(i -> (Object)i),
-                                null, request.getWorkAgentResponseTopic(), request.getLiteTopic(),
-                                messageView.getMessageId().toString(), finalCompletableFuture);
+                            this.multiSseSupport.subscribeObjectRocketmq(finalStreamingResponse.map(i -> (Object)i), null, request.getWorkAgentResponseTopic(), request.getLiteTopic(), messageView.getMessageId().toString(), finalCompletableFuture);
                         });
                     } else {
                         response = new RocketMQResponse();
                         response.setEnd(true);
                         response.setStream(false);
+                        response.setServerLiteTopic(serverLiteTopic);
+                        response.setServerWorkAgentResponseTopic(WORK_AGENT_RESPONSE_TOPIC);
                         response.setLiteTopic(request.getLiteTopic());
                         response.setMessageId(messageView.getMessageId().toString());
                         response.setResponseBody(toJsonString(nonStreamingResponse));
@@ -207,6 +215,7 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
             return ConsumeResult.SUCCESS;
         };
     }
+
 
     private JSONRPCErrorResponse handleError(JsonProcessingException exception) {
         Object id = null;
@@ -351,8 +360,7 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
     }
 
     private void checkConfigParam() {
-        if (StringUtils.isEmpty(ROCKETMQ_ENDPOINT) || StringUtils.isEmpty(BIZ_TOPIC) || StringUtils.isEmpty(
-            BIZ_CONSUMER_GROUP)) {
+        if (StringUtils.isEmpty(ROCKETMQ_ENDPOINT) || StringUtils.isEmpty(BIZ_TOPIC) || StringUtils.isEmpty(BIZ_CONSUMER_GROUP) || StringUtils.isEmpty(WORK_AGENT_RESPONSE_TOPIC) || StringUtils.isEmpty(WORK_AGENT_RESPONSE_GROUP_ID)) {
             if (StringUtils.isEmpty(ROCKETMQ_ENDPOINT)) {
                 log.error("rocketMQEndpoint is empty");
             }
@@ -361,6 +369,12 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
             }
             if (StringUtils.isEmpty(BIZ_CONSUMER_GROUP)) {
                 log.error("bizConsumerGroup is empty");
+            }
+            if (StringUtils.isEmpty(WORK_AGENT_RESPONSE_TOPIC)) {
+                log.error("workAgentResponseTopic is empty");
+            }
+            if (StringUtils.isEmpty(WORK_AGENT_RESPONSE_GROUP_ID)) {
+                log.error("workAgentResponseGroupID is empty");
             }
             throw new RuntimeException("RocketMQA2AServerRoutes check init rocketmq param error, init failed!!!");
         }
