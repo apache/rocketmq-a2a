@@ -34,8 +34,14 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import io.a2a.client.transport.jsonrpc.sse.SSEEventListener;
 import io.a2a.client.transport.spi.interceptors.PayloadAndHeaders;
 import io.a2a.spec.A2AClientException;
+import io.a2a.spec.CancelTaskResponse;
+import io.a2a.spec.GetTaskResponse;
 import io.a2a.spec.JSONRPCError;
 import io.a2a.spec.JSONRPCResponse;
+import io.a2a.spec.SendMessageResponse;
+import io.a2a.spec.Task;
+import io.a2a.spec.TaskState;
+import io.a2a.spec.TaskStatus;
 import io.a2a.util.Utils;
 import org.apache.rocketmq.client.apis.ClientConfiguration;
 import org.apache.rocketmq.client.apis.ClientException;
@@ -56,16 +62,20 @@ import org.apache.rocketmq.shaded.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import static io.a2a.util.Utils.OBJECT_MAPPER;
+import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.CANCEL_TASK_RESPONSE_REFERENCE;
 import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.DATA_PREFIX;
+import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.GET_TASK_RESPONSE_REFERENCE;
+import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.SEND_MESSAGE_RESPONSE_REFERENCE;
 
 public class RocketMQUtil {
     private static final Logger log = LoggerFactory.getLogger(RocketMQUtil.class);
     public static final ConcurrentMap<String /* namespace */, Map<String /* WorkerAgentResponseTopic */, LitePushConsumer>> ROCKETMQ_CONSUMER_MAP = new ConcurrentHashMap<>();
     public static final ConcurrentMap<String /* namespace */, Map<String /* agentTopic */, Producer>> ROCKETMQ_PRODUCER_MAP = new ConcurrentHashMap<>();
-    public static final ConcurrentMap<String /* namespace */, Map<String /* msgId */, CompletableFuture<String>>> MESSAGE_RESPONSE_MAP = new ConcurrentHashMap<>();
+    public static final ConcurrentMap<String /* namespace */, Map<String /* msgId */, RequestTypeWithReceipt>> MESSAGE_RESPONSE_MAP = new ConcurrentHashMap<>();
     public static final ConcurrentMap<String /* namespace */, Map<String /* msgId */, SSEEventListener>> MESSAGE_STREAM_RESPONSE_MAP = new ConcurrentHashMap<>();
     public static final ConcurrentMap<String /* namespace */, Map<String /* liteTopic */, Boolean>> LITE_TOPIC_USE_DEFAULT_RECOVER_MAP = new ConcurrentHashMap<>();
     public static final ConcurrentMap<String /* namespace */, Map<String /* Key */, SSEEventListener>> RECOVER_MESSAGE_STREAM_RESPONSE_MAP = new ConcurrentHashMap<>();
+    public static final ConcurrentMap<String /* taskId */, ServerReceiptInfo /* ServerInfo */> TASK_SERVER_RECEIPT_MAP = new ConcurrentHashMap<>();
 
     public static void checkConfigParam(String endpoint, String workAgentResponseTopic, String workAgentResponseGroupID, String liteTopic, String agentTopic) {
         if (StringUtils.isEmpty(endpoint) || StringUtils.isEmpty(workAgentResponseTopic) || StringUtils.isEmpty(workAgentResponseGroupID) || StringUtils.isEmpty(liteTopic) || StringUtils.isEmpty(agentTopic)) {
@@ -228,7 +238,7 @@ public class RocketMQUtil {
             .build();
     }
 
-    public static String sendRocketMQRequest(PayloadAndHeaders payloadAndHeaders, String agentTopic, String liteTopic, String workAgentResponseTopic, Producer producer) throws JsonProcessingException {
+    public static String sendRocketMQRequest(PayloadAndHeaders payloadAndHeaders, String agentTopic, String liteTopic, String workAgentResponseTopic, Producer producer, String taskId) throws JsonProcessingException {
         if (null == payloadAndHeaders || StringUtils.isEmpty(agentTopic) || StringUtils.isEmpty(liteTopic) || StringUtils.isEmpty(workAgentResponseTopic) || null == producer) {
             log.error("RocketMQTransport sendRocketMQRequest param error, payloadAndHeaders: {}, agentTopic: {}, workAgentResponseTopic: {}, liteTopic: {}, producer: {}", payloadAndHeaders, agentTopic, workAgentResponseTopic, liteTopic, producer);
             return null;
@@ -249,7 +259,16 @@ public class RocketMQUtil {
         }
         final ClientServiceProvider provider = ClientServiceProvider.loadService();
         byte[] body = messageBodyStr.getBytes(StandardCharsets.UTF_8);
-        final Message message = provider.newMessageBuilder().setTopic(agentTopic).setBody(body).build();
+        //如果有taskId 进行特殊处理
+        Message message = null;
+        if (!StringUtils.isEmpty(taskId) && TASK_SERVER_RECEIPT_MAP.containsKey(taskId)) {
+            ServerReceiptInfo serverReceiptInfo = TASK_SERVER_RECEIPT_MAP.get(taskId);
+            message = provider.newMessageBuilder().setTopic(serverReceiptInfo.getServerWorkAgentResponseTopic()).setLiteTopic(serverReceiptInfo.getServerLiteTopic()).setBody(body).build();
+            log.info("send message to server liteTopic taskId: {}, serverReceiptInfo: {}", taskId, JSON.toJSONString(serverReceiptInfo));
+        } else {
+            message = provider.newMessageBuilder().setTopic(agentTopic).setBody(body).build();
+            log.info("send message to server use normal topic");
+        }
         try {
             final SendReceipt sendReceipt = producer.send(message);
             if (!StringUtils.isEmpty(sendReceipt.getMessageId().toString())) {
@@ -313,23 +332,55 @@ public class RocketMQUtil {
             log.error("RocketMQTransport dealNonStreamResult param is error, response: {}", JSON.toJSONString(response));
             return ConsumeResult.SUCCESS;
         }
-        Map<String, CompletableFuture<String>> completableFutureMap = MESSAGE_RESPONSE_MAP.get(namespace);
+        Map<String, RequestTypeWithReceipt> completableFutureMap = MESSAGE_RESPONSE_MAP.get(namespace);
         if (null != completableFutureMap && completableFutureMap.containsKey(response.getMessageId())) {
-            CompletableFuture<String> completableFuture = completableFutureMap.get(response.getMessageId());
-            completableFuture.complete(response.getResponseBody());
+            RequestTypeWithReceipt requestTypeWithReceipt = completableFutureMap.get(response.getMessageId());
+            requestTypeWithReceipt.getCompletableFuture().complete(response.getResponseBody());
+            if (SEND_MESSAGE_RESPONSE_REFERENCE == requestTypeWithReceipt.getTypeReference()) {
+                try {
+                    SendMessageResponse sendMessageResponse = unmarshalResponse(response.getResponseBody(), SEND_MESSAGE_RESPONSE_REFERENCE);
+                    Task result = (Task)sendMessageResponse.getResult();
+                    TASK_SERVER_RECEIPT_MAP.putIfAbsent(result.getId(), new ServerReceiptInfo(response.getServerWorkAgentResponseTopic(), response.getServerLiteTopic()));
+                    log.info("dealNonStreamResult put task info when send message, taskId: {}, serverInfo: {}", result.getId(), JSON.toJSONString(TASK_SERVER_RECEIPT_MAP.get(result.getId())));
+                } catch (JsonProcessingException e) {
+                   log.error("dealNonStreamResult unmarshalResponse error: {}", e.getMessage());
+                }
+            } else if (CANCEL_TASK_RESPONSE_REFERENCE == requestTypeWithReceipt.getTypeReference()) {
+                try {
+                    CancelTaskResponse cancelTaskResponse = unmarshalResponse(response.getResponseBody(), CANCEL_TASK_RESPONSE_REFERENCE);
+                    Task result = cancelTaskResponse.getResult();
+                    ServerReceiptInfo remove = TASK_SERVER_RECEIPT_MAP.remove(result.getId());
+                    log.info("dealNonStreamResult cancel task, taskId: {}, remove: {}", result.getId(), JSON.toJSONString(remove));
+                } catch (JsonProcessingException e) {
+                    log.error("dealNonStreamResult unmarshalResponse error: {}", e.getMessage());
+                }
+            } else if (GET_TASK_RESPONSE_REFERENCE == requestTypeWithReceipt.getTypeReference()) {
+                try {
+                    GetTaskResponse getTaskResponse = unmarshalResponse(response.getResponseBody(), GET_TASK_RESPONSE_REFERENCE);
+                    TaskStatus status = getTaskResponse.getResult().getStatus();
+                    if (null != status && status.state() == TaskState.COMPLETED) {
+                        ServerReceiptInfo remove = TASK_SERVER_RECEIPT_MAP.remove(getTaskResponse.getResult().getId());
+                        log.info("dealNonStreamResult get task complete, taskId: {}, remove: {}", getTaskResponse.getResult().getId(), JSON.toJSONString(remove));
+                    }
+                } catch (JsonProcessingException e) {
+                    log.error("dealNonStreamResult unmarshalResponse error: {}", e.getMessage());
+                }
+
+            }
         }
         return ConsumeResult.SUCCESS;
     }
 
-    public static String getResult(String responseMessageId, String namespace) throws ExecutionException, InterruptedException, TimeoutException {
+    public static String getResult(String responseMessageId, String namespace, TypeReference typeReference) throws ExecutionException, InterruptedException, TimeoutException {
         if (StringUtils.isEmpty(responseMessageId)) {
             throw new RuntimeException("responseMessageId is null");
         }
-        Map<String, CompletableFuture<String>> completableFutureMap = MESSAGE_RESPONSE_MAP.computeIfAbsent(namespace, k -> new HashMap<>());
-        CompletableFuture<String> objectCompletableFuture = new CompletableFuture<>();
-        completableFutureMap.put(responseMessageId, objectCompletableFuture);
-        String result = objectCompletableFuture.get(120, TimeUnit.SECONDS);
+        Map<String, RequestTypeWithReceipt> completableFutureMap = MESSAGE_RESPONSE_MAP.computeIfAbsent(namespace, k -> new HashMap<>());
+        CompletableFuture<String> completableFuture = new CompletableFuture<>();
+        completableFutureMap.put(responseMessageId, new RequestTypeWithReceipt(completableFuture, typeReference));
+        String result = completableFuture.get(120, TimeUnit.SECONDS);
         completableFutureMap.remove(responseMessageId);
+
         return result;
     }
 

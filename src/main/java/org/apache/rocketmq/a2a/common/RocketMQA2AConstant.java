@@ -18,6 +18,7 @@ package org.apache.rocketmq.a2a.common;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.a2a.spec.CancelTaskResponse;
+import io.a2a.spec.DeleteTaskPushNotificationConfigResponse;
 import io.a2a.spec.GetAuthenticatedExtendedCardResponse;
 import io.a2a.spec.GetTaskPushNotificationConfigResponse;
 import io.a2a.spec.GetTaskResponse;
@@ -33,6 +34,7 @@ public class RocketMQA2AConstant {
     public static final TypeReference<SetTaskPushNotificationConfigResponse> SET_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE = new TypeReference<>() { };
     public static final TypeReference<ListTaskPushNotificationConfigResponse> LIST_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE = new TypeReference<>() { };
     public static final TypeReference<GetAuthenticatedExtendedCardResponse> GET_AUTHENTICATED_EXTENDED_CARD_RESPONSE_REFERENCE = new TypeReference<>() { };
+    public static final TypeReference<DeleteTaskPushNotificationConfigResponse> DELETE_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE = new TypeReference<>() {};
     public static final String HTTP_URL_PREFIX = "http://";
     public static final String HTTPS_URL_PREFIX = "https://";
     public static final String ROCKETMQ_PROTOCOL = "RocketMQ";

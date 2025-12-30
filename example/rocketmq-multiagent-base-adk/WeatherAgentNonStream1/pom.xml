@@ -9,7 +9,7 @@
         <version>2.1.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>WeatherAgentNonStream</artifactId>
+    <artifactId>WeatherAgentNonStream1</artifactId>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>

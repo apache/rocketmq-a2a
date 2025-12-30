@@ -30,6 +30,7 @@
         <module>Common</module>
         <module>TravelAgent</module>
         <module>WeatherAgentNonStream</module>
+        <module>WeatherAgentNonStream1</module>
         <module>SupervisorAgent-Web</module>
     </modules>
 

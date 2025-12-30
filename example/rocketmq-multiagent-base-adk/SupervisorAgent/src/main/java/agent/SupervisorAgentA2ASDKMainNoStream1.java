@@ -17,7 +17,9 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+
 import com.alibaba.fastjson.JSON;
+
 import com.google.adk.agents.BaseAgent;
 import com.google.adk.agents.LlmAgent;
 import com.google.adk.artifacts.InMemoryArtifactService;
@@ -52,8 +54,8 @@ import org.apache.rocketmq.shaded.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SupervisorAgentA2ASDKMainNoStream {
-    private static final Logger log = LoggerFactory.getLogger(SupervisorAgentA2ASDKMainNoStream.class);
+public class SupervisorAgentA2ASDKMainNoStream1 {
+    private static final Logger log = LoggerFactory.getLogger(SupervisorAgentA2ASDKMainNoStream1.class);
     private static final String AGENT_NAME = "SupervisorAgent";
     private static final String USER_ID = "rocketmq_a2a_user";
     private static final String APP_NAME = "rocketmq_a2a";
