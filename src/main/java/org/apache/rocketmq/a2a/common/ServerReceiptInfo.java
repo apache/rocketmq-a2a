@@ -1,8 +1,18 @@
 package org.apache.rocketmq.a2a.common;
 
+/**
+ * Server receipt information
+ */
 public class ServerReceiptInfo {
-
+    /**
+     * The lite topic used by the server to receive response results
+     */
     private String serverWorkAgentResponseTopic;
+
+    /**
+     * todo
+     * The lite topic used by the server to receive response results(sessionId)
+     */
     private String serverLiteTopic;
 
     public ServerReceiptInfo(String serverWorkAgentResponseTopic, String serverLiteTopic) {

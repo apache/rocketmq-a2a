@@ -15,9 +15,7 @@
  * limitations under the License.
  */
 package org.apache.rocketmq.a2a.common;
-
 import java.util.List;
-
 import com.alibaba.fastjson.JSON;
 import io.a2a.spec.AgentCard;
 import io.a2a.spec.AgentInterface;
@@ -27,10 +25,25 @@ import org.slf4j.LoggerFactory;
 import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.HTTPS_URL_PREFIX;
 import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.HTTP_URL_PREFIX;
 
+/**
+ * RocketMQResourceInfo is used to encapsulate RocketMQ resources
+ */
 public class RocketMQResourceInfo {
     private static final Logger log = LoggerFactory.getLogger(RocketMQResourceInfo.class);
+
+    /**
+     * Namespace, used for logical isolation of different business units or environments
+     */
     private String namespace;
+
+    /**
+     * The network address of the RocketMQ service, used by clients to connect to a specific RocketMQ cluster
+     */
     private String endpoint;
+
+    /**
+     * RocketMQ topic resource
+     */
     private String topic;
 
     public RocketMQResourceInfo(String endpoint, String topic) {
@@ -64,26 +77,36 @@ public class RocketMQResourceInfo {
         this.namespace = namespace;
     }
 
+    /**
+     * Parse the RocketMQ-related information from the retrieved AgentCard and extract it into a RocketMQResourceInfo object that meets the required specifications
+     * @param agentCard a2a agentCard
+     * @return RocketMQResourceInfo rocketmq resource info
+     */
     public static RocketMQResourceInfo parseAgentCardAddition(AgentCard agentCard) {
+        //check pram
         if (null == agentCard || StringUtils.isEmpty(agentCard.preferredTransport()) || StringUtils.isEmpty(agentCard.url()) || null == agentCard.additionalInterfaces() || agentCard.additionalInterfaces().isEmpty()) {
             log.error("RocketMQTransport parseAgentCardAddition param error, agentCard: {}", JSON.toJSONString(agentCard));
             return null;
         }
         RocketMQResourceInfo rocketMQResourceInfo = null;
         String preferredTransport = agentCard.preferredTransport();
+        //if the preferredTransport is RocketMQ
         if (RocketMQA2AConstant.ROCKETMQ_PROTOCOL.equals(preferredTransport)) {
             String url = agentCard.url();
+            //try to get RocketMQResourceInfo by parsing the URL
             rocketMQResourceInfo = pareAgentCardUrl(url);
             if (null != rocketMQResourceInfo && !StringUtils.isEmpty(rocketMQResourceInfo.getEndpoint()) && !StringUtils.isEmpty(rocketMQResourceInfo.getTopic())) {
                 log.info("RocketMQTransport get rocketMQResourceInfo from preferredTransport");
                 return rocketMQResourceInfo;
             }
         }
+        //if the preferredTransport is not RocketMQ, then try to get rocketmq info from additionalInterfaces
         List<AgentInterface> agentInterfaces = agentCard.additionalInterfaces();
         for (AgentInterface agentInterface : agentInterfaces) {
             String transport = agentInterface.transport();
             if (!StringUtils.isEmpty(transport) && RocketMQA2AConstant.ROCKETMQ_PROTOCOL.equals(transport)) {
                 String url = agentInterface.url();
+                //try to get RocketMQResourceInfo by parsing the URL
                 rocketMQResourceInfo = pareAgentCardUrl(url);
                 if (null != rocketMQResourceInfo && !StringUtils.isEmpty(rocketMQResourceInfo.getEndpoint()) && !StringUtils.isEmpty(rocketMQResourceInfo.getTopic())) {
                     log.error("RocketMQTransport get rocketMQResourceInfo from additionalInterfaces");
@@ -94,6 +117,11 @@ public class RocketMQResourceInfo {
         return null;
     }
 
+    /**
+     * try to get RocketMQResourceInfo by parsing the URL(http/https://rocketmqEndpoint/rocketmqNamespace/agentTopic)
+     * @param agentCardUrl the URL of AgentCard
+     * @return RocketMQResourceInfo rocketmq resource info
+     */
     public static RocketMQResourceInfo pareAgentCardUrl(String agentCardUrl) {
         if (StringUtils.isEmpty(agentCardUrl)) {
             return null;

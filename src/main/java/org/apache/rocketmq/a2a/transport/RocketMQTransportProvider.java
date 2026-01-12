@@ -22,6 +22,9 @@ import io.a2a.spec.A2AClientException;
 import io.a2a.spec.AgentCard;
 import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.ROCKETMQ_PROTOCOL;
 
+/**
+ * RocketMQTransport 提供器
+ */
 public class RocketMQTransportProvider implements ClientTransportProvider<RocketMQTransport, RocketMQTransportConfig> {
 
     @Override

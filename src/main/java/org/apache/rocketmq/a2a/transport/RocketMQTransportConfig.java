@@ -19,16 +19,58 @@ package org.apache.rocketmq.a2a.transport;
 import io.a2a.client.http.A2AHttpClient;
 import io.a2a.client.transport.spi.ClientTransportConfig;
 
+/**
+ * RocketMQTransport configuration class, used to encapsulate all required parameters for RocketMQ A2A communication
+ */
 public class RocketMQTransportConfig extends ClientTransportConfig<RocketMQTransport> {
+    /**
+     * RocketMQ账号
+     */
     private String accessKey;
+
+    /**
+     * RocketMQ密码
+     */
     private String secretKey;
+
+    /**
+     * RocketMQ服务接入点
+     */
     private String endpoint;
+
+    /**
+     * RocketMQ命名空间
+     */
     private String namespace;
+
+    /**
+     * RocketMQ 用于接收响应结果的轻量级Topic
+     */
     private String workAgentResponseTopic;
+
+    /**
+     * RocketMQ 订阅响应结果的轻量级Topic的CID
+     */
     private String workAgentResponseGroupID;
+
+    /**
+     * 智能体对应的业务Topic
+     */
     private String agentTopic;
+
+    /**
+     * 智能体对应WEB服务的URL
+     */
     private String agentUrl;
+
+    /**
+     * 轻量级Topic
+     */
     private String liteTopic;
+
+    /**
+     * 是否使用默认恢复模式
+     */
     private boolean useDefaultRecoverMode = false;
 
     public RocketMQTransportConfig(String accessKey, String secretKey, String endpoint, String namespace,

@@ -88,25 +88,90 @@ import static org.apache.rocketmq.a2a.common.RocketMQUtil.initAndGetProducer;
 import static org.apache.rocketmq.a2a.common.RocketMQUtil.sendRocketMQRequest;
 import static org.apache.rocketmq.a2a.common.RocketMQUtil.unmarshalResponse;
 
+/**
+ * A ClientTransport implementation based on RocketMQ as the communication component
+ */
 public class RocketMQTransport implements ClientTransport {
     private static final Logger log = LoggerFactory.getLogger(RocketMQTransport.class);
+    /**
+     * 目标智能体对应的Topic
+     */
     private final String agentTopic;
+    /**
+     * RocketMQ账号
+     */
     private final String accessKey;
+    /**
+     * RocketMQ密码
+     */
     private final String secretKey;
+    /**
+     * RocketMQ 服务接入点
+     */
     private final String endpoint;
+    /**
+     * RocketMQ 命名空间
+     */
     private final String namespace;
+    /**
+     * 用于接收响应的结果的轻量级Topic
+     */
     private final String workAgentResponseTopic;
+    /**
+     * 用于订阅响应结果的轻量级Topic的CID
+     */
     private final String workAgentResponseGroupID;
+    /**
+     * 客户端调用拦截器
+     */
     private final List<ClientCallInterceptor> interceptors;
+    /**
+     * A2A中的AgentCard信息
+     */
     private AgentCard agentCard;
+    /**
+     * Agent提供服务的URL
+     */
     private final String agentUrl;
+    /**
+     * 是否使用默认恢复模式
+     */
     private boolean useDefaultRecoverMode = false;
+    /**
+     * 轻量级Topic
+     */
     private String liteTopic;
+    /**
+     * http客户端
+     */
     private final A2AHttpClient httpClient;
+    /**
+     * 是否继承Card
+     */
     private boolean needsExtendedCard = false;
+    /**
+     * 轻量级Push消费者
+     */
     private LitePushConsumer litePushConsumer;
+    /**
+     * 生产者
+     */
     private Producer producer;
 
+    /**
+     * RocketMQTransport 构造函数
+     * @param namespace rocketmq 命名空间
+     * @param accessKey rocketmq 账号
+     * @param secretKey rocketmq 密码
+     * @param workAgentResponseTopic 用于接收响应的结果的轻量级Topic
+     * @param workAgentResponseGroupID 用于订阅响应结果的轻量级Topic的CID
+     * @param interceptors 客户端调用拦截器
+     * @param agentUrl Agent提供服务的URL
+     * @param httpClient http客户端
+     * @param liteTopic 轻量级Topic
+     * @param useDefaultRecoverMode 是否使用默认恢复模式
+     * @param agentCard a2aAgentCard信息
+     */
     public RocketMQTransport(String namespace, String accessKey, String secretKey, String workAgentResponseTopic, String workAgentResponseGroupID,
         List<ClientCallInterceptor> interceptors, String agentUrl, A2AHttpClient httpClient, String liteTopic, boolean useDefaultRecoverMode, AgentCard agentCard) {
         this.accessKey = accessKey;

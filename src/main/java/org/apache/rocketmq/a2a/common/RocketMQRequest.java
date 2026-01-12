@@ -19,11 +19,34 @@ package org.apache.rocketmq.a2a.common;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * RocketMQRequest encapsulates request data for A2A (Agent-to-Agent) protocol communication built on top of RocketMQ as the underlying messaging component.
+ * This class serves as the message payload for asynchronous request-response interactions between agents via RocketMQ.
+ */
 public class RocketMQRequest {
+    /**
+     * Request headers storing A2A protocol metadata in key-value pairs
+     */
     private Map<String, String> requestHeader;
+
+    /**
+     * The request body, typically a serialized payload (e.g., JSON)
+     */
     private String requestBody;
+
+    /**
+     * Destination Agent Topic, used for sending the original A2A request message
+     */
     private String agentTopic;
+
+    /**
+     * Dedicated response topic for receiving reply messages from the target agent (typically a LiteTopic)
+     */
     private String workAgentResponseTopic;
+
+    /**
+     * //todo 这种一般怎么命名呢？
+     */
     private String liteTopic;
 
     public RocketMQRequest(String requestBody, Map<String, String> requestHeader, String desAgentTopic, String workAgentResponseTopic, String liteTopic) {
