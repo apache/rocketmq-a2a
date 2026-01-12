@@ -20,12 +20,12 @@ public class RocketMQResponse {
     private String liteTopic;
     private String contextId;
     private String responseBody;
-    private String messageId;
-    private boolean isStream;
-    private boolean isEnd;
     private String taskId;
+    private String messageId;
     private String serverWorkAgentResponseTopic;
     private String serverLiteTopic;
+    private boolean isStream;
+    private boolean isEnd;
 
     public RocketMQResponse(String liteTopic, String contextId, String responseBody, String messageId, boolean isStream, boolean isEnd) {
         this.liteTopic = liteTopic;

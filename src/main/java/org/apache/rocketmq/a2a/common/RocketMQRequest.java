@@ -20,14 +20,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class RocketMQRequest {
-    private String requestBody;
     private Map<String, String> requestHeader;
+    private String requestBody;
     private String agentTopic;
     private String workAgentResponseTopic;
     private String liteTopic;
 
-    public RocketMQRequest(String requestBody, Map<String, String> requestHeader, String desAgentTopic,
-        String workAgentResponseTopic, String liteTopic) {
+    public RocketMQRequest(String requestBody, Map<String, String> requestHeader, String desAgentTopic, String workAgentResponseTopic, String liteTopic) {
         this.requestBody = requestBody;
         this.requestHeader = requestHeader;
         this.agentTopic = desAgentTopic;

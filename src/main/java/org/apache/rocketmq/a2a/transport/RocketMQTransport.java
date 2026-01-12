@@ -23,9 +23,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
-
-import com.alibaba.fastjson.JSON;
-
 import io.a2a.client.transport.spi.ClientTransport;
 import org.apache.rocketmq.a2a.common.RocketMQResourceInfo;
 import org.apache.rocketmq.a2a.common.RocketMQA2AConstant;

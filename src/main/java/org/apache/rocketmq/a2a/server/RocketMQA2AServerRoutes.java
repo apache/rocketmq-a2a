@@ -100,8 +100,8 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
     private static final String BIZ_CONSUMER_GROUP = System.getProperty("bizConsumerGroup", "");
     private static final String ACCESS_KEY = System.getProperty("rocketMQAK", "");
     private static final String SECRET_KEY = System.getProperty("rocketMQSK", "");
-    private static final String WORK_AGENT_RESPONSE_TOPIC = System.getProperty("workAgentResponseTopic");
-    private static final String WORK_AGENT_RESPONSE_GROUP_ID = System.getProperty("workAgentResponseGroupID");
+    private static final String WORK_AGENT_RESPONSE_TOPIC = System.getProperty("workAgentResponseTopic","");
+    private static final String WORK_AGENT_RESPONSE_GROUP_ID = System.getProperty("workAgentResponseGroupID","");
 
     private static volatile Runnable streamingMultiSseSupportSubscribedRunnable;
     private final ThreadPoolExecutor executor = new ThreadPoolExecutor(6, 6, 60, TimeUnit.SECONDS, new ArrayBlockingQueue<>(10_0000), new CallerRunsPolicy());
@@ -308,8 +308,7 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
                 @Override
                 public void onNext(Buffer item) {
                     try {
-                        RocketMQResponse response = new RocketMQResponse(liteTopic, null, item.toString(), msgId, true,
-                            false);
+                        RocketMQResponse response = new RocketMQResponse(liteTopic, null, item.toString(), msgId, true, false);
                         SendReceipt send = producer.send(buildMessage(workAgentResponseTopic, liteTopic, response));
                         log.info("MultiSseSupport send response success, msgId: {}, time: {}", send.getMessageId(),
                             System.currentTimeMillis(), JSON.toJSONString(response));

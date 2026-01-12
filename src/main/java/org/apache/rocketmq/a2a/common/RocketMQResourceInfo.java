@@ -66,7 +66,7 @@ public class RocketMQResourceInfo {
 
     public static RocketMQResourceInfo parseAgentCardAddition(AgentCard agentCard) {
         if (null == agentCard || StringUtils.isEmpty(agentCard.preferredTransport()) || StringUtils.isEmpty(agentCard.url()) || null == agentCard.additionalInterfaces() || agentCard.additionalInterfaces().isEmpty()) {
-            log.error("parseAgentCardAddition param error, agentCard: {}", JSON.toJSONString(agentCard));
+            log.error("RocketMQTransport parseAgentCardAddition param error, agentCard: {}", JSON.toJSONString(agentCard));
             return null;
         }
         RocketMQResourceInfo rocketMQResourceInfo = null;
