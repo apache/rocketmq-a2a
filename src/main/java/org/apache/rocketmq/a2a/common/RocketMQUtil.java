@@ -172,8 +172,8 @@ public class RocketMQUtil {
      * @param endpoint The network address of the RocketMQ service, used by clients to connect to a specific RocketMQ cluster
      * @param accessKey RocketMQ Account Name
      * @param secretKey RocketMQ Account Password
-     * @param workAgentResponseTopic A lightweight LiteTopic for clients to receive response results
-     * @param workAgentResponseGroupID The CID used by the client to subscribe to the lightweight LiteTopic for response results
+     * @param workAgentResponseTopic A LiteTopic for clients to receive response results
+     * @param workAgentResponseGroupID The CID used by the client to subscribe to the LiteTopic for response results
      * @param liteTopic todo
      * @return LitePushConsumer
      * @throws ClientException

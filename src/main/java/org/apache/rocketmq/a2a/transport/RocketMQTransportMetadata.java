@@ -20,7 +20,7 @@ import io.a2a.server.TransportMetadata;
 import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.ROCKETMQ_PROTOCOL;
 
 /**
- * RocketMQ 传输层元数据
+ * RocketMQTransport MetaData, used to add ROCKETMQ_PROTOCOL into the A2A protocol.
  */
 public class RocketMQTransportMetadata implements TransportMetadata {
     @Override

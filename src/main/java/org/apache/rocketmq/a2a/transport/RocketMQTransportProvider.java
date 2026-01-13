@@ -23,10 +23,18 @@ import io.a2a.spec.AgentCard;
 import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.ROCKETMQ_PROTOCOL;
 
 /**
- * RocketMQTransport 提供器
+ * RocketMQTransport Provider
  */
 public class RocketMQTransportProvider implements ClientTransportProvider<RocketMQTransport, RocketMQTransportConfig> {
 
+    /**
+     * Create a client transport based RocketMQ
+     * @param clientTransportConfig the client transport config to use
+     * @param agentCard agentCard Info
+     * @param agentUrl the remote agent's URL
+     * @return RocketMQTransport
+     * @throws A2AClientException A2AClientException
+     */
     @Override
     public RocketMQTransport create(RocketMQTransportConfig clientTransportConfig, AgentCard agentCard, String agentUrl) throws
         A2AClientException {
@@ -36,6 +44,10 @@ public class RocketMQTransportProvider implements ClientTransportProvider<Rocket
         return new RocketMQTransport(clientTransportConfig.getNamespace(), clientTransportConfig.getAccessKey(), clientTransportConfig.getSecretKey(), clientTransportConfig.getWorkAgentResponseTopic(), clientTransportConfig.getWorkAgentResponseGroupID(), clientTransportConfig.getInterceptors(), clientTransportConfig.getAgentUrl(), clientTransportConfig.getHttpClient(), clientTransportConfig.getLiteTopic(), clientTransportConfig.isUseDefaultRecoverMode(), agentCard);
     }
 
+    /**
+     * Get the name of the client transport
+     * @return ROCKETMQ_PROTOCOL
+     */
     @Override
     public String getTransportProtocol() {
         return ROCKETMQ_PROTOCOL;
