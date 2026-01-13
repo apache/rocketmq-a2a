@@ -31,21 +31,20 @@ import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.HTTP_URL_PREFIX
 public class RocketMQResourceInfo {
     private static final Logger log = LoggerFactory.getLogger(RocketMQResourceInfo.class);
 
-    /**
-     * Namespace, used for logical isolation of different business units or environments
-     */
+    //Used for logical isolation of different business units or environments
     private String namespace;
 
-    /**
-     * The network address of the RocketMQ service, used by clients to connect to a specific RocketMQ cluster
-     */
+    //The network address of the RocketMQ service, used by clients to connect to a specific RocketMQ cluster
     private String endpoint;
 
-    /**
-     * RocketMQ topic resource
-     */
+    //RocketMQ topic resource
     private String topic;
 
+    /**
+     * Create RocketMQResourceInfo
+     * @param endpoint The network address of the RocketMQ service, used by clients to connect to a specific RocketMQ cluster
+     * @param topic RocketMQ topic resource
+     */
     public RocketMQResourceInfo(String endpoint, String topic) {
         this.endpoint = endpoint;
         this.topic = topic;
@@ -53,32 +52,9 @@ public class RocketMQResourceInfo {
 
     public RocketMQResourceInfo() {}
 
-    public String getEndpoint() {
-        return endpoint;
-    }
-
-    public void setEndpoint(String endpoint) {
-        this.endpoint = endpoint;
-    }
-
-    public String getTopic() {
-        return topic;
-    }
-
-    public void setTopic(String topic) {
-        this.topic = topic;
-    }
-
-    public String getNamespace() {
-        return namespace;
-    }
-
-    public void setNamespace(String namespace) {
-        this.namespace = namespace;
-    }
-
     /**
-     * Parse the RocketMQ-related information from the retrieved AgentCard and extract it into a RocketMQResourceInfo object that meets the required specifications
+     * Parse the RocketMQ-related information from the retrieved AgentCard and extract it into RocketMQResourceInfo
+     * object that meets the required specifications
      * @param agentCard a2a agentCard
      * @return RocketMQResourceInfo rocketmq resource info
      */
@@ -118,9 +94,9 @@ public class RocketMQResourceInfo {
     }
 
     /**
-     * try to get RocketMQResourceInfo by parsing the URL(http/https://rocketmqEndpoint/rocketmqNamespace/agentTopic)
+     * Try to get RocketMQResourceInfo by parsing the URL 'http/https://rocketmqEndpoint/rocketmqNamespace/agentTopic'
      * @param agentCardUrl the URL of AgentCard
-     * @return RocketMQResourceInfo rocketmq resource info
+     * @return RocketMQResourceInfo RocketMQ Resource Info
      */
     public static RocketMQResourceInfo pareAgentCardUrl(String agentCardUrl) {
         if (StringUtils.isEmpty(agentCardUrl)) {
@@ -138,4 +114,29 @@ public class RocketMQResourceInfo {
         rocketMQResourceInfo.setTopic(split[2].trim());
         return rocketMQResourceInfo;
     }
+
+    public String getEndpoint() {
+        return endpoint;
+    }
+
+    public void setEndpoint(String endpoint) {
+        this.endpoint = endpoint;
+    }
+
+    public String getTopic() {
+        return topic;
+    }
+
+    public void setTopic(String topic) {
+        this.topic = topic;
+    }
+
+    public String getNamespace() {
+        return namespace;
+    }
+
+    public void setNamespace(String namespace) {
+        this.namespace = namespace;
+    }
+
 }

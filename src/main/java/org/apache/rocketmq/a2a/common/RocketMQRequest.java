@@ -21,27 +21,20 @@ import java.util.Map;
 
 /**
  * RocketMQRequest encapsulates request data for A2A (Agent-to-Agent) protocol communication built on top of RocketMQ as the underlying messaging component.
- * This class serves as the message payload for asynchronous request-response interactions between agents via RocketMQ.
+ * This class serves as the message payload for asynchronous request-response interactions between agents via RocketMQ
  */
 public class RocketMQRequest {
-    /**
-     * Request headers storing A2A protocol metadata in key-value pairs
-     */
+
+    //Request headers storing A2A protocol metadata in key-value pairs
     private Map<String, String> requestHeader;
 
-    /**
-     * The request body, typically a serialized payload (e.g., JSON)
-     */
+    //The request body, typically a serialized payload (e.g., JSON)
     private String requestBody;
 
-    /**
-     * Destination Agent Topic, used for sending the original A2A request message
-     */
+    //Destination Agent Topic, used for sending the original A2A request message
     private String agentTopic;
 
-    /**
-     * Dedicated response topic for receiving reply messages from the target agent (typically a LiteTopic)
-     */
+    //Dedicated response topic for receiving reply messages from the target agent (typically a LiteTopic)
     private String workAgentResponseTopic;
 
     /**
@@ -49,6 +42,14 @@ public class RocketMQRequest {
      */
     private String liteTopic;
 
+    /**
+     * Create RocketMQRequest
+     * @param requestBody The request body, typically a serialized payload (e.g., JSON)
+     * @param requestHeader Request headers storing A2A protocol metadata in key-value pairs
+     * @param desAgentTopic Destination Agent Topic, used for sending the original A2A request message
+     * @param workAgentResponseTopic Dedicated response topic for receiving reply messages from the target agent (typically a LiteTopic)
+     * @param liteTopic liteTopic
+     */
     public RocketMQRequest(String requestBody, Map<String, String> requestHeader, String desAgentTopic, String workAgentResponseTopic, String liteTopic) {
         this.requestBody = requestBody;
         this.requestHeader = requestHeader;

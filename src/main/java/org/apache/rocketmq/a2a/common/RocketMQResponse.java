@@ -17,63 +17,45 @@
 package org.apache.rocketmq.a2a.common;
 
 /**
- * RocketMQResponse is used to encapsulate A2A protocol response messages returned via RocketMQ.
+ * RocketMQResponse is used to encapsulate A2A protocol response messages returned via RocketMQ
  */
 public class RocketMQResponse {
 
-    /**
-     * The LiteTopic subscribed to by the client.
-     */
+    //The LiteTopic subscribed to by the client
     private String liteTopic;
 
-    /**
-     * Context ID, used to associate a complete A2A request-response session.
-     */
+    //Context ID, used to associate a complete A2A request-response session
     private String contextId;
 
-    /**
-     * Response body content, typically serialized business data (e.g., JSON etc.)
-     */
+    //Response body content, typically serialized business data (e.g., JSON etc.)
     private String responseBody;
 
-    /**
-     * Task ID, which identifies the specific task corresponding to this A2A operation
-     */
+    //Task ID, which identifies the specific task corresponding to this A2A operation
     private String taskId;
 
-    /**
-     * The message ID obtained by the RocketMQ client upon successfully sending an A2A request
-     */
+    //The message ID obtained by the RocketMQ client upon successfully sending an A2A request
     private String messageId;
 
-    /**
-     * The response topic used by the server
-     */
+    //The response topic used by the server
     private String serverWorkAgentResponseTopic;
 
-    /**
-     * The lite topic used by the server to indicate that subsequent requests of a specific type should be routed back to this particular server instance
-     */
+    //The lite topic used by the server to indicate that subsequent requests of a specific type should be routed back to this particular server instance
     private String serverLiteTopic;
 
-    /**
-     * Whether it is a streaming response
-     */
+    //Whether it is a streaming response
     private boolean isStream;
 
-    /**
-     * Whether it is the end marker of a streaming response
-     */
+    //Whether it is the end marker of a streaming response
     private boolean isEnd;
 
     /**
-     * RocketMQ 构造函数
-     * @param liteTopic
-     * @param contextId
-     * @param responseBody
-     * @param messageId
-     * @param isStream
-     * @param isEnd
+     * Create RocketMQResponse
+     * @param liteTopic The RocketMQ LiteTopic subscribed to by the client
+     * @param contextId Context ID, used to associate a complete A2A request-response session
+     * @param responseBody Response body content, typically serialized business data (e.g., JSON etc.)
+     * @param messageId The message ID obtained by the RocketMQ client upon successfully sending an A2A request
+     * @param isStream Whether it is a streaming response
+     * @param isEnd Whether it is the end marker of a streaming response
      */
     public RocketMQResponse(String liteTopic, String contextId, String responseBody, String messageId, boolean isStream, boolean isEnd) {
         this.liteTopic = liteTopic;
@@ -85,16 +67,16 @@ public class RocketMQResponse {
     }
 
     /**
-     * 构造函数
-     * @param liteTopic
-     * @param contextId
-     * @param responseBody
-     * @param messageId
-     * @param isStream
-     * @param isEnd
-     * @param taskId
-     * @param serverWorkAgentResponseTopic
-     * @param serverLiteTopic
+     * Create RocketMQResponse
+     * @param liteTopic The RocketMQ LiteTopic subscribed to by the client
+     * @param contextId Context ID, used to associate a complete A2A request-response session
+     * @param responseBody Response body content, typically serialized business data (e.g., JSON etc.)
+     * @param messageId The message ID obtained by the RocketMQ client upon successfully sending an A2A request
+     * @param isStream Whether it is a streaming response
+     * @param isEnd Whether it is the end marker of a streaming response
+     * @param taskId Task ID, which identifies the specific task corresponding to this A2A operation
+     * @param serverWorkAgentResponseTopic The response topic used by the server
+     * @param serverLiteTopic The lite topic used by the server to indicate that subsequent requests of a specific type should be routed back to this particular server instance
      */
     public RocketMQResponse(String liteTopic, String contextId, String responseBody, String messageId, boolean isStream, boolean isEnd, String taskId, String serverWorkAgentResponseTopic, String serverLiteTopic) {
         this.liteTopic = liteTopic;

@@ -52,7 +52,8 @@ public class RocketMQA2AConstant {
     public static final String LITE_TOPIC = "LITE_TOPIC";
     public static final String CLOSE_LITE_TOPIC = "CLOSE_LITE_TOPIC";
     public static final String DEFAULT_STREAM_RECOVER = "default";
-    //sse data prefix
+    //SSE data prefix
     public static final String DATA_PREFIX = "data:";
+    //Retrieve field information of method parameter types during request deserialization on the A2A service server
     public static final String METHOD = "method";
 }
