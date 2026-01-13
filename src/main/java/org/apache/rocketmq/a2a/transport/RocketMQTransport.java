@@ -187,6 +187,7 @@ public class RocketMQTransport implements ClientTransport {
         }
         this.useDefaultRecoverMode = useDefaultRecoverMode;
         this.agentCard = agentCard;
+        //从AgentCard中获取RocketMQ资源相关的信息
         RocketMQResourceInfo rocketAgentCardInfo = parseAgentCardAddition(this.agentCard);
         if (null == rocketAgentCardInfo) {
             throw new RuntimeException("RocketMQTransport rocketAgentCardInfo pare error");
@@ -199,6 +200,7 @@ public class RocketMQTransport implements ClientTransport {
         this.namespace = StringUtils.isEmpty(rocketAgentCardInfo.getNamespace()) ? "" : rocketAgentCardInfo.getNamespace();
         LITE_TOPIC_USE_DEFAULT_RECOVER_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>()).put(this.liteTopic, useDefaultRecoverMode);
         checkConfigParam(this.endpoint, this.workAgentResponseTopic, this.workAgentResponseGroupID, this.liteTopic, this.agentTopic);
+        //初始化RocketMQ的LitePushConsumer和Producer
         try {
             this.litePushConsumer = initAndGetConsumer(this.namespace, this.endpoint, this.accessKey, this.secretKey, this.workAgentResponseTopic, this.workAgentResponseGroupID, this.liteTopic);
             this.producer = initAndGetProducer(this.namespace, this.endpoint, this.accessKey, this.secretKey, this.agentTopic);
@@ -208,6 +210,13 @@ public class RocketMQTransport implements ClientTransport {
         }
     }
 
+    /**
+     * 发送非流式类型请求到远端的Agent服务
+     * @param request the message send parameters
+     * @param context optional client call context for the request (may be {@code null})
+     * @return
+     * @throws A2AClientException
+     */
     @Override
     public EventKind sendMessage(MessageSendParams request, ClientCallContext context) throws A2AClientException {
         checkNotNullParam("request", request);
@@ -224,6 +233,14 @@ public class RocketMQTransport implements ClientTransport {
         }
     }
 
+    /**
+     * 发送流式类型请求到远端的Agent服务
+     * @param request       the message send parameters
+     * @param eventConsumer consumer that will receive streaming events as they arrive
+     * @param errorConsumer consumer that will be called if an error occurs during streaming
+     * @param context       optional client call context for the request (may be {@code null})
+     * @throws A2AClientException
+     */
     @Override
     public void sendMessageStreaming(MessageSendParams request, Consumer<StreamingEventKind> eventConsumer, Consumer<Throwable> errorConsumer, ClientCallContext context) throws A2AClientException {
         checkNotNullParam("request", request);
@@ -245,6 +262,14 @@ public class RocketMQTransport implements ClientTransport {
         }
     }
 
+    /**
+     * 针对某个会话Id进行重新订阅、取消订阅
+     * @param request       the task ID parameters specifying which task to resubscribe to
+     * @param eventConsumer consumer that will receive streaming events as they arrive
+     * @param errorConsumer consumer that will be called if an error occurs during streaming
+     * @param context       optional client call context for the request (may be {@code null})
+     * @throws A2AClientException
+     */
     @Override
     public void resubscribe(TaskIdParams request, Consumer<StreamingEventKind> eventConsumer, Consumer<Throwable> errorConsumer, ClientCallContext context) throws A2AClientException {
         checkNotNullParam("request", request);
@@ -278,6 +303,13 @@ public class RocketMQTransport implements ClientTransport {
         }
     }
 
+    /**
+     * 查询在远端Agent中任务的完成情况
+     * @param request the task query parameters specifying which task to retrieve
+     * @param context optional client call context for the request (may be {@code null})
+     * @return
+     * @throws A2AClientException
+     */
     @Override
     public Task getTask(TaskQueryParams request, ClientCallContext context) throws A2AClientException {
         checkNotNullParam("request", request);
@@ -293,6 +325,13 @@ public class RocketMQTransport implements ClientTransport {
         }
     }
 
+    /**
+     * 取消在远端Agent中任务的执行
+     * @param request the task ID parameters specifying which task to cancel
+     * @param context optional client call context for the request (may be {@code null})
+     * @return
+     * @throws A2AClientException
+     */
     @Override
     public Task cancelTask(TaskIdParams request, ClientCallContext context) throws A2AClientException {
         checkNotNullParam("request", request);
@@ -308,6 +347,13 @@ public class RocketMQTransport implements ClientTransport {
         }
     }
 
+    /**
+     * 针对任务设置推送通知配置信息
+     * @param request the push notification configuration to set for the task
+     * @param context optional client call context for the request (may be {@code null})
+     * @return
+     * @throws A2AClientException
+     */
     @Override
     public TaskPushNotificationConfig setTaskPushNotificationConfiguration(TaskPushNotificationConfig request, ClientCallContext context) throws A2AClientException {
         checkNotNullParam("request", request);
@@ -323,6 +369,13 @@ public class RocketMQTransport implements ClientTransport {
         }
     }
 
+    /**
+     * 获取任务的推送通知配置信息
+     * @param request the parameters specifying which task's notification config to retrieve
+     * @param context optional client call context for the request (may be {@code null})
+     * @return
+     * @throws A2AClientException
+     */
     @Override
     public TaskPushNotificationConfig getTaskPushNotificationConfiguration(GetTaskPushNotificationConfigParams request, ClientCallContext context) throws A2AClientException {
         checkNotNullParam("request", request);
@@ -338,6 +391,13 @@ public class RocketMQTransport implements ClientTransport {
         }
     }
 
+    /**
+     * 对任务的推送通知配置信息进行查询
+     * @param request the parameters specifying which task's notification configs to retrieve
+     * @param context optional client call context for the request (may be {@code null})
+     * @return
+     * @throws A2AClientException
+     */
     @Override
     public List<TaskPushNotificationConfig> listTaskPushNotificationConfigurations(ListTaskPushNotificationConfigParams request, ClientCallContext context) throws A2AClientException {
         checkNotNullParam("request", request);
@@ -353,6 +413,12 @@ public class RocketMQTransport implements ClientTransport {
         }
     }
 
+    /**
+     * 删除任务推送通知配置
+     * @param request the parameters specifying which task's notification configs to delete
+     * @param context optional client call context for the request (may be {@code null})
+     * @throws A2AClientException
+     */
     @Override
     public void deleteTaskPushNotificationConfigurations(DeleteTaskPushNotificationConfigParams request, ClientCallContext context) throws A2AClientException {
         checkNotNullParam("request", request);
@@ -366,6 +432,12 @@ public class RocketMQTransport implements ClientTransport {
         }
     }
 
+    /**
+     * 获取AgentCard信息
+     * @param context optional client call context for the request (may be {@code null})
+     * @return
+     * @throws A2AClientException
+     */
     @Override
     public AgentCard getAgentCard(ClientCallContext context) throws A2AClientException {
         A2ACardResolver resolver;
@@ -395,6 +467,11 @@ public class RocketMQTransport implements ClientTransport {
     @Override
     public void close() {}
 
+    /**
+     * 处理LiteTopic相关的逻辑
+     * @param contextId
+     * @return
+     */
     private String dealLiteTopic(String contextId) {
         String liteTopic = this.liteTopic;
         if (!StringUtils.isEmpty(contextId)) {
@@ -408,6 +485,14 @@ public class RocketMQTransport implements ClientTransport {
         return liteTopic;
     }
 
+    /**
+     * 应用拦截器
+     * @param methodName 方法名
+     * @param payload 负载对象
+     * @param agentCard agentCard信息
+     * @param clientCallContext 客户端调用上下文
+     * @return 负载和请求头信息
+     */
     private PayloadAndHeaders applyInterceptors(String methodName, Object payload, AgentCard agentCard, ClientCallContext clientCallContext) {
         PayloadAndHeaders payloadAndHeaders = new PayloadAndHeaders(payload, getHttpHeaders(clientCallContext));
         if (interceptors != null && !interceptors.isEmpty()) {

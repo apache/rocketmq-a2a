@@ -66,6 +66,15 @@ public class RocketMQResponse {
      */
     private boolean isEnd;
 
+    /**
+     * RocketMQ 构造函数
+     * @param liteTopic
+     * @param contextId
+     * @param responseBody
+     * @param messageId
+     * @param isStream
+     * @param isEnd
+     */
     public RocketMQResponse(String liteTopic, String contextId, String responseBody, String messageId, boolean isStream, boolean isEnd) {
         this.liteTopic = liteTopic;
         this.contextId = contextId;
@@ -75,6 +84,18 @@ public class RocketMQResponse {
         this.isEnd = isEnd;
     }
 
+    /**
+     * 构造函数
+     * @param liteTopic
+     * @param contextId
+     * @param responseBody
+     * @param messageId
+     * @param isStream
+     * @param isEnd
+     * @param taskId
+     * @param serverWorkAgentResponseTopic
+     * @param serverLiteTopic
+     */
     public RocketMQResponse(String liteTopic, String contextId, String responseBody, String messageId, boolean isStream, boolean isEnd, String taskId, String serverWorkAgentResponseTopic, String serverLiteTopic) {
         this.liteTopic = liteTopic;
         this.contextId = contextId;
