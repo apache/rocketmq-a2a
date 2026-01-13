@@ -323,7 +323,7 @@ public class RocketMQUtil {
      * Build Message
      * @param topic 客户端轻量级LiteTopic
      * @param liteTopic todo
-     * @param response 响应结果数据
+     * @param response todo
      * @return Message
      */
     public static Message buildMessage(String topic, String liteTopic, RocketMQResponse response) {
@@ -344,7 +344,7 @@ public class RocketMQUtil {
      * Send a request that complies with the A2A protocol
      * @param payloadAndHeaders An encapsulated object containing the request payload and headers, typically used to transparently pass context or authentication information
      * @param agentTopic The Normal Topic bound to the target Agent
-     * @param liteTopic 轻量级响应 Topic
+     * @param liteTopic todo
      * @param workAgentResponseTopic A lightweight LiteTopic for clients to receive response results
      * @param producer Normal RocketMQ Producer
      * @param taskId The id of the task
