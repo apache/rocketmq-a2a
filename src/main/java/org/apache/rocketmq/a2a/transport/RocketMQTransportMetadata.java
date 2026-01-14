@@ -20,7 +20,14 @@ import io.a2a.server.TransportMetadata;
 import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.ROCKETMQ_PROTOCOL;
 
 /**
- * RocketMQTransport MetaData, used to add ROCKETMQ_PROTOCOL into the A2A protocol.
+ * Metadata implementation for the RocketMQ-based A2A transport.
+ * <p>
+ * This class provides protocol identification by returning the {@link #ROCKETMQ_PROTOCOL}
+ * constant as the transport protocol name, enabling the A2A framework to recognize
+ * and route messages through the RocketMQ transport layer.
+ * <p>
+ * It is used internally by the A2A protocol stack to associate message exchanges
+ * with the RocketMQ transport mechanism.
  */
 public class RocketMQTransportMetadata implements TransportMetadata {
     @Override

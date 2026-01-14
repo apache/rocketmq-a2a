@@ -23,17 +23,26 @@ import io.a2a.spec.AgentCard;
 import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.ROCKETMQ_PROTOCOL;
 
 /**
- * RocketMQTransport Provider
+ * A provider for creating {@link RocketMQTransport} instances used in A2A client communication.
+ * <p>
+ * This class implements the {@link ClientTransportProvider} interface to support
+ * RocketMQ-based message transport between A2A clients and remote agents.
+ * It is responsible for instantiating transports with the appropriate configuration,
+ * agent identity, and endpoint information.
  */
 public class RocketMQTransportProvider implements ClientTransportProvider<RocketMQTransport, RocketMQTransportConfig> {
 
     /**
-     * Create a client transport based RocketMQ
-     * @param clientTransportConfig the client transport config to use
-     * @param agentCard agentCard Info
-     * @param agentUrl the remote agent's URL
-     * @return RocketMQTransport
-     * @throws A2AClientException A2AClientException
+     * Creates a new {@link RocketMQTransport} instance using the provided configuration and agent details.
+     * <p>
+     * If the given {@code clientTransportConfig} is {@code null}, a default configuration
+     * will be created using a standard {@link JdkA2AHttpClient}.
+     *
+     * @param clientTransportConfig the transport configuration (may be {@code null})
+     * @param agentCard             the agent's identity and metadata
+     * @param agentUrl              the remote agent's endpoint URL (used for routing or diagnostics)
+     * @return a configured {@link RocketMQTransport} instance
+     * @throws A2AClientException if transport creation fails due to invalid configuration or initialization error
      */
     @Override
     public RocketMQTransport create(RocketMQTransportConfig clientTransportConfig, AgentCard agentCard, String agentUrl) throws
@@ -45,14 +54,20 @@ public class RocketMQTransportProvider implements ClientTransportProvider<Rocket
     }
 
     /**
-     * Get the name of the client transport
-     * @return ROCKETMQ_PROTOCOL
+     * Returns the protocol name associated with this transport provider.
+     *
+     * @return the constant {@link #ROCKETMQ_PROTOCOL}, identifying the RocketMQ-based A2A transport
      */
     @Override
     public String getTransportProtocol() {
         return ROCKETMQ_PROTOCOL;
     }
 
+    /**
+     * Returns the concrete transport implementation class managed by this provider.
+     *
+     * @return the {@link RocketMQTransport} class
+     */
     @Override
     public Class<RocketMQTransport> getTransportProtocolClass() {
         return RocketMQTransport.class;

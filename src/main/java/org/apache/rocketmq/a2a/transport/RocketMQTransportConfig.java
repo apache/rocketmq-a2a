@@ -20,7 +20,10 @@ import io.a2a.client.http.A2AHttpClient;
 import io.a2a.client.transport.spi.ClientTransportConfig;
 
 /**
- * RocketMQTransport configuration class, used to encapsulate all required parameters for RocketMQ A2A communication
+ * Configuration class for RocketMQ-based A2A (Agent-to-Agent) transport.
+ * <p>
+ * Encapsulates all necessary parameters to establish RocketMQ communication between clients and agents,
+ * including authentication, topic routing, and session management.
  */
 public class RocketMQTransportConfig extends ClientTransportConfig<RocketMQTransport> {
     /**
@@ -74,15 +77,35 @@ public class RocketMQTransportConfig extends ClientTransportConfig<RocketMQTrans
     private boolean useDefaultRecoverMode = false;
 
     /**
-     * Create New RocketMQTransportConfig
-     * @param accessKey RocketMQ Account Name
-     * @param secretKey RocketMQ Account Password
-     * @param endpoint The network address of the RocketMQ service, used by clients to connect to a specific RocketMQ cluster
-     * @param namespace Used for logical isolation of different business units or environments
-     * @param workAgentResponseTopic LiteTopic for clients to receive response results
-     * @param workAgentResponseGroupID The CID used by the client to subscribe to the LiteTopic for response results
+     * Creates a configuration with minimal required fields for agent communication
+     *
+     * @param accessKey  RocketMQ Account Name
+     * @param secretKey  RocketMQ Account Password
+     * @param endpoint   The network address of the RocketMQ service, used by clients to connect to a specific RocketMQcluster
+     * @param namespace  Used for logical isolation of different business units or environments
      * @param agentTopic The Normal Topic bound to the target Agent
      * @param httpClient HttpClient
+     */
+    public RocketMQTransportConfig(String accessKey, String secretKey, String endpoint, String namespace, String agentTopic, A2AHttpClient httpClient) {
+        this.accessKey = accessKey;
+        this.secretKey = secretKey;
+        this.endpoint = endpoint;
+        this.namespace = namespace;
+        this.agentTopic = agentTopic;
+        this.httpClient = httpClient;
+    }
+
+    /**
+     * Creates a configuration with explicit client response routing
+     *
+     * @param accessKey                RocketMQ Account Name
+     * @param secretKey                RocketMQ Account Password
+     * @param endpoint                 The network address of the RocketMQ service, used by clients to connect to a specific RocketMQ cluster
+     * @param namespace                Used for logical isolation of different business units or environments
+     * @param workAgentResponseTopic   LiteTopic for clients to receive response results
+     * @param workAgentResponseGroupID The CID used by the client to subscribe to the LiteTopic for response results
+     * @param agentTopic               The Normal Topic bound to the target Agent
+     * @param httpClient               HttpClient
      */
     public RocketMQTransportConfig(String accessKey, String secretKey, String endpoint, String namespace,
         String workAgentResponseTopic, String workAgentResponseGroupID, String agentTopic, A2AHttpClient httpClient) {
@@ -97,17 +120,18 @@ public class RocketMQTransportConfig extends ClientTransportConfig<RocketMQTrans
     }
 
     /**
-     * Create New RocketMQTransportConfig
-     * @param accessKey RocketMQ Account Name
-     * @param secretKey RocketMQ Account Password
-     * @param endpoint The network address of the RocketMQ service, used by clients to connect to a specific RocketMQ cluster
-     * @param namespace Used for logical isolation of different business units or environments
-     * @param workAgentResponseTopic LiteTopic for clients to receive response results
+     * Full constructor including session-level {@code liteTopic} and recovery settings.
+     *
+     * @param accessKey                RocketMQ Account Name
+     * @param secretKey                RocketMQ Account Password
+     * @param endpoint                 The network address of the RocketMQ service, used by clients to connect to a specific RocketMQ cluster
+     * @param namespace                Used for logical isolation of different business units or environments
+     * @param workAgentResponseTopic   LiteTopic for clients to receive response results
      * @param workAgentResponseGroupID The CID used by the client to subscribe to the LiteTopic for response results
-     * @param agentTopic The Normal Topic bound to the target Agent
-     * @param httpClient HttpClient
-     * @param liteTopic todo
-     * @param useDefaultRecoverMode Whether to use the default recovery mode
+     * @param agentTopic               The Normal Topic bound to the target Agent
+     * @param httpClient               HttpClient
+     * @param liteTopic                todo
+     * @param useDefaultRecoverMode    Whether to use the default recovery mode
      */
     public RocketMQTransportConfig(String accessKey, String secretKey, String endpoint, String namespace,
         String workAgentResponseTopic, String workAgentResponseGroupID, String agentTopic, A2AHttpClient httpClient, String liteTopic, boolean useDefaultRecoverMode) {
@@ -121,24 +145,6 @@ public class RocketMQTransportConfig extends ClientTransportConfig<RocketMQTrans
         this.httpClient = httpClient;
         this.liteTopic = liteTopic;
         this.useDefaultRecoverMode = useDefaultRecoverMode;
-    }
-
-    /**
-     * Create New RocketMQTransportConfig
-     * @param accessKey RocketMQ Account Name
-     * @param secretKey RocketMQ Account Password
-     * @param endpoint The network address of the RocketMQ service, used by clients to connect to a specific RocketMQ cluster
-     * @param namespace Used for logical isolation of different business units or environments
-     * @param agentTopic The Normal Topic bound to the target Agent
-     * @param httpClient HttpClient
-     */
-    public RocketMQTransportConfig(String accessKey, String secretKey, String endpoint, String namespace, String agentTopic, A2AHttpClient httpClient) {
-        this.accessKey = accessKey;
-        this.secretKey = secretKey;
-        this.endpoint = endpoint;
-        this.namespace = namespace;
-        this.agentTopic = agentTopic;
-        this.httpClient = httpClient;
     }
 
     private A2AHttpClient httpClient;
