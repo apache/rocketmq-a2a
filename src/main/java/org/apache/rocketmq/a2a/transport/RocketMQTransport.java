@@ -523,7 +523,6 @@ public class RocketMQTransport implements ClientTransport {
         String liteTopic = this.liteTopic;
         if (!StringUtils.isEmpty(contextId)) {
             try {
-                //LitePushConsumer sub liteTopic
                 litePushConsumer.subscribeLite(contextId);
                 liteTopic = contextId;
             } catch (ClientException e) {
