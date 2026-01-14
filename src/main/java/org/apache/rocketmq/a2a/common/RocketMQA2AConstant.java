@@ -77,7 +77,7 @@ public class RocketMQA2AConstant {
     /**
      * TypeReference for deserializing the response of {@link DeleteTaskPushNotificationConfigRequest}.
      */
-    public static final TypeReference<DeleteTaskPushNotificationConfigResponse> DELETE_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE = new TypeReference<>() {};
+    public static final TypeReference<DeleteTaskPushNotificationConfigResponse> DELETE_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE = new TypeReference<>() { };
 
     /** Prefix for HTTP URLs. */
     public static final String HTTP_URL_PREFIX = "http://";
