@@ -89,84 +89,120 @@ import static org.apache.rocketmq.a2a.common.RocketMQUtil.sendRocketMQRequest;
 import static org.apache.rocketmq.a2a.common.RocketMQUtil.unmarshalResponse;
 
 /**
- * A ClientTransport implementation based on RocketMQ as the communication component
+ * A RocketMQ-based implementation of the {@link ClientTransport} interface for A2A protocol communication.
+ * <p>
+ * This transport enables clients to send both streaming and non-streaming JSON-RPC requests to remote agents
+ * over RocketMQ. It manages:
+ * <ul>
+ *   <li>Producer for sending requests to the agent's topic</li>
+ *   <li>LitePushConsumer for receiving responses on client-specific lite topics</li>
+ *   <li>Interceptors for request/response modification</li>
+ *   <li>Session-scoped topic subscription and recovery</li>
+ * </ul>
+ * <p>
+ * Configuration is derived from both explicit parameters and the {@link AgentCard}'s embedded
+ * {@link RocketMQResourceInfo}.
  */
 public class RocketMQTransport implements ClientTransport {
     private static final Logger log = LoggerFactory.getLogger(RocketMQTransport.class);
+
     /**
-     * The Topic bound to the target agent Agent
+     * The RocketMQ topic associated with the target agent, used as the destination for client requests.
      */
     private final String agentTopic;
+
     /**
-     * RocketMQ Account Name
+     * The access key for authenticating with the RocketMQ service.
      */
     private final String accessKey;
+
     /**
-     * RocketMQ Account Password
+     * The secret key for authenticating with the RocketMQ service.
      */
     private final String secretKey;
+
     /**
-     * The network address of the RocketMQ service, used by clients to connect to a specific RocketMQ cluster
+     * The network endpoint of the RocketMQ service (e.g., "http://mq.example.com:8080").
      */
     private final String endpoint;
+
     /**
-     * Used for logical isolation of different business units or environments
+     * The namespace used for logical isolation of RocketMQ resources (e.g., by environment or tenant).
      */
     private final String namespace;
+
     /**
-     * A LiteTopic for clients to receive response results
+     * The lite topic where the client subscribes to receive response messages from the server.
      */
     private final String workAgentResponseTopic;
+
     /**
-     * The CID used by the client to subscribe to the lightweight LiteTopic for response results
+     * The consumer group ID used when subscribing to the {@link #workAgentResponseTopic}.
      */
     private final String workAgentResponseGroupID;
+
     /**
-     * Client call interceptor
+     * A list of interceptors applied to outgoing requests before transmission.
      */
     private final List<ClientCallInterceptor> interceptors;
+
     /**
-     * AgentCard information in A2A
+     * The agent's identity and metadata, including embedded RocketMQ resource information.
      */
     private AgentCard agentCard;
+
     /**
-     * The URL where the Agent provides services
+     * The HTTP URL where the agent's control plane or metadata service is exposed.
+     * Used primarily for initial {@link AgentCard} resolution.
      */
     private final String agentUrl;
+
     /**
-     * Whether to use the default recovery mode
+     * Indicates whether the default message recovery mode should be enabled for streaming responses.
      */
     private boolean useDefaultRecoverMode = false;
+
     /**
-     * todo
+     * The session-scoped lite topic used for point-to-point communication with the server.
+     * <p>
+     * If not explicitly provided during construction, a random UUID is generated.
+     * This topic may be overridden per request using a context ID.
      */
     private String liteTopic;
 
+    /**
+     * The HTTP client used for resolving the agent's {@link AgentCard} via its metadata endpoint.
+     */
     private final A2AHttpClient httpClient;
 
     private boolean needsExtendedCard = false;
+
     /**
-     * RocketMQ LitePushConsumer
+     * The RocketMQ consumer used to receive response messages on lite topics.
      */
     private LitePushConsumer litePushConsumer;
+
     /**
-     * RocketMQ Producer
+     * The RocketMQ producer used to send request messages to the agent's topic.
      */
     private Producer producer;
 
     /**
-     * Create New RocketMQTransport
-     * @param namespace Used for logical isolation of different business units or environments
-     * @param accessKey RocketMQ Account Name
-     * @param secretKey RocketMQ Account Password
-     * @param workAgentResponseTopic A LiteTopic for clients to receive response results
-     * @param workAgentResponseGroupID The CID used by the client to subscribe to the LiteTopic for response results
-     * @param interceptors Client call interceptor
-     * @param agentUrl The URL where the Agent provides services
-     * @param httpClient httpClient
-     * @param liteTopic todo
-     * @param useDefaultRecoverMode Whether to use the default recovery mode
-     * @param agentCard AgentCard information in A2A
+     * Constructs a new {@code RocketMQTransport} instance.
+     *
+     * @param namespace                the RocketMQ namespace for logical isolation
+     * @param accessKey                the RocketMQ access key
+     * @param secretKey                the RocketMQ secret key
+     * @param workAgentResponseTopic   the lite topic where the client listens for responses
+     * @param workAgentResponseGroupID the consumer group ID for the response topic
+     * @param interceptors             a list of client call interceptors (may be {@code null})
+     * @param agentUrl                 the agent's metadata service URL
+     * @param httpClient               the HTTP client for agent card resolution
+     * @param liteTopic                the session-scoped lite topic (if {@code null} or empty, a random one is generated)
+     * @param useDefaultRecoverMode    whether to enable default recovery mode for streaming
+     * @param agentCard                the agent's identity and embedded RocketMQ resource info
+     * @throws RuntimeException if the {@code agentCard} does not contain valid RocketMQ resource information,
+     *                          or if required configuration values do not match
      */
     public RocketMQTransport(String namespace, String accessKey, String secretKey, String workAgentResponseTopic, String workAgentResponseGroupID,
         List<ClientCallInterceptor> interceptors, String agentUrl, A2AHttpClient httpClient, String liteTopic, boolean useDefaultRecoverMode, AgentCard agentCard) {
@@ -178,40 +214,43 @@ public class RocketMQTransport implements ClientTransport {
         this.agentUrl = agentUrl;
         this.httpClient = httpClient;
         this.liteTopic = liteTopic;
-        if (StringUtils.isEmpty(this.liteTopic)) {
-            this.liteTopic = UUID.randomUUID().toString();
-        }
         this.useDefaultRecoverMode = useDefaultRecoverMode;
         this.agentCard = agentCard;
-        //Retrieve RocketMQ resource-related information from the AgentCard.
+        // Generate a random lite topic if none is provided
+        this.liteTopic = StringUtils.isEmpty(liteTopic) ? UUID.randomUUID().toString() : liteTopic;
+        // Parse RocketMQ resource info from the agent card
         RocketMQResourceInfo rocketAgentCardInfo = parseAgentCardAddition(this.agentCard);
         if (null == rocketAgentCardInfo) {
-            throw new RuntimeException("RocketMQTransport rocketAgentCardInfo pare error");
+            throw new RuntimeException("RocketMQTransport failed to parse RocketMQResourceInfo from AgentCard");
         }
+        // Validate namespace consistency if explicitly provided
         if (null != namespace && !namespace.equals(rocketAgentCardInfo.getNamespace())) {
             throw new RuntimeException("RocketMQTransport rocketAgentCardInfo namespace do not match, please check the config info");
         }
         this.endpoint = rocketAgentCardInfo.getEndpoint();
         this.agentTopic = rocketAgentCardInfo.getTopic();
         this.namespace = StringUtils.isEmpty(rocketAgentCardInfo.getNamespace()) ? "" : rocketAgentCardInfo.getNamespace();
+        // Register recovery mode preference for this lite topic
         LITE_TOPIC_USE_DEFAULT_RECOVER_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>()).put(this.liteTopic, useDefaultRecoverMode);
+        // Validate required configuration parameters
         checkConfigParam(this.endpoint, this.workAgentResponseTopic, this.workAgentResponseGroupID, this.liteTopic, this.agentTopic);
-        //Initialize the RocketMQ LitePushConsumer and Producer
+        // Initialize RocketMQ clients
         try {
             this.litePushConsumer = initAndGetLitePushConsumer(this.namespace, this.endpoint, this.accessKey, this.secretKey, this.workAgentResponseTopic, this.workAgentResponseGroupID, this.liteTopic);
             this.producer = initAndGetProducer(this.namespace, this.endpoint, this.accessKey, this.secretKey, this.agentTopic);
         } catch (ClientException e) {
             log.error("RocketMQTransport init rocketmq client error, e: {}", e.getMessage());
-            throw new RuntimeException("RocketMQTransport init rocketmq client error");
+            throw new RuntimeException("RocketMQTransport initialization failed", e);
         }
     }
 
     /**
-     * Send a non-streaming request to the remote Agent service
-     * @param request the message send parameters
-     * @param context optional client call context for the request (may be {@code null})
-     * @return EventKind
-     * @throws A2AClientException A2AClientException
+     * Sends a non-streaming JSON-RPC request to the remote agent and waits for the response.
+     *
+     * @param request  the message send parameters
+     * @param context  optional client call context (may be {@code null})
+     * @return the result of the operation, or {@code null} if an error occurred
+     * @throws A2AClientException if the request fails due to transport or protocol issues
      */
     @Override
     public EventKind sendMessage(MessageSendParams request, ClientCallContext context) throws A2AClientException {
@@ -219,7 +258,7 @@ public class RocketMQTransport implements ClientTransport {
         SendMessageRequest sendMessageRequest = new SendMessageRequest.Builder().jsonrpc(JSONRPCMessage.JSONRPC_VERSION).method(SendMessageRequest.METHOD).params(request).build();
         PayloadAndHeaders payloadAndHeaders = applyInterceptors(SendMessageRequest.METHOD, sendMessageRequest, this.agentCard, context);
         try {
-            String liteTopic = dealLiteTopic(request.message().getContextId());
+            String liteTopic = resolveLiteTopic(request.message().getContextId());
             String responseMessageId = sendRocketMQRequest(payloadAndHeaders, this.agentTopic, liteTopic, this.workAgentResponseTopic, this.producer, null);
             SendMessageResponse response = unmarshalResponse(getResult(responseMessageId, this.namespace, SEND_MESSAGE_RESPONSE_REFERENCE), SEND_MESSAGE_RESPONSE_REFERENCE);
             return response.getResult();
@@ -230,12 +269,13 @@ public class RocketMQTransport implements ClientTransport {
     }
 
     /**
-     * Send a streaming request to the remote Agent service
-     * @param request       the message send parameters
-     * @param eventConsumer consumer that will receive streaming events as they arrive
-     * @param errorConsumer consumer that will be called if an error occurs during streaming
-     * @param context       optional client call context for the request (may be {@code null})
-     * @throws A2AClientException
+     * Sends a streaming JSON-RPC request to the remote agent and registers listeners for events and errors.
+     *
+     * @param request        the message send parameters
+     * @param eventConsumer  consumer for incoming streaming events
+     * @param errorConsumer  consumer for error notifications
+     * @param context        optional client call context (may be {@code null})
+     * @throws A2AClientException if the request fails to be sent
      */
     @Override
     public void sendMessageStreaming(MessageSendParams request, Consumer<StreamingEventKind> eventConsumer, Consumer<Throwable> errorConsumer, ClientCallContext context) throws A2AClientException {
@@ -245,7 +285,7 @@ public class RocketMQTransport implements ClientTransport {
         PayloadAndHeaders payloadAndHeaders = applyInterceptors(SendStreamingMessageRequest.METHOD, sendStreamingMessageRequest, this.agentCard, context);
         SSEEventListener sseEventListener = new SSEEventListener(eventConsumer, errorConsumer);
         try {
-            String liteTopic = dealLiteTopic(request.message().getContextId());
+            String liteTopic = resolveLiteTopic(request.message().getContextId());
             String responseMessageId = sendRocketMQRequest(payloadAndHeaders, this.agentTopic, liteTopic, this.workAgentResponseTopic, this.producer, null);
             if (StringUtils.isEmpty(responseMessageId)) {
                 log.error("RocketMQTransport sendMessageStreaming error, responseMessageId is null");
@@ -254,17 +294,20 @@ public class RocketMQTransport implements ClientTransport {
             MESSAGE_STREAM_RESPONSE_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>()).put(responseMessageId, sseEventListener);
             log.info("RocketMQTransport sendMessageStreaming success, responseMessageId: {}", responseMessageId);
         } catch (Exception e) {
-            throw new A2AClientException("RocketMQTransport Failed to send streaming message request: " + e, e);
+            throw new A2AClientException("RocketMQTransport failed to send streaming message request", e);
         }
     }
 
     /**
-     * Resubscribe or unsubscribe for a specific session ID
-     * @param request       the task ID parameters specifying which task to resubscribe to
-     * @param eventConsumer consumer that will receive streaming events as they arrive
-     * @param errorConsumer consumer that will be called if an error occurs during streaming
-     * @param context       optional client call context for the request (may be {@code null})
-     * @throws A2AClientException
+     * Resubscribes to or unsubscribes from a streaming session based on metadata in the request.
+     * <p>
+     * This method supports dynamic subscription management using context IDs and recovery modes.
+     *
+     * @param request        the task ID parameters containing subscription metadata
+     * @param eventConsumer  consumer for streaming events
+     * @param errorConsumer  consumer for errors
+     * @param context        optional client call context (may be {@code null})
+     * @throws A2AClientException if resubscription fails
      */
     @Override
     public void resubscribe(TaskIdParams request, Consumer<StreamingEventKind> eventConsumer, Consumer<Throwable> errorConsumer, ClientCallContext context) throws A2AClientException {
@@ -281,13 +324,13 @@ public class RocketMQTransport implements ClientTransport {
                 String liteTopic = (String)request.metadata().get(RocketMQA2AConstant.LITE_TOPIC);
                 if (null != litePushConsumer && !StringUtils.isEmpty(liteTopic)) {
                     litePushConsumer.subscribeLite(liteTopic);
-                    log.info("litePushConsumer subscribeLite liteTopic: {}", liteTopic);
+                    log.info("RocketMQTransport litePushConsumer subscribeLite liteTopic: {}", liteTopic);
                     LITE_TOPIC_USE_DEFAULT_RECOVER_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>()).put(liteTopic, this.useDefaultRecoverMode);
                 }
                 String closeLiteTopic = (String)request.metadata().get(RocketMQA2AConstant.CLOSE_LITE_TOPIC);
                 if (null != litePushConsumer && !StringUtils.isEmpty(closeLiteTopic)) {
                     litePushConsumer.unsubscribeLite(closeLiteTopic);
-                    log.info("litePushConsumer unsubscribeLite liteTopic: {}", closeLiteTopic);
+                    log.info("RocketMQTransport litePushConsumer unsubscribeLite liteTopic: {}", closeLiteTopic);
                     LITE_TOPIC_USE_DEFAULT_RECOVER_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>()).remove(closeLiteTopic);
                 }
             }
@@ -295,16 +338,17 @@ public class RocketMQTransport implements ClientTransport {
                 RECOVER_MESSAGE_STREAM_RESPONSE_MAP.computeIfAbsent(namespace, k -> new HashMap<>()).put(RocketMQA2AConstant.DEFAULT_STREAM_RECOVER, sseEventListener);
             }
         } catch (Exception e) {
-            throw new A2AClientException("RocketMQTransport failed to resubscribe streaming message request: " + e, e);
+            throw new A2AClientException("RocketMQTransport failed to resubscribe to streaming session", e);
         }
     }
 
     /**
-     * Query the completion status of tasks on the remote Agent
-     * @param request the task query parameters specifying which task to retrieve
-     * @param context optional client call context for the request (may be {@code null})
-     * @return Task
-     * @throws A2AClientException
+     * Queries the status of a specific task on the remote agent.
+     *
+     * @param request the task query parameters
+     * @param context optional client call context (may be {@code null})
+     * @return the task details, or {@code null} if an error occurred
+     * @throws A2AClientException if the request fails
      */
     @Override
     public Task getTask(TaskQueryParams request, ClientCallContext context) throws A2AClientException {
@@ -322,11 +366,12 @@ public class RocketMQTransport implements ClientTransport {
     }
 
     /**
-     * 取消在远端Agent中任务的执行
-     * @param request the task ID parameters specifying which task to cancel
-     * @param context optional client call context for the request (may be {@code null})
-     * @return Task
-     * @throws A2AClientException A2AClientException
+     * Cancels the execution of a specific task on the remote agent.
+     *
+     * @param request the task ID parameters
+     * @param context optional client call context (may be {@code null})
+     * @return the updated task state, or {@code null} if an error occurred
+     * @throws A2AClientException if the request fails
      */
     @Override
     public Task cancelTask(TaskIdParams request, ClientCallContext context) throws A2AClientException {
@@ -344,11 +389,12 @@ public class RocketMQTransport implements ClientTransport {
     }
 
     /**
-     * Configure push notification settings for the task
-     * @param request the push notification configuration to set for the task
-     * @param context optional client call context for the request (may be {@code null})
-     * @return TaskPushNotificationConfig
-     * @throws A2AClientException A2AClientException
+     * Sets the push notification configuration for a specific task.
+     *
+     * @param request the push notification configuration to apply
+     * @param context optional client call context (may be {@code null})
+     * @return the applied configuration, or {@code null} if an error occurred
+     * @throws A2AClientException if the request fails
      */
     @Override
     public TaskPushNotificationConfig setTaskPushNotificationConfiguration(TaskPushNotificationConfig request, ClientCallContext context) throws A2AClientException {
@@ -366,11 +412,12 @@ public class RocketMQTransport implements ClientTransport {
     }
 
     /**
-     * Retrieve the push notification configuration information for the task
-     * @param request the parameters specifying which task's notification config to retrieve
-     * @param context optional client call context for the request (may be {@code null})
-     * @return TaskPushNotificationConfig
-     * @throws A2AClientException A2AClientException
+     * Retrieves the push notification configuration for a specific task.
+     *
+     * @param request the parameters identifying the task
+     * @param context optional client call context (may be {@code null})
+     * @return the current configuration, or {@code null} if an error occurred
+     * @throws A2AClientException if the request fails
      */
     @Override
     public TaskPushNotificationConfig getTaskPushNotificationConfiguration(GetTaskPushNotificationConfigParams request, ClientCallContext context) throws A2AClientException {
@@ -388,11 +435,12 @@ public class RocketMQTransport implements ClientTransport {
     }
 
     /**
-     * Query the push notification configuration information for the task
-     * @param request the parameters specifying which task's notification configs to retrieve
-     * @param context optional client call context for the request (may be {@code null})
-     * @return List<TaskPushNotificationConfig>
-     * @throws A2AClientException A2AClientException
+     * Lists all push notification configurations for a given task or scope.
+     *
+     * @param request the listing parameters
+     * @param context optional client call context (may be {@code null})
+     * @return a list of configurations, or {@code null} if an error occurred
+     * @throws A2AClientException if the request fails
      */
     @Override
     public List<TaskPushNotificationConfig> listTaskPushNotificationConfigurations(ListTaskPushNotificationConfigParams request, ClientCallContext context) throws A2AClientException {
@@ -410,10 +458,11 @@ public class RocketMQTransport implements ClientTransport {
     }
 
     /**
-     * Delete task push notification configuration
-     * @param request the parameters specifying which task's notification configs to delete
-     * @param context optional client call context for the request (may be {@code null})
-     * @throws A2AClientException
+     * Deletes the push notification configuration for a specific task.
+     *
+     * @param request the deletion parameters
+     * @param context optional client call context (may be {@code null})
+     * @throws A2AClientException if the request fails
      */
     @Override
     public void deleteTaskPushNotificationConfigurations(DeleteTaskPushNotificationConfigParams request, ClientCallContext context) throws A2AClientException {
@@ -429,10 +478,11 @@ public class RocketMQTransport implements ClientTransport {
     }
 
     /**
-     * Retrieve AgentCard information
-     * @param context optional client call context for the request (may be {@code null})
-     * @return AgentCard
-     * @throws A2AClientException
+     * Retrieves the agent's {@link AgentCard}, potentially enriched with authenticated extended data.
+     *
+     * @param context optional client call context (may be {@code null})
+     * @return the resolved agent card
+     * @throws A2AClientException if card resolution or enrichment fails
      */
     @Override
     public AgentCard getAgentCard(ClientCallContext context) throws A2AClientException {
@@ -464,11 +514,12 @@ public class RocketMQTransport implements ClientTransport {
     public void close() {}
 
     /**
-     * Handle logic related to LiteTopic
-     * @param contextId
-     * @return
+     * Resolves the appropriate lite topic for a request, potentially creating a context-specific subscription.
+     *
+     * @param contextId the optional context ID from the message
+     * @return the resolved lite topic to use for this request
      */
-    private String dealLiteTopic(String contextId) {
+    private String resolveLiteTopic(String contextId) {
         String liteTopic = this.liteTopic;
         if (!StringUtils.isEmpty(contextId)) {
             try {
@@ -483,12 +534,13 @@ public class RocketMQTransport implements ClientTransport {
     }
 
     /**
-     * Apply interceptor
-     * @param methodName methodName
-     * @param payload payload
-     * @param agentCard agentCard Info
-     * @param clientCallContext clientCallContext
-     * @return PayloadAndHeaders
+     * Applies registered interceptors to the outgoing request payload and headers.
+     *
+     * @param methodName           the JSON-RPC method name
+     * @param payload              the original request payload
+     * @param agentCard            the agent's identity
+     * @param clientCallContext    the client call context
+     * @return the modified payload and headers after interception
      */
     private PayloadAndHeaders applyInterceptors(String methodName, Object payload, AgentCard agentCard, ClientCallContext clientCallContext) {
         PayloadAndHeaders payloadAndHeaders = new PayloadAndHeaders(payload, getHttpHeaders(clientCallContext));
@@ -500,6 +552,12 @@ public class RocketMQTransport implements ClientTransport {
         return payloadAndHeaders;
     }
 
+    /**
+     * Extracts HTTP headers from the client call context, or returns an empty map if none.
+     *
+     * @param context the client call context (may be {@code null})
+     * @return a map of HTTP headers
+     */
     private Map<String, String> getHttpHeaders(@Nullable ClientCallContext context) {
         return context != null ? context.getHeaders() : Collections.emptyMap();
     }
