@@ -7,19 +7,24 @@ import com.fasterxml.jackson.core.type.TypeReference;
  * Used to handle the response results of pending outgoing requests,
  * where the responses are asynchronously obtained and deserialized by a message listener
  */
-public class AsyncTypedResult {
+public class A2AResponseFuture {
 
-    //Asynchronously passing computation results across threads
+    /**
+     * Asynchronously passing results across threads
+     */
     private CompletableFuture<String> completableFuture;
-    //Generic type reference used for deserializing A2A protocol response results
+
+    /**
+     * Generic type reference used for deserializing A2A protocol response results
+     */
     private TypeReference typeReference;
 
     /**
-     * Create AsyncTypedResult
-     * @param completableFuture Asynchronously passing computation results across threads
-     * @param typeReference Generic type reference used for deserializing A2A protocol response results
+     * Creates an AsyncTypedResult with the given future and type reference
+     * @param completableFuture Asynchronously passing results across threads
+     * @param typeReference TypeReference used to deserialize the response into the correct generic type
      */
-    public AsyncTypedResult(CompletableFuture<String> completableFuture, TypeReference typeReference) {
+    public A2AResponseFuture(CompletableFuture<String> completableFuture, TypeReference typeReference) {
         this.completableFuture = completableFuture;
         this.typeReference = typeReference;
     }

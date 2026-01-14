@@ -34,16 +34,14 @@ public class RocketMQRequest {
     //Destination Agent Topic, used for sending the original A2A request message
     private String agentTopic;
 
-    //Dedicated response topic for receiving reply messages from the target agent (typically a LiteTopic)
+    //Dedicated response topic for receiving reply messages from the target agent (typically a lightweight topic)
     private String workAgentResponseTopic;
 
-    /**
-     * //todo 这种一般怎么命名呢？
-     */
+    //LiteTopic belonging to a lightweight topic {@link #workAgentResponseTopic};
     private String liteTopic;
 
     /**
-     * Create RocketMQRequest
+     * Create a RocketMQRequest
      * @param requestBody The request body, typically a serialized payload (e.g., JSON)
      * @param requestHeader Request headers storing A2A protocol metadata in key-value pairs
      * @param desAgentTopic Destination Agent Topic, used for sending the original A2A request message

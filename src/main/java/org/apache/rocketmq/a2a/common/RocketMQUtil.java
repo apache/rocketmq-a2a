@@ -75,7 +75,7 @@ public class RocketMQUtil {
     private static final Logger log = LoggerFactory.getLogger(RocketMQUtil.class);
     public static final ConcurrentMap<String /* namespace */, Map<String /* WorkerAgentResponseTopic */, LitePushConsumer>> ROCKETMQ_CONSUMER_MAP = new ConcurrentHashMap<>();
     public static final ConcurrentMap<String /* namespace */, Map<String /* agentTopic */, Producer>> ROCKETMQ_PRODUCER_MAP = new ConcurrentHashMap<>();
-    public static final ConcurrentMap<String /* namespace */, Map<String /* msgId */, AsyncTypedResult>> MESSAGE_RESPONSE_MAP = new ConcurrentHashMap<>();
+    public static final ConcurrentMap<String /* namespace */, Map<String /* msgId */, A2AResponseFuture>> MESSAGE_RESPONSE_MAP = new ConcurrentHashMap<>();
     public static final ConcurrentMap<String /* namespace */, Map<String /* msgId */, SSEEventListener>> MESSAGE_STREAM_RESPONSE_MAP = new ConcurrentHashMap<>();
     public static final ConcurrentMap<String /* namespace */, Map<String /* liteTopic */, Boolean>> LITE_TOPIC_USE_DEFAULT_RECOVER_MAP = new ConcurrentHashMap<>();
     public static final ConcurrentMap<String /* namespace */, Map<String /* Key */, SSEEventListener>> RECOVER_MESSAGE_STREAM_RESPONSE_MAP = new ConcurrentHashMap<>();
@@ -472,14 +472,14 @@ public class RocketMQUtil {
             log.error("RocketMQTransport dealNonStreamResult param is error, response: {}", JSON.toJSONString(response));
             return ConsumeResult.SUCCESS;
         }
-        Map<String, AsyncTypedResult> msgIdAndAsyncTypedMap = MESSAGE_RESPONSE_MAP.get(namespace);
+        Map<String, A2AResponseFuture> msgIdAndAsyncTypedMap = MESSAGE_RESPONSE_MAP.get(namespace);
         if (null != msgIdAndAsyncTypedMap && msgIdAndAsyncTypedMap.containsKey(response.getMessageId())) {
-            //get asyncTypedResult from msgIdAndAsyncTypedMap by messageId
-            AsyncTypedResult asyncTypedResult = msgIdAndAsyncTypedMap.get(response.getMessageId());
-            //"Call complete() on the CompletableFuture in asyncTypedResult to synchronize the response result data
-            asyncTypedResult.getCompletableFuture().complete(response.getResponseBody());
-            //When the type obtained from asyncTypedResult.getTypeReference() is SEND_MESSAGE_RESPONSE_REFERENCE
-            if (SEND_MESSAGE_RESPONSE_REFERENCE == asyncTypedResult.getTypeReference()) {
+            //get a2AResponseFuture from msgIdAndAsyncTypedMap by messageId
+            A2AResponseFuture a2AResponseFuture = msgIdAndAsyncTypedMap.get(response.getMessageId());
+            //"Call complete() on the CompletableFuture in a2AResponseFuture to synchronize the response result data
+            a2AResponseFuture.getCompletableFuture().complete(response.getResponseBody());
+            //When the type obtained from a2AResponseFuture.getTypeReference() is SEND_MESSAGE_RESPONSE_REFERENCE
+            if (SEND_MESSAGE_RESPONSE_REFERENCE == a2AResponseFuture.getTypeReference()) {
                 try {
                     //Deserialize the response result into a SendMessageResponse
                     SendMessageResponse sendMessageResponse = unmarshalResponse(response.getResponseBody(), SEND_MESSAGE_RESPONSE_REFERENCE);
@@ -490,8 +490,8 @@ public class RocketMQUtil {
                 } catch (JsonProcessingException e) {
                    log.error("dealNonStreamResult unmarshalResponse error: {}", e.getMessage());
                 }
-            //When the type obtained from asyncTypedResult.getTypeReference() is CANCEL_TASK_RESPONSE_REFERENCE
-            } else if (CANCEL_TASK_RESPONSE_REFERENCE == asyncTypedResult.getTypeReference()) {
+            //When the type obtained from a2AResponseFuture.getTypeReference() is CANCEL_TASK_RESPONSE_REFERENCE
+            } else if (CANCEL_TASK_RESPONSE_REFERENCE == a2AResponseFuture.getTypeReference()) {
                 try {
                     //Deserialize the response result into a CancelTaskResponse
                     CancelTaskResponse cancelTaskResponse = unmarshalResponse(response.getResponseBody(), CANCEL_TASK_RESPONSE_REFERENCE);
@@ -502,8 +502,8 @@ public class RocketMQUtil {
                 } catch (JsonProcessingException e) {
                     log.error("dealNonStreamResult unmarshalResponse error: {}", e.getMessage());
                 }
-                //When the type obtained from asyncTypedResult.getTypeReference() is SEND_MESSAGE_RESPONSE_REFERENCE
-            } else if (GET_TASK_RESPONSE_REFERENCE == asyncTypedResult.getTypeReference()) {
+                //When the type obtained from a2AResponseFuture.getTypeReference() is SEND_MESSAGE_RESPONSE_REFERENCE
+            } else if (GET_TASK_RESPONSE_REFERENCE == a2AResponseFuture.getTypeReference()) {
                 try {
                     //Deserialize the response result into a GetTaskResponse
                     GetTaskResponse getTaskResponse = unmarshalResponse(response.getResponseBody(), GET_TASK_RESPONSE_REFERENCE);
@@ -536,9 +536,9 @@ public class RocketMQUtil {
         if (StringUtils.isEmpty(responseMessageId)) {
             throw new RuntimeException("responseMessageId is null");
         }
-        Map<String, AsyncTypedResult> msgIdAndAsyncTypedMap = MESSAGE_RESPONSE_MAP.computeIfAbsent(namespace, k -> new HashMap<>());
+        Map<String, A2AResponseFuture> msgIdAndAsyncTypedMap = MESSAGE_RESPONSE_MAP.computeIfAbsent(namespace, k -> new HashMap<>());
         CompletableFuture<String> completableFuture = new CompletableFuture<>();
-        msgIdAndAsyncTypedMap.put(responseMessageId, new AsyncTypedResult(completableFuture, typeReference));
+        msgIdAndAsyncTypedMap.put(responseMessageId, new A2AResponseFuture(completableFuture, typeReference));
         String result = completableFuture.get(120, TimeUnit.SECONDS);
         msgIdAndAsyncTypedMap.remove(responseMessageId);
         return result;

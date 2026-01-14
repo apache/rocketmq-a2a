@@ -17,43 +17,105 @@
 package org.apache.rocketmq.a2a.common;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import io.a2a.spec.CancelTaskRequest;
 import io.a2a.spec.CancelTaskResponse;
+import io.a2a.spec.DeleteTaskPushNotificationConfigRequest;
 import io.a2a.spec.DeleteTaskPushNotificationConfigResponse;
+import io.a2a.spec.GetAuthenticatedExtendedCardRequest;
 import io.a2a.spec.GetAuthenticatedExtendedCardResponse;
+import io.a2a.spec.GetTaskPushNotificationConfigRequest;
 import io.a2a.spec.GetTaskPushNotificationConfigResponse;
+import io.a2a.spec.GetTaskRequest;
 import io.a2a.spec.GetTaskResponse;
+import io.a2a.spec.ListTaskPushNotificationConfigRequest;
 import io.a2a.spec.ListTaskPushNotificationConfigResponse;
+import io.a2a.spec.SendMessageRequest;
 import io.a2a.spec.SendMessageResponse;
+import io.a2a.spec.SetTaskPushNotificationConfigRequest;
 import io.a2a.spec.SetTaskPushNotificationConfigResponse;
 
 /**
- * The constant of rocketmq-a2a component
+ * Constants used in the RocketMQ A2A (Agent-to-Agent) communication protocol.
+ * Includes type references for JSON deserialization, protocol identifiers, and common headers.
  */
 public class RocketMQA2AConstant {
-    //The TypeReference used for deserializing the response result of SendMessageRequest in the A2A protocol.
+    /**
+     * TypeReference for deserializing the response of {@link SendMessageRequest}.
+     */
     public static final TypeReference<SendMessageResponse> SEND_MESSAGE_RESPONSE_REFERENCE = new TypeReference<>() { };
-    //The TypeReference used for deserializing the response result of GetTaskRequest in the A2A protocol.
+
+    /**
+     * TypeReference for deserializing the response of {@link GetTaskRequest}.
+     */
     public static final TypeReference<GetTaskResponse> GET_TASK_RESPONSE_REFERENCE = new TypeReference<>() { };
-    //The TypeReference used for deserializing the response result of CancelTaskRequest in the A2A protocol.
+
+    /**
+     * TypeReference for deserializing the response of {@link CancelTaskRequest}.
+     */
     public static final TypeReference<CancelTaskResponse> CANCEL_TASK_RESPONSE_REFERENCE = new TypeReference<>() { };
-    //The TypeReference used for deserializing the response result of GetTaskPushNotificationConfigRequest in the A2A protocol.
+
+    /**
+     * TypeReference for deserializing the response of {@link GetTaskPushNotificationConfigRequest}.
+     */
     public static final TypeReference<GetTaskPushNotificationConfigResponse> GET_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE = new TypeReference<>() { };
-    //The TypeReference used for deserializing the response result of SetTaskPushNotificationConfigRequest the A2A protocol.
+
+    /**
+     * TypeReference for deserializing the response of {@link SetTaskPushNotificationConfigRequest}.
+     */
     public static final TypeReference<SetTaskPushNotificationConfigResponse> SET_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE = new TypeReference<>() { };
-    //The TypeReference used for deserializing the response result of ListTaskPushNotificationConfigRequest in the A2A protocol.
+
+    /**
+     * TypeReference for deserializing the response of {@link ListTaskPushNotificationConfigRequest}.
+     */
     public static final TypeReference<ListTaskPushNotificationConfigResponse> LIST_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE = new TypeReference<>() { };
-    //The TypeReference used for deserializing the response result of the GetAuthenticatedExtendedCardRequest method in the A2A protocol.
+
+    /**
+     * TypeReference for deserializing the response of {@link GetAuthenticatedExtendedCardRequest}.
+     */
     public static final TypeReference<GetAuthenticatedExtendedCardResponse> GET_AUTHENTICATED_EXTENDED_CARD_RESPONSE_REFERENCE = new TypeReference<>() { };
+
+    /**
+     * TypeReference for deserializing the response of {@link DeleteTaskPushNotificationConfigRequest}.
+     */
     public static final TypeReference<DeleteTaskPushNotificationConfigResponse> DELETE_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE = new TypeReference<>() {};
+
+    /** Prefix for HTTP URLs. */
     public static final String HTTP_URL_PREFIX = "http://";
+
+    /** Prefix for HTTPS URLs. */
     public static final String HTTPS_URL_PREFIX = "https://";
+
+    /** Protocol identifier used in A2A communication. */
     public static final String ROCKETMQ_PROTOCOL = "RocketMQ";
+
+    /** Field name for message response ID in A2A responses. */
     public static final String MESSAGE_RESPONSE_ID = "messageResponseId";
+
+    /**
+     * Topic type marker for lightweight messaging.
+     * Used to distinguish LiteTopic from normal topics.
+     * todo
+     */
     public static final String LITE_TOPIC = "LITE_TOPIC";
+
+    /**
+     * Command to close or disable LiteTopic subscription.
+     * todo
+     */
     public static final String CLOSE_LITE_TOPIC = "CLOSE_LITE_TOPIC";
     public static final String DEFAULT_STREAM_RECOVER = "default";
-    //SSE data prefix
+
+    /**
+     * Data prefix used in Server-Sent Events (SSE) protocol.
+     * Format: {@code data: <payload>\n}
+     *
+     * @see <a href="https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events">SSE Specification</a>
+     */
     public static final String DATA_PREFIX = "data:";
-    //Retrieve field information of method parameter types during request deserialization on the A2A service server
+
+    /**
+     * Header or parameter name indicating the target method in A2A requests.
+     * Used by the server to route incoming requests to the appropriate handler.
+     */
     public static final String METHOD = "method";
 }
