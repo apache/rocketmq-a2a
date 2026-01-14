@@ -17,45 +17,81 @@
 package org.apache.rocketmq.a2a.common;
 
 /**
- * RocketMQResponse is used to encapsulate A2A protocol response messages returned via RocketMQ
+ * Encapsulates an A2A (Agent-to-Agent) protocol response message delivered via RocketMQ.
+ *
+ * <p>This class is used to return results from one agent to another in asynchronous or streaming scenarios.
+ * It supports:
+ * <ul>
+ *   <li>Standard request-response via {@link #responseBody}</li>
+ *   <li>Streaming responses using {@link #isStream} and {@link #isEnd} flags</li>
+ *   <li>Session correlation via {@link #contextId}</li>
+ *   <li>Message acknowledgment via {@link #messageId}</li>
+ *   <li>Client-server affinity through {@link #serverLiteTopic} and {@link #serverWorkAgentResponseTopic}</li>
+ * </ul>
+ *
+ * <p><strong>Note:</strong> For streaming responses, multiple {@code RocketMQResponse} messages may be sent,
+ * ending with one where {@code isEnd = true}.
  */
 public class RocketMQResponse {
 
     //The LiteTopic subscribed to by the client
+    //todo
     private String liteTopic;
 
-    //Context ID, used to associate a complete A2A request-response session
+    /**
+     * Context ID, used to associate a complete A2A request-response session.
+     * Must not be null.
+     */
     private String contextId;
 
-    //Response body content, typically serialized business data (e.g., JSON etc.)
+    /**
+     * Response body content, typically serialized business data (e.g., JSON).
+     */
     private String responseBody;
 
-    //Task ID, which identifies the specific task corresponding to this A2A operation
+    /**
+     * Task ID, which identifies the specific task corresponding to this A2A operation.
+     */
     private String taskId;
 
-    //The message ID obtained by the RocketMQ client upon successfully sending an A2A request
+    /**
+     * The message ID obtained by the RocketMQ client upon successfully sending an A2A request.
+     * Used for message tracking and acknowledgment.
+     */
     private String messageId;
 
-    //The response topic used by the server
+    /**
+     * The response topic used by the server for asynchronous replies.
+     * Optional, used for routing follow-up requests.
+     */
     private String serverWorkAgentResponseTopic;
 
-    //The lite topic used by the server to indicate that subsequent requests of a specific type should be routed back to this particular server instance
+    /**
+     * The lite topic used by the server to indicate that subsequent requests of a specific type
+     * should be routed back to this particular server instance (sticky session).
+     * Optional. todo
+     */
     private String serverLiteTopic;
 
-    //Whether it is a streaming response
+    /**
+     * Whether this response is part of a streaming sequence.
+     */
     private boolean isStream;
 
-    //Whether it is the end marker of a streaming response
+    /**
+     * Whether this is the final message in a streaming sequence.
+     */
     private boolean isEnd;
 
     /**
-     * Create RocketMQResponse
-     * @param liteTopic The RocketMQ LiteTopic subscribed to by the client
-     * @param contextId Context ID, used to associate a complete A2A request-response session
-     * @param responseBody Response body content, typically serialized business data (e.g., JSON etc.)
-     * @param messageId The message ID obtained by the RocketMQ client upon successfully sending an A2A request
-     * @param isStream Whether it is a streaming response
-     * @param isEnd Whether it is the end marker of a streaming response
+     * Creates a basic RocketMQResponse instance for simple responses.
+     *
+     * @param liteTopic the LiteTopic subscribed by the client
+     * @param contextId session correlation ID
+     * @param responseBody the response payload (e.g., JSON)
+     * @param messageId the original request message ID for acknowledgment
+     * @param isStream true if this is a streaming response
+     * @param isEnd true if this is the last message in the stream
      */
     public RocketMQResponse(String liteTopic, String contextId, String responseBody, String messageId, boolean isStream, boolean isEnd) {
         this.liteTopic = liteTopic;
@@ -67,24 +103,11 @@ public class RocketMQResponse {
     }
 
     /**
-     * Create RocketMQResponse
-     * @param liteTopic The RocketMQ LiteTopic subscribed to by the client
-     * @param contextId Context ID, used to associate a complete A2A request-response session
-     * @param responseBody Response body content, typically serialized business data (e.g., JSON etc.)
-     * @param messageId The message ID obtained by the RocketMQ client upon successfully sending an A2A request
-     * @param isStream Whether it is a streaming response
-     * @param isEnd Whether it is the end marker of a streaming response
-     * @param taskId Task ID, which identifies the specific task corresponding to this A2A operation
-     * @param serverWorkAgentResponseTopic The response topic used by the server
-     * @param serverLiteTopic The lite topic used by the server to indicate that subsequent requests of a specific type should be routed back to this particular server instance
+     * Creates a full RocketMQResponse with task and server routing information.
+     * Suitable for complex workflows requiring sticky sessions or callback routing.
      */
     public RocketMQResponse(String liteTopic, String contextId, String responseBody, String messageId, boolean isStream, boolean isEnd, String taskId, String serverWorkAgentResponseTopic, String serverLiteTopic) {
-        this.liteTopic = liteTopic;
-        this.contextId = contextId;
-        this.responseBody = responseBody;
-        this.messageId = messageId;
-        this.isStream = isStream;
-        this.isEnd = isEnd;
+        this(liteTopic, contextId, responseBody, messageId, isStream, isEnd);
         this.taskId = taskId;
         this.serverWorkAgentResponseTopic = serverWorkAgentResponseTopic;
         this.serverLiteTopic = serverLiteTopic;

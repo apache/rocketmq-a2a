@@ -83,7 +83,7 @@ import static org.apache.rocketmq.a2a.common.RocketMQUtil.MESSAGE_STREAM_RESPONS
 import static org.apache.rocketmq.a2a.common.RocketMQUtil.RECOVER_MESSAGE_STREAM_RESPONSE_MAP;
 import static org.apache.rocketmq.a2a.common.RocketMQUtil.checkConfigParam;
 import static org.apache.rocketmq.a2a.common.RocketMQUtil.getResult;
-import static org.apache.rocketmq.a2a.common.RocketMQUtil.initAndGetConsumer;
+import static org.apache.rocketmq.a2a.common.RocketMQUtil.initAndGetLitePushConsumer;
 import static org.apache.rocketmq.a2a.common.RocketMQUtil.initAndGetProducer;
 import static org.apache.rocketmq.a2a.common.RocketMQUtil.sendRocketMQRequest;
 import static org.apache.rocketmq.a2a.common.RocketMQUtil.unmarshalResponse;
@@ -198,7 +198,7 @@ public class RocketMQTransport implements ClientTransport {
         checkConfigParam(this.endpoint, this.workAgentResponseTopic, this.workAgentResponseGroupID, this.liteTopic, this.agentTopic);
         //Initialize the RocketMQ LitePushConsumer and Producer
         try {
-            this.litePushConsumer = initAndGetConsumer(this.namespace, this.endpoint, this.accessKey, this.secretKey, this.workAgentResponseTopic, this.workAgentResponseGroupID, this.liteTopic);
+            this.litePushConsumer = initAndGetLitePushConsumer(this.namespace, this.endpoint, this.accessKey, this.secretKey, this.workAgentResponseTopic, this.workAgentResponseGroupID, this.liteTopic);
             this.producer = initAndGetProducer(this.namespace, this.endpoint, this.accessKey, this.secretKey, this.agentTopic);
         } catch (ClientException e) {
             log.error("RocketMQTransport init rocketmq client error, e: {}", e.getMessage());

@@ -26,24 +26,32 @@ import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.HTTPS_URL_PREFI
 import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.HTTP_URL_PREFIX;
 
 /**
- * RocketMQResourceInfo is used to encapsulate RocketMQ resources
+ * Encapsulates RocketMQ resource information, including endpoint, namespace, and topic.
+ * Used for routing and connecting to specific RocketMQ clusters and topics via A2A protocol.
  */
 public class RocketMQResourceInfo {
     private static final Logger log = LoggerFactory.getLogger(RocketMQResourceInfo.class);
 
-    //Used for logical isolation of different business units or environments
+    /**
+     * Logical isolation unit, e.g., environment or business namespace.
+     */
     private String namespace;
 
-    //The network address of the RocketMQ service, used by clients to connect to a specific RocketMQ cluster
+    /**
+     * The network address of the RocketMQ service, used by clients to connect to a specific RocketMQ cluster.
+     */
     private String endpoint;
 
-    //RocketMQ topic resource
+    /**
+     * RocketMQ topic resource
+     */
     private String topic;
 
     /**
-     * Create RocketMQResourceInfo
-     * @param endpoint The network address of the RocketMQ service, used by clients to connect to a specific RocketMQ cluster
-     * @param topic RocketMQ topic resource
+     * Constructs a new RocketMQResourceInfo with the given endpoint and topic.
+     *
+     * @param endpoint the network address of the RocketMQ service; e.g., {@code broker1:9876}
+     * @param topic the RocketMQ topic name
      */
     public RocketMQResourceInfo(String endpoint, String topic) {
         this.endpoint = endpoint;
@@ -53,13 +61,18 @@ public class RocketMQResourceInfo {
     public RocketMQResourceInfo() {}
 
     /**
-     * Parse the RocketMQ-related information from the retrieved AgentCard and extract it into RocketMQResourceInfo
-     * object that meets the required specifications
-     * @param agentCard a2a agentCard
-     * @return RocketMQResourceInfo rocketmq resource info
+     * Parses RocketMQ-related information from an AgentCard.
+     *
+     * <p>Tries to extract connection details in the following order:
+     * <ol>
+     *   <li>From the preferred transport if it's RocketMQ.</li>
+     *   <li>From additional interfaces if any use RocketMQ transport.</li>
+     * </ol>
+     *
+     * @param agentCard the AgentCard containing transport endpoints; must not be null
+     * @return a populated RocketMQResourceInfo, or {@code null} if parsing fails or no RocketMQ interface found
      */
     public static RocketMQResourceInfo parseAgentCardAddition(AgentCard agentCard) {
-        //check pram
         if (null == agentCard || StringUtils.isEmpty(agentCard.preferredTransport()) || StringUtils.isEmpty(agentCard.url()) || null == agentCard.additionalInterfaces() || agentCard.additionalInterfaces().isEmpty()) {
             log.error("RocketMQTransport parseAgentCardAddition param error, agentCard: {}", JSON.toJSONString(agentCard));
             return null;
@@ -85,7 +98,7 @@ public class RocketMQResourceInfo {
                 //try to get RocketMQResourceInfo by parsing the URL
                 rocketMQResourceInfo = pareAgentCardUrl(url);
                 if (null != rocketMQResourceInfo && !StringUtils.isEmpty(rocketMQResourceInfo.getEndpoint()) && !StringUtils.isEmpty(rocketMQResourceInfo.getTopic())) {
-                    log.error("RocketMQTransport get rocketMQResourceInfo from additionalInterfaces");
+                    log.info("RocketMQTransport get rocketMQResourceInfo from additionalInterfaces");
                     return rocketMQResourceInfo;
                 }
             }
@@ -94,9 +107,11 @@ public class RocketMQResourceInfo {
     }
 
     /**
-     * Try to get RocketMQResourceInfo by parsing the URL 'http/https://rocketmqEndpoint/rocketmqNamespace/agentTopic'
-     * @param agentCardUrl the URL of AgentCard
-     * @return RocketMQResourceInfo RocketMQ Resource Info
+     * Parses RocketMQ resource info from a URL in format:
+     * {@code http://endpoint/namespace/topic} or {@code https://endpoint/namespace/topic}
+     *
+     * @param agentCardUrl the full URL string
+     * @return a new RocketMQResourceInfo instance, or {@code null} if parsing fails
      */
     public static RocketMQResourceInfo pareAgentCardUrl(String agentCardUrl) {
         if (StringUtils.isEmpty(agentCardUrl)) {

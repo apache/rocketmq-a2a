@@ -69,6 +69,7 @@ import io.vertx.ext.web.RoutingContext;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.apache.rocketmq.a2a.common.RocketMQUtil;
 import org.apache.rocketmq.client.apis.ClientException;
 import org.apache.rocketmq.client.apis.consumer.ConsumeResult;
 import org.apache.rocketmq.client.apis.consumer.LitePushConsumer;
@@ -81,8 +82,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import static io.a2a.util.Utils.OBJECT_MAPPER;
 import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.METHOD;
-import static org.apache.rocketmq.a2a.common.RocketMQUtil.buildConsumer;
-import static org.apache.rocketmq.a2a.common.RocketMQUtil.buildConsumerForLite;
+import static org.apache.rocketmq.a2a.common.RocketMQUtil.newLitePushConsumer;
 import static org.apache.rocketmq.a2a.common.RocketMQUtil.buildMessage;
 import static org.apache.rocketmq.a2a.common.RocketMQUtil.buildProducer;
 import static org.apache.rocketmq.a2a.common.RocketMQUtil.toJsonString;
@@ -137,11 +137,11 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
             //Init producer
             this.producer = buildProducer(ROCKETMQ_NAMESPACE, ROCKETMQ_ENDPOINT, ACCESS_KEY, SECRET_KEY);
             //Init pushConsumer
-            this.pushConsumer = buildConsumer(ROCKETMQ_ENDPOINT, ROCKETMQ_NAMESPACE, ACCESS_KEY, SECRET_KEY, BIZ_CONSUMER_GROUP, BIZ_TOPIC, buildMessageListener());
+            this.pushConsumer = RocketMQUtil.newPushConsumer(ROCKETMQ_ENDPOINT, ROCKETMQ_NAMESPACE, ACCESS_KEY, SECRET_KEY, BIZ_CONSUMER_GROUP, BIZ_TOPIC, buildMessageListener());
             //Initialize the SSE data stream handler
             this.multiSseSupport = new MultiSseSupport(this.producer);
             //Init litePushConsumer
-            this.litePushConsumer = buildConsumerForLite(ROCKETMQ_ENDPOINT, ROCKETMQ_NAMESPACE, ACCESS_KEY, SECRET_KEY, WORK_AGENT_RESPONSE_GROUP_ID, WORK_AGENT_RESPONSE_TOPIC, buildMessageListener());
+            this.litePushConsumer = newLitePushConsumer(ROCKETMQ_ENDPOINT, ROCKETMQ_NAMESPACE, ACCESS_KEY, SECRET_KEY, WORK_AGENT_RESPONSE_GROUP_ID, WORK_AGENT_RESPONSE_TOPIC, buildMessageListener());
             //Init serverLiteTopic
             this.serverLiteTopic = UUID.randomUUID().toString();
             this.litePushConsumer.subscribeLite(serverLiteTopic);

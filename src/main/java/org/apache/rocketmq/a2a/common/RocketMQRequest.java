@@ -20,38 +20,60 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * RocketMQRequest encapsulates request data for A2A (Agent-to-Agent) protocol communication built on top of RocketMQ as the underlying messaging component.
- * This class serves as the message payload for asynchronous request-response interactions between agents via RocketMQ
+ * Encapsulates a request message for A2A (Agent-to-Agent) communication over RocketMQ.
+ *
+ * <p>This class serves as the payload of an asynchronous request sent from one agent to another.
+ * It includes:
+ * <ul>
+ *   <li>Protocol headers in {@link #requestHeader}</li>
+ *   <li>The serialized {@link #requestBody} (typically JSON)</li>
+ *   <li>Routing information: destination topic ({@link #destAgentTopic})</li>
+ *   <li>Reply routing: response topic ({@link #workAgentResponseTopic}) and optional LiteTopic ({@link #liteTopic})</li>
+ * </ul>
+ *
+ * <p><strong>Note:</strong> The response is expected to be sent back via the specified response topic(s).
  */
 public class RocketMQRequest {
 
-    //Request headers storing A2A protocol metadata in key-value pairs
+    /**
+     * Headers carrying A2A protocol metadata (e.g., method name, trace ID) as key-value pairs.
+     * Initialized lazily in {@link #addHeader(String, String)}.
+     */
     private Map<String, String> requestHeader;
 
-    //The request body, typically a serialized payload (e.g., JSON)
+    /**
+     * The serialized request body, typically in JSON format.
+     */
     private String requestBody;
 
-    //Destination Agent Topic, used for sending the original A2A request message
-    private String agentTopic;
+    /**
+     * The destination agent topic where this request is sent.
+     */
+    private String destAgentTopic;
 
-    //Dedicated response topic for receiving reply messages from the target agent (typically a lightweight topic)
+    /**
+     * The dedicated topic for receiving reply messages from the target agent.
+     * Typically a lightweight Topic
+     */
     private String workAgentResponseTopic;
 
-    //LiteTopic belonging to a lightweight topic {@link #workAgentResponseTopic};
+    //todo
     private String liteTopic;
 
     /**
-     * Create a RocketMQRequest
-     * @param requestBody The request body, typically a serialized payload (e.g., JSON)
-     * @param requestHeader Request headers storing A2A protocol metadata in key-value pairs
-     * @param desAgentTopic Destination Agent Topic, used for sending the original A2A request message
-     * @param workAgentResponseTopic Dedicated response topic for receiving reply messages from the target agent (typically a LiteTopic)
-     * @param liteTopic liteTopic
+     * Constructs a new RocketMQRequest with the given parameters.
+     *
+     * @param requestBody the serialized request body (e.g., JSON), must not be null
+     * @param requestHeader headers containing A2A metadata; will be initialized if null
+     * @param destAgentTopic the destination agent topic where the request is sent
+     * @param workAgentResponseTopic the dedicated topic for receiving reply messages from the target agent
+     * @param liteTopic the optional lightweight topic for streaming or incremental responses; todo
+     *
      */
-    public RocketMQRequest(String requestBody, Map<String, String> requestHeader, String desAgentTopic, String workAgentResponseTopic, String liteTopic) {
+    public RocketMQRequest(String requestBody, Map<String, String> requestHeader, String destAgentTopic, String workAgentResponseTopic, String liteTopic) {
         this.requestBody = requestBody;
         this.requestHeader = requestHeader;
-        this.agentTopic = desAgentTopic;
+        this.destAgentTopic = destAgentTopic;
         this.workAgentResponseTopic = workAgentResponseTopic;
         this.liteTopic = liteTopic;
     }
@@ -74,12 +96,12 @@ public class RocketMQRequest {
         this.requestHeader = requestHeader;
     }
 
-    public String getAgentTopic() {
-        return agentTopic;
+    public String getDestAgentTopic() {
+        return destAgentTopic;
     }
 
-    public void setAgentTopic(String agentTopic) {
-        this.agentTopic = agentTopic;
+    public void setDestAgentTopic(String destAgentTopic) {
+        this.destAgentTopic = destAgentTopic;
     }
 
     public String getLiteTopic() {
