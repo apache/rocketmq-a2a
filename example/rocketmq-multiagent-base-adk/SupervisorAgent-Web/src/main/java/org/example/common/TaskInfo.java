@@ -18,14 +18,50 @@ package org.example.common;
 import reactor.core.publisher.Sinks;
 import reactor.core.publisher.Sinks.Many;
 
+/**
+ * Encapsulates task context information for asynchronous stream processing.
+ * <p>
+ * Contains task metadata (ID, description, user/session identifiers) and a Sink
+ * for streaming real-time responses to the client.
+ * </p>
+ */
 public class TaskInfo {
+    /**
+     * Unique identifier of the task.
+     */
     private String taskId;
+
+    /**
+     * Human-readable description of the task.
+     */
     private String taskDesc;
+
+    /**
+     * Unique identifier of the user who initiated the task.
+     */
     private String userId;
+
+    /**
+     * Unique identifier of the session associated with the task.
+     */
     private String sessionId;
+
     private String lastOutput = "";
+
+    /**
+     * A reactive sink used to push real-time response chunks to the client.
+     */
     private Sinks.Many<String> sink;
 
+    /**
+     * Constructs a {@code TaskInfo} with basic metadata and a response sink.
+     *
+     * @param taskId     the unique task ID
+     * @param taskDesc   the task description
+     * @param userId     the user ID
+     * @param sessionId  the session ID
+     * @param sink       the reactive sink for streaming responses
+     */
     public TaskInfo(String taskId, String taskDesc, String sessionId, String userId, Sinks.Many<String> sink) {
         this.taskId = taskId;
         this.taskDesc = taskDesc;
@@ -34,18 +70,7 @@ public class TaskInfo {
         this.sink = sink;
     }
 
-    public TaskInfo(String taskId, String taskDesc, String userId, String sessionId, String lastOutput,
-        Many<String> sink) {
-        this.taskId = taskId;
-        this.taskDesc = taskDesc;
-        this.userId = userId;
-        this.sessionId = sessionId;
-        this.lastOutput = lastOutput;
-        this.sink = sink;
-    }
-
-    public TaskInfo() {
-    }
+    public TaskInfo() {}
 
     public String getTaskId() {
         return taskId;
