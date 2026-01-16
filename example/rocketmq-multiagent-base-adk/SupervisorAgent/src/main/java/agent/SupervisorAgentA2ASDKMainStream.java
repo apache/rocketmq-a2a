@@ -25,9 +25,7 @@ import java.util.Optional;
 import java.util.Scanner;
 import java.util.UUID;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
-
 import com.alibaba.fastjson.JSON;
 import com.google.adk.agents.BaseAgent;
 import com.google.adk.agents.LlmAgent;
@@ -99,10 +97,8 @@ public class SupervisorAgentA2ASDKMainStream {
      * 应用程序主入口
      */
     public static void main(String[] args) {
-        if (!checkConfigParam()) {
-            System.out.println("配置参数不完整，请检查参数配置情况");
-            return;
-        }
+        //校验参数
+        validateConfigParams();
         // 初始化主Agent
         BaseAgent baseAgent = initAgent(WEATHER_AGENT_NAME, TRAVEL_AGENT_NAME);
         printSystemInfo("🚀 启动 QWen为底座模型的 " + AGENT_NAME + "，擅长处理天气问题与行程安排规划问题，在本例中使用RocketMQ LiteTopic版本实现多个Agent之间的通讯");
@@ -123,113 +119,38 @@ public class SupervisorAgentA2ASDKMainStream {
     }
 
     /**
-     * 开始用户交互主循环
-     */
-    private static void startInteractionLoop() {
-        try (Scanner scanner = new Scanner(System.in, String.valueOf(StandardCharsets.UTF_8))) {
-            while (true) {
-                printPrompt(YOU);
-                String userInput = scanner.nextLine().trim();
-                if ("quit".equalsIgnoreCase(userInput)) {
-                    printSystemInfo("👋 再见！");
-                    System.exit(0);
-                    break;
-                }
-                if ("help".equalsIgnoreCase(userInput)) {
-                    printHelp();
-                    continue;
-                }
-                if (StringUtils.isEmpty(userInput)) {
-                    printSystemInfo("请不要输入空值");
-                    continue;
-                }
-                printSystemInfo("🤔 正在思考...");
-                log.info("用户输入: {}", userInput);
-                Content userMsg = Content.fromParts(Part.fromText(userInput));
-                Flowable<Event> events = runner.runAsync(USER_ID, sessionId, userMsg);
-                events.blockingForEach(event -> {
-                    String content = event.stringifyContent();
-                    dealEventContent(content);
-                });
-            }
-        }
-    }
-
-    /**
      * 校验必要配置参数
      *
      * @return true 表示配置完整，false 表示缺少关键参数
      */
-    private static boolean checkConfigParam() {
-        if (StringUtils.isEmpty(WORK_AGENT_RESPONSE_TOPIC) || StringUtils.isEmpty(WORK_AGENT_RESPONSE_GROUP_ID) || StringUtils.isEmpty(API_KEY)) {
-            if (StringUtils.isEmpty(WORK_AGENT_RESPONSE_TOPIC)) {
-                System.out.println("请配置RocketMQ 的轻量消息Topic workAgentResponseTopic");
-            }
-            if (StringUtils.isEmpty(WORK_AGENT_RESPONSE_GROUP_ID)) {
-                System.out.println("请配置RocketMQ 的轻量消息消费者 workAgentResponseGroupID");
-            }
-            if (StringUtils.isEmpty(API_KEY)) {
-                System.out.println("请配置SupervisorAgent qwen-plus apiKey");
-            }
-            return false;
+    private static void validateConfigParams() {
+        List<String> missingParams = new ArrayList<>();
+        if (StringUtils.isEmpty(WORK_AGENT_RESPONSE_TOPIC)) {
+            missingParams.add("workAgentResponseTopic (RocketMQ 轻量消息 Topic)");
         }
-        return true;
-    }
-
-    /**
-     * 处理来自主Agent的LLM返回的响应结果，并触发后续推理流程
-     * @param eventContent LLM返回的响应结果内容
-     */
-    private static void dealEventContent(String eventContent) {
-        if (StringUtils.isEmpty(eventContent)) {
-            return;
+        if (StringUtils.isEmpty(WORK_AGENT_RESPONSE_GROUP_ID)) {
+            missingParams.add("workAgentResponseGroupID (RocketMQ 轻量消息消费者 Group ID)");
         }
-        if (eventContent.startsWith("{")) {
-            try {
-                Mission mission = JSON.parseObject(eventContent, Mission.class);
-                if (null != mission) {
-                    printPrompt(AGENT);
-                    System.out.println(AGENT_NAME + " 转发请求到其他的Agent, 等待其响应，Agent: " + mission.getAgent() + " 问题: " + mission.getMessageInfo());
-                    forwardMissionToAgent(mission);
-                }
-            } catch (Exception e) {
-                System.out.println("解析过程出现异常");
-            }
-        } else {
-            printPrompt(AGENT);
-            System.out.println(eventContent);
+        if (StringUtils.isEmpty(API_KEY)) {
+            missingParams.add("apiKey (SupervisorAgent qwen-plus API Key)");
         }
-    }
-
-    /**
-     * 转发任务到指定 Agent
-     *
-     * @param mission 任务指令
-     */
-    private static void forwardMissionToAgent(Mission mission) {
-        if (null == mission || StringUtils.isEmpty(mission.getAgent()) || StringUtils.isEmpty(mission.getMessageInfo())) {
-            return;
-        }
-        try {
-            String agentName = mission.getAgent().replaceAll(" ", "");
-            Client client = AgentClientMap.get(agentName);
-            client.sendMessage(A2A.toUserMessage(mission.getMessageInfo()));
-            System.out.println("Sending message: " + mission.getMessageInfo());
-        } catch (Exception e) {
-            System.out.println("error" + e.getMessage());
+        if (!missingParams.isEmpty()) {
+            String message = "以下配置参数缺失，请在环境变量或配置文件中设置：\n" +
+                String.join("\n", missingParams);
+            throw new IllegalArgumentException(message);
         }
     }
 
     /**
      * 初始化 Agent
-     * @param weatherAgent
-     * @param travelAgent
-     * @return
+     * @param weatherAgent 天气Agent名称
+     * @param travelAgent 行程规划Agent名称
+     * @return BaseAgent
      */
     public static BaseAgent initAgent(String weatherAgent, String travelAgent) {
         if (StringUtils.isEmpty(weatherAgent) || StringUtils.isEmpty(travelAgent)) {
-            System.out.println("initAgent 参数缺失，请补充天气助手weatherAgent、行程安排助手travelAgent");
-            return null;
+            log.error("initAgent 参数缺失，请补充天气助手weatherAgent、行程安排助手travelAgent");
+            throw new IllegalArgumentException("SupervisorAgentA2ASDKMainStream: 参数缺失，请补充天气助手weatherAgent、行程安排助手travelAgent");
         }
         QWModel qwModel = QWModelRegistry.getModel(API_KEY);
         return LlmAgent.builder()
@@ -272,13 +193,90 @@ public class SupervisorAgentA2ASDKMainStream {
     }
 
     /**
+     * 开始用户交互主循环
+     */
+    private static void startInteractionLoop() {
+        try (Scanner scanner = new Scanner(System.in, String.valueOf(StandardCharsets.UTF_8))) {
+            while (true) {
+                printPrompt(YOU);
+                String userInput = scanner.nextLine().trim();
+                if ("quit".equalsIgnoreCase(userInput)) {
+                    printSystemInfo("👋 再见！");
+                    System.exit(0);
+                    break;
+                }
+                if ("help".equalsIgnoreCase(userInput)) {
+                    printHelp();
+                    continue;
+                }
+                if (StringUtils.isEmpty(userInput)) {
+                    printSystemInfo("请不要输入空值");
+                    continue;
+                }
+                printSystemInfo("🤔 正在思考...");
+                log.info("用户输入: {}", userInput);
+                Content userMsg = Content.fromParts(Part.fromText(userInput));
+                Flowable<Event> events = runner.runAsync(USER_ID, sessionId, userMsg);
+                events.blockingForEach(event -> {
+                    String content = event.stringifyContent();
+                    dealEventContent(content);
+                });
+            }
+        }
+    }
+
+    /**
+     * 处理来自主Agent的LLM返回的响应结果，并触发后续推理流程
+     * @param eventContent LLM返回的响应结果内容
+     */
+    private static void dealEventContent(String eventContent) {
+        if (StringUtils.isEmpty(eventContent)) {
+            return;
+        }
+        if (eventContent.startsWith("{")) {
+            try {
+                Mission mission = JSON.parseObject(eventContent, Mission.class);
+                if (null != mission) {
+                    printPrompt(AGENT);
+                    log.info("Agent: {}, 转发请求到其他的Agent, 等待其响应，Agent: {}, 问题: {}", AGENT_NAME, mission.getAgent(), mission.getMessageInfo());
+                    forwardMissionToAgent(mission);
+                }
+            } catch (Exception e) {
+                log.error("解析过程出现异常", e);
+            }
+        } else {
+            printPrompt(AGENT);
+            System.out.println(eventContent);
+        }
+    }
+
+    /**
+     * 转发任务到指定 Agent
+     *
+     * @param mission 任务指令
+     */
+    private static void forwardMissionToAgent(Mission mission) {
+        if (null == mission || StringUtils.isEmpty(mission.getAgent()) || StringUtils.isEmpty(mission.getMessageInfo())) {
+            return;
+        }
+        try {
+            String agentName = mission.getAgent().replaceAll(" ", "");
+            Client client = AgentClientMap.get(agentName);
+            client.sendMessage(A2A.toUserMessage(mission.getMessageInfo()));
+            log.info("Sending message: {}", mission.getMessageInfo());
+        } catch (Exception e) {
+            log.error("forwardMissionToAgent error", e);
+        }
+    }
+
+    /**
      * 注册一个远程的Agent 客户端(通过 AgentCard)
      * @param agentName Agent 名称
      * @param agentUrl Agent 服务链接
      */
     private static void registerAgentClient(String agentName, String agentUrl) {
         if (StringUtils.isEmpty(agentName) || StringUtils.isEmpty(agentUrl)) {
-            System.out.println("initAgentCardInfo param error");
+            log.error("registerAgentClient param error, agentName: {}, agentUrl: {}", agentName, agentUrl);
             return;
         }
         AgentCard finalAgentCard = new A2ACardResolver(agentUrl).getAgentCard();
@@ -297,7 +295,7 @@ public class SupervisorAgentA2ASDKMainStream {
             .withTransport(RocketMQTransport.class, rocketMQTransportConfig)
             .build();
         AgentClientMap.put(agentName, client);
-        log.info("Agent init success: {}", agentName);
+        log.info("Agent: {} init success", agentName);
     }
 
     private static List<BiConsumer<ClientEvent, AgentCard>> buildEventConsumers() {
@@ -389,11 +387,11 @@ public class SupervisorAgentA2ASDKMainStream {
                         Mission mission = JSON.parseObject(content, Mission.class);
                         if (null != mission && !StringUtils.isEmpty(mission.getMessageInfo()) && !StringUtils.isEmpty(mission.getAgent())) {
                             printPrompt(AGENT);
-                            System.out.println("转发到其他的Agent, 等待其他Agent响应，Agent: " + mission.getAgent() + " 问题: " + mission.getMessageInfo());
+                            log.info("转发到其他的Agent, 等待其他Agent响应，Agent: {}, 问题: {}", mission.getAgent(), mission.getMessageInfo());
                             forwardMissionToAgent(mission);
                         }
                     } catch (Exception e) {
-                        System.out.println("解析过程出现异常");
+                        log.error("解析过程出现异常", e);
                     }
                 }
             } else {
