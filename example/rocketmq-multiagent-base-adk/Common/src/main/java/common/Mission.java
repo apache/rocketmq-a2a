@@ -16,25 +16,38 @@
  */
 package common;
 
+/**
+ * Represents a mission (or task assignment) sent from a client to an agent in the A2A system.
+ * <p>
+ * A mission encapsulates the essential metadata required to route and process a request,
+ * including the target agent, message payload, task identifier, and session context.
+ */
 public class Mission {
+    /**
+     * The identifier of the target agent responsible for executing this mission.
+     */
     private String agent;
+
+    /**
+     * The question to be processed by the agent
+     */
     private String messageInfo;
+
+    /**
+     * A unique identifier for the task associated with this mission.
+     * <p>
+     * May be {@code null} if the mission does not correspond to a long-running task.
+     */
     private String taskId;
+
+    /**
+     * The session ID used to correlate related missions within the same user or client session.
+     * <p>
+     * This field supports session-scoped routing, recovery, or state management.
+     */
     private String sessionId;
 
-    public Mission() {
-    }
-
-    public Mission(String agent, String messageInfo, String taskId) {
-        this.agent = agent;
-        this.messageInfo = messageInfo;
-        this.taskId = taskId;
-    }
-
-    public Mission(String agent, String messageInfo) {
-        this.agent = agent;
-        this.messageInfo = messageInfo;
-    }
+    public Mission() {}
 
     public String getAgent() {
         return agent;
