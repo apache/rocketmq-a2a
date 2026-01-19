@@ -28,12 +28,44 @@ import org.apache.commons.lang3.StringUtils;
 
 import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.ROCKETMQ_PROTOCOL;
 
+/**
+ * Producer for the public {@link AgentCard} that describes this service's capabilities.
+ * <p>
+ * This card is used in A2A (Agent-to-Agent) ecosystems to enable discovery, interoperability,
+ * and invocation of this agent’s skills (e.g., travel planning with weather awareness).
+ * </p>
+ * <p>
+ * The card includes:
+ * - Name, description, version
+ * - Supported protocols
+ * - Streaming and notification capabilities
+ * - Skill definitions and usage examples
+ * - Endpoint URL built from system properties
+ * </p>
+ * <p>
+ * Requires the following system properties to be set:
+ * - {@code rocketMQEndpoint}
+ * - {@code rocketMQNamespace}
+ * - {@code bizTopic}
+ * </p>
+ */
 @ApplicationScoped
 public class AgentCardProducer {
-    private static final String ROCKETMQ_ENDPOINT = System.getProperty("rocketMQEndpoint", "");
-    private static final String ROCKETMQ_NAMESPACE = System.getProperty("rocketMQNamespace", "");
-    private static final String BIZ_TOPIC = System.getProperty("bizTopic", "");
+    // Required configuration keys
+    private static final String PROP_ENDPOINT = "rocketMQEndpoint";
+    private static final String PROP_NAMESPACE = "rocketMQNamespace";
+    private static final String PROP_TOPIC = "bizTopic";
 
+    // Read from system properties
+    private static final String ROCKETMQ_ENDPOINT = System.getProperty(PROP_ENDPOINT, "");
+    private static final String ROCKETMQ_NAMESPACE = System.getProperty(PROP_NAMESPACE, "");
+    private static final String BIZ_TOPIC = System.getProperty(PROP_TOPIC, "");
+
+    /**
+     * Produces the public agent card used for service discovery and capability negotiation.
+     * @return fully configured {@link AgentCard}
+     * @throws IllegalArgumentException if required config is missing
+     */
     @Produces
     @PublicAgentCard
     public AgentCard agentCard() {
@@ -65,9 +97,9 @@ public class AgentCardProducer {
 
     private static String buildRocketMQUrl() {
         if (StringUtils.isEmpty(ROCKETMQ_ENDPOINT) || StringUtils.isEmpty(BIZ_TOPIC)) {
-            throw new RuntimeException("buildRocketMQUrl param error, please check rocketmq config");
+            throw new IllegalArgumentException("buildRocketMQUrl param error, please check rocketmq config");
         }
-        return "http://" + ROCKETMQ_ENDPOINT + "/" + ROCKETMQ_NAMESPACE + "/" + BIZ_TOPIC;
+        return String.format("http://%s/%s/%s", ROCKETMQ_ENDPOINT, ROCKETMQ_NAMESPACE, BIZ_TOPIC);
     }
 
 }

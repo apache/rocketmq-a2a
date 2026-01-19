@@ -253,7 +253,7 @@ public class QWModel extends BaseLlm {
                 responseBuilder.content(errorContent);
             }
         } catch (Exception e) {
-            Part errorPart = Part.builder().text("抱歉，处理响应时出现错误：" + e.getMessage()).build();
+            Part errorPart = Part.builder().text("Sorry, an error occurred while processing the response, error: " + e.getMessage()).build();
             Content errorContent = Content.builder().role(MODEL_ROLE).parts(ImmutableList.of(errorPart)).build();
             responseBuilder.content(errorContent);
         }

@@ -41,19 +41,56 @@ import io.reactivex.Flowable;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+/**
+ * Producer for the {@link AgentExecutor} that handles incoming agent execution requests.
+ * <p>
+ * This executor:
+ * - Extracts user input from the request message
+ * - Manages task lifecycle (create, update, stream, complete, cancel)
+ * - Streams responses from the external application (e.g., LLM) via {@link #appCallStream(String)}
+ * - Updates the task in real-time using {@link TaskUpdater}
+ * </p>
+ * <p>
+ * Built as an anonymous inner class to encapsulate stateless execution logic.
+ * Requires system properties 'apiKey' and 'appId' to be set at startup.
+ * </p>
+ */
 @ApplicationScoped
 public class AgentExecutorProducer {
+    private static final Logger log = LoggerFactory.getLogger(AgentExecutorProducer.class);
     private static final String ApiKey = System.getProperty("apiKey");
     private static final String AppId = System.getProperty("appId");
 
+    /**
+     * Produces a custom {@link AgentExecutor} implementation that integrates with an external streaming API.
+     *
+     * @return a configured agent executor
+     */
     @Produces
     public AgentExecutor agentExecutor() {
         return new AgentExecutor() {
+            /**
+             * Executes a new task based on the incoming request context.
+             * <p>
+             * Steps:
+             * 1. Extract user message text
+             * 2. Reuse existing task or create a new one
+             * 3. Stream results from external application
+             * 4. Incrementally update the task with new output chunks
+             * 5. Mark task as completed or failed
+             * </p>
+             *
+             * @param context     the execution context containing message and task info
+             * @param eventQueue  the queue used to emit task events (e.g., updates, completion)
+             * @throws JSONRPCError if an invalid request or state is encountered
+             */
             @Override
             public void execute(RequestContext context, EventQueue eventQueue) throws JSONRPCError {
                 String userMessage = extractTextFromMessage(context.getMessage());
-                System.out.println("receive userMessage: " + userMessage);
+                log.info("Received user message for execution. length={} chars", userMessage.length());
                 Task task = context.getTask();
                 if (task == null) {
                     task = createTask(context.getMessage());
@@ -78,25 +115,42 @@ public class AgentExecutorProducer {
                 }
             }
 
+            /**
+             * Handles cancellation of an ongoing task.
+             * <p>
+             * A task can only be canceled if it is currently running or submitted.
+             * Completed or already canceled tasks cannot be canceled again.
+             * </p>
+             *
+             * @param context     the request context
+             * @param eventQueue  the event queue for emitting cancellation events
+             * @throws JSONRPCError if the task is not in a cancelable state
+             */
             @Override
             public void cancel(RequestContext context, EventQueue eventQueue) throws JSONRPCError {
                 Task task = context.getTask();
                 if (null == task || null == task.getStatus()) {
                     return;
                 }
-                if (task.getStatus().state() == TaskState.CANCELED) {
-                    throw new TaskNotCancelableError();
-                }
-                if (task.getStatus().state() == TaskState.COMPLETED) {
+                TaskState state = task.getStatus().state();
+                if (state == TaskState.CANCELED || state == TaskState.COMPLETED) {
+                    log.warn("Cannot cancel task: already in terminal state. taskId={}, state={}", task.getId(), state);
                     throw new TaskNotCancelableError();
                 }
                 // cancel the task
                 TaskUpdater updater = new TaskUpdater(context, eventQueue);
                 updater.cancel();
+                log.info("Task canceled by user. taskId={}", task.getId());
             }
         };
     }
 
+    /**
+     * Extracts plain text content from a message by concatenating all {@link TextPart} instances.
+     *
+     * @param message the input message
+     * @return concatenated text, or empty string if null or no text parts
+     */
     private String extractTextFromMessage(Message message) {
         if (null == message) {
             return "";
@@ -112,24 +166,20 @@ public class AgentExecutorProducer {
         return textBuilder.toString();
     }
 
-    public static String appCall(String prompt) throws ApiException, NoApiKeyException, InputRequiredException {
-        ApplicationParam param = ApplicationParam.builder()
-            .apiKey(ApiKey)
-            .appId(AppId)
-            .prompt(prompt)
-            .build();
-        Application application = new Application();
-        ApplicationResult result = application.call(param);
-        return result.getOutput().getText();
-    }
-
-    private Task createTask(io.a2a.spec.Message request) {
-        String id = !StringUtils.isEmpty(request.getTaskId()) ? request.getTaskId() : UUID.randomUUID().toString();
-        String contextId = !StringUtils.isEmpty(request.getContextId()) ? request.getContextId() : UUID.randomUUID().toString();
-        return new Task(id, contextId, new TaskStatus(TaskState.SUBMITTED), null, List.of(request), null);
-    }
-
-    public static Flowable<ApplicationResult> appCallStream(String prompt) throws ApiException, NoApiKeyException, InputRequiredException {
+    /**
+     * Initiates a streaming call to the external application (e.g., LLM backend).
+     * <p>
+     * Uses the configured API key and app ID to authenticate and send the prompt.
+     * Returns a {@link Flowable} that emits incremental results as they arrive.
+     * </p>
+     *
+     * @param prompt the user's input prompt
+     * @return a reactive stream of application results
+     * @throws ApiException            if backend returns an error
+     * @throws NoApiKeyException       if authentication fails
+     * @throws InputRequiredException if prompt is missing
+     */
+    private static Flowable<ApplicationResult> appCallStream(String prompt) throws ApiException, NoApiKeyException, InputRequiredException {
         ApplicationParam param = ApplicationParam.builder()
             .apiKey(ApiKey)
             .appId(AppId)
@@ -140,4 +190,15 @@ public class AgentExecutorProducer {
         return applicationResultFlowable;
     }
 
+    /**
+     * Creates a new task with a generated ID and initial submitted status.
+     *
+     * @param request the incoming message containing optional task/context IDs
+     * @return a newly created task
+     */
+    private Task createTask(io.a2a.spec.Message request) {
+        String id = !StringUtils.isEmpty(request.getTaskId()) ? request.getTaskId() : UUID.randomUUID().toString();
+        String contextId = !StringUtils.isEmpty(request.getContextId()) ? request.getContextId() : UUID.randomUUID().toString();
+        return new Task(id, contextId, new TaskStatus(TaskState.SUBMITTED), null, List.of(request), null);
+    }
 }
