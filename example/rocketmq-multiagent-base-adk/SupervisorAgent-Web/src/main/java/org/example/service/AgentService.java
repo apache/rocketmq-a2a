@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import com.alibaba.fastjson.JSON;
@@ -66,6 +67,13 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 import reactor.core.publisher.Sinks.Many;
 
+/**
+ * Core service for managing multi-agent coordination via RocketMQ LiteTopic.
+ * <p>
+ * Handles streaming chat, session/task lifecycle, agent registration, and message routing
+ * between SupervisorAgent and specialized agents (e.g., WeatherAgent, TravelAgent).
+ * </p>
+ */
 @Service
 public class AgentService {
     private static final Logger log = LoggerFactory.getLogger(AgentService.class);
@@ -75,6 +83,8 @@ public class AgentService {
     private static final String WEATHER_AGENT_URL = "http://localhost:8080";
     private static final String TRAVEL_AGENT_NAME = "TravelAgent";
     private static final String TRAVEL_AGENT_URL = "http://localhost:8888";
+
+    // Configuration from system properties
     private static final String WORK_AGENT_RESPONSE_TOPIC = System.getProperty("workAgentResponseTopic");
     private static final String WORK_AGENT_RESPONSE_GROUP_ID = System.getProperty("workAgentResponseGroupID");
     private static final String ROCKETMQ_NAMESPACE = System.getProperty("rocketMQNamespace");
@@ -82,20 +92,25 @@ public class AgentService {
     private static final String SECRET_KEY = System.getProperty("rocketMQSK");
     private static final String API_KEY = System.getProperty("apiKey");
 
-    private final Map<String /* agentName */, Client /* agentClient */> AgentClientMap = new HashMap<>();
-    private final Map<String /* sessionId */, Session /* session */> sessionMap = new HashMap<>();
-    private final Map<String /* taskId */, TaskInfo /* taskInfo */> taskMap = new HashMap<>();
-    private final Map<String /* userId */, Map<String /* sessionId */, List<TaskInfo> /* taskInfo */>> userSessionTaskListMap = new HashMap<>();
+    private final Map<String /* agentName */, Client /* agentClient */> AgentClientMap = new ConcurrentHashMap<>();
+    private final Map<String /* sessionId */, Session /* session */> sessionMap = new ConcurrentHashMap<>();
+    private final Map<String /* taskId */, TaskInfo /* taskInfo */> taskMap = new ConcurrentHashMap<>();
+    private final Map<String /* userId */, Map<String /* sessionId */, List<TaskInfo> /* taskInfo */>> userSessionTaskListMap = new ConcurrentHashMap<>();
 
     private InMemorySessionService sessionService;
     private Runner runner;
     private String lastQuestion = "";
+
+    /**
+     * Initializes the service after Spring context is loaded.
+     * <p>
+     * Validates configuration, initializes base agent, registers external agents,
+     * and sets up internal services.
+     * </p>
+     */
     @PostConstruct
     public void init() {
-        if (!checkConfigParam()) {
-            log.error("please check the config param");
-            throw new RuntimeException("please check the config param");
-        }
+        validateConfig();
         BaseAgent baseAgent = initAgent(WEATHER_AGENT_NAME, TRAVEL_AGENT_NAME);
         printSystemInfo("🚀 启动 QWen为底座模型的 " + AGENT_NAME + "，擅长处理天气问题与行程安排规划问题，在本例中使用RocketMQ LiteTopic版本实现多个Agent之间的通讯");
         InMemoryArtifactService artifactService = new InMemoryArtifactService();
@@ -105,23 +120,41 @@ public class AgentService {
         initAgentCardInfo(ACCESS_KEY, SECRET_KEY, TRAVEL_AGENT_NAME, TRAVEL_AGENT_URL);
     }
 
-    private static boolean checkConfigParam() {
-        if (StringUtils.isEmpty(WORK_AGENT_RESPONSE_TOPIC) || StringUtils.isEmpty(WORK_AGENT_RESPONSE_GROUP_ID) || StringUtils.isEmpty(API_KEY)) {
-            if (StringUtils.isEmpty(WORK_AGENT_RESPONSE_TOPIC)) {
-                log.error("请配置RocketMQ 的轻量消息Topic workAgentResponseTopic");
-            }
-            if (StringUtils.isEmpty(WORK_AGENT_RESPONSE_GROUP_ID)) {
-                log.error("请配置RocketMQ 的轻量消息消费者 workAgentResponseGroupID");
-            }
-            if (StringUtils.isEmpty(API_KEY)) {
-                log.error("请配置SupervisorAgent qwen-plus apiKey");
-            }
-            return false;
+    /**
+     * Validates required system properties are present.
+     *
+     * @throws IllegalStateException if any required config is missing
+     */
+    private static void validateConfig() {
+        List<String> missing = new ArrayList<>();
+        if (StringUtils.isEmpty(WORK_AGENT_RESPONSE_TOPIC)) {
+            missing.add("workAgentResponseTopic");
         }
-        return true;
+        if (StringUtils.isEmpty(WORK_AGENT_RESPONSE_GROUP_ID)) {
+            missing.add("workAgentResponseGroupID");
+        }
+        if (StringUtils.isEmpty(API_KEY)) {
+            missing.add("apiKey");
+        }
+        if (!missing.isEmpty()) {
+            String msg = "Missing required configuration: " + String.join(", ", missing);
+            log.error(msg);
+            throw new IllegalStateException(msg);
+        }
     }
 
-    public Flux<String> streamChat(String userId, String sessionId, String question) {
+    /**
+     * Starts a new streaming chat session with the supervisor agent.
+     *
+     * @param userId     user identifier
+     * @param sessionId  session identifier
+     * @param question   user input question
+     * @return a reactive stream of response chunks
+     */
+    public Flux<String> startStreamChat(String userId, String sessionId, String question) {
+        if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId) || StringUtils.isEmpty(question)) {
+            return Flux.error(new IllegalArgumentException("userId, sessionId, and question must not be empty"));
+        }
         Session userSession = sessionMap.computeIfAbsent(sessionId, k -> {
             return runner.sessionService().createSession(APP_NAME, userId, null, sessionId).blockingGet();
         });
@@ -137,70 +170,147 @@ public class AgentService {
         return Flux.from(sink.asFlux());
     }
 
-    public void closeStreamChat(String userId, String sessionId) {
-        Map<String, List<TaskInfo>> sessionTaskListMap = userSessionTaskListMap.computeIfAbsent(userId, k -> new HashMap<>());
-        List<TaskInfo> taskInfos = sessionTaskListMap.computeIfAbsent(sessionId, k -> new ArrayList<>());
-        for (TaskInfo taskInfo : taskInfos) {
-            taskInfo.getSink().emitError(new RuntimeException("用户断开连接"), Sinks.EmitFailureHandler.FAIL_FAST);
+    /**
+     * Terminates the streaming chat session for a specific user and session.
+     * <p>
+     * This method performs the following actions:
+     * - Cleans up all active {@link TaskInfo} instances associated with the session.
+     * - Emits an error signal to each task's sink to notify subscribers of disconnection.
+     * - Sends a resubscribe command with closure metadata to all registered clients,
+     *   triggering resource cleanup on agent side.
+     *
+     * @param userId    the ID of the user initiating the disconnect; cannot be null or empty
+     * @param sessionId the ID of the session being terminated; cannot be null or empty
+     */
+    public void endStreamChat(String userId, String sessionId) {
+        if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId)) {
+            log.error("Ignoring endStreamChat request: invalid userId={} or sessionId={}.", userId, sessionId);
+            return;
         }
-        Collection<Client> clients = AgentClientMap.values();
+        // Retrieve the map of sessions for this user (create if absent)
+        Map<String, List<TaskInfo>> sessionTaskListMap = userSessionTaskListMap.computeIfAbsent(userId, k -> new HashMap<>());
+        // Retrieve the list of tasks associated with the session
+        List<TaskInfo> taskInfos = sessionTaskListMap.get(sessionId);
+        // If there are active tasks, notify them that the user has disconnected
+        if (taskInfos != null) {
+            for (TaskInfo taskInfo : taskInfos) {
+                if (taskInfo != null && taskInfo.getSink() != null) {
+                    // Emit error to signal stream termination
+                    taskInfo.getSink().emitError(new RuntimeException("User disconnected from the stream"), Sinks.EmitFailureHandler.FAIL_FAST);
+                }
+            }
+        }
+        // Prepare metadata to indicate session closure
         Map<String, Object> metadata = new HashMap<>();
         metadata.put(RocketMQA2AConstant.CLOSE_LITE_TOPIC, sessionId);
+        // Get all connected agent clients
+        Collection<Client> clients = AgentClientMap.values();
+        // Notify each client only if there are active clients
         if (!CollectionUtils.isEmpty(clients)) {
             for (Client client : clients) {
-                client.resubscribe(new TaskIdParams("", metadata));
-                log.info("closeStream userId: {}, sessionId: {}", userId, sessionId);
+                try {
+                    client.resubscribe(new TaskIdParams("", metadata));
+                } catch (Exception e) {
+                    log.error("Failed to resubscribe client during session close. Client: {}, sessionId: {}", client, sessionId, e);
+                }
             }
+            log.info("Stream closed successfully. userId={}, sessionId={}", userId, sessionId);
         }
     }
 
+    /**
+     * Re-establishes a streaming chat session for a given user and session ID.
+     * <p>
+     * If there are existing tasks associated with the session, this method creates a new {@link Sinks.Many}
+     * to broadcast stream data and reattaches it to all active tasks. It then notifies all registered agent clients
+     * via resubscribe command so they can resume publishing messages for this session.
+     * </p>
+     * <p>
+     * If no tasks exist (e.g., conversation already completed), a single completion message is returned.
+     * </p>
+     *
+     * @param userId    the unique identifier of the user
+     * @param sessionId the unique identifier of the chat session
+     * @return a {@link Flux<String>} emitting stream data or a completion message
+     */
     public Flux<String> resubscribeStream(String userId, String sessionId) {
+        if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId)) {
+            return Flux.error(new IllegalArgumentException("userId, sessionId, must not be empty"));
+        }
         try {
-            Map<String, List<TaskInfo>> sessionTaskList = userSessionTaskListMap.computeIfAbsent(userId, k -> new HashMap<>());
-            List<TaskInfo> taskInfoList = sessionTaskList.computeIfAbsent(sessionId, k -> new ArrayList<>());
+            Map<String, List<TaskInfo>> sessionTaskListMap = userSessionTaskListMap.computeIfAbsent(userId, k -> new HashMap<>());
+            List<TaskInfo> taskInfoList = sessionTaskListMap.computeIfAbsent(sessionId, k -> new ArrayList<>());
+            // Create a new sink to support multicast streaming
             Sinks.Many<String> sink = Sinks.many().multicast().onBackpressureBuffer();
             if (CollectionUtils.isEmpty(taskInfoList)) {
+                log.info("No active tasks found for session. Returning completion message. userId={}, sessionId={}", userId, sessionId);
                 return Flux.just("任务均已完成，请重新提问");
             }
+            // Rebind the new sink to all existing tasks
             for (TaskInfo taskInfo : taskInfoList) {
-                taskInfo.setSink(sink);
+                if (taskInfo != null) {
+                    taskInfo.setSink(sink);
+                }
             }
+            // Notify all connected agent clients to resume publishing for this session
             Collection<Client> clients = AgentClientMap.values();
-            Map<String, Object> metadata = new HashMap<>();
-            metadata.put(RocketMQA2AConstant.LITE_TOPIC, sessionId);
             if (!CollectionUtils.isEmpty(clients)) {
+                Map<String, Object> metadata = new HashMap<>();
+                metadata.put(RocketMQA2AConstant.LITE_TOPIC, sessionId);
                 for (Client client : clients) {
                     try {
                         client.resubscribe(new TaskIdParams("", metadata));
+                        log.debug("Sent resubscribe command to client: {} for sessionId: {}", client, sessionId);
                     } catch (Exception e) {
-                        log.error("resubscribeStream  client.resubscribe error, userId: {}, sessionId: {}, error: {}", userId, sessionId, e.getMessage());
+                        log.error("Failed to resubscribe client during stream recovery. client={}, userId={}, sessionId={}", client, userId, sessionId, e);
                     }
                 }
             }
+            log.info("Successfully re-established stream. userId={}, sessionId={}", userId, sessionId);
             return Flux.from(sink.asFlux());
         } catch (Exception e) {
-            log.error("resubscribeStream error, userId: {}, sessionId: {}, error: {}", userId, sessionId, e.getMessage());
+            log.error("Unexpected error during resubscribeStream. userId={}, sessionId={}", userId, sessionId, e);
+            return Flux.error(new RuntimeException("Failed to re-establish stream due to internal error", e));
         }
-        return null;
     }
 
+    /**
+     * Processes incoming event content and routes it appropriately.
+     * <p>
+     * If the content is a JSON string starting with '{', it is parsed as a {@link Mission} object,
+     * registered as a new task, and forwarded to the target agent. A message is emitted indicating
+     * that the request has been delegated.
+     * </p>
+     * <p>
+     * Otherwise, the content is treated as plain text and directly emitted through the sink.
+     * </p>
+     *
+     * @param content    the raw event content; can be JSON ({@link Mission}) or plain text
+     * @param sink       the reactive sink used to emit responses to the client
+     * @param taskList   the list to which new tasks will be added
+     * @param userId     the ID of the user associated with this session
+     * @param sessionId  the ID of the current session
+     */
     private void dealEventContent(String content, Sinks.Many<String> sink, List<TaskInfo> taskList, String userId, String sessionId) {
-        if (StringUtils.isEmpty(content) || null == sink || StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId)) {
+        if (StringUtils.isEmpty(content) || sink == null || StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId)) {
+            log.debug("Ignored empty or invalid input in dealEventContent. content=null? {}, sink=null? {}, userId={}, sessionId={}", StringUtils.isEmpty(content), sink == null, userId, sessionId);
             return;
         }
-        String taskId = UUID.randomUUID().toString();
         if (content.startsWith("{")) {
             try {
                 Mission mission = JSON.parseObject(content, Mission.class);
-                if (null != mission) {
-                    TaskInfo taskInfo = taskMap.computeIfAbsent(taskId, k -> {return new TaskInfo(taskId, mission.getMessageInfo(), sessionId, userId, sink);});
-                    if (null != taskList) {
-                        taskList.add(taskInfo);
-                    }
-                    log.info("转发请求到其他的Agent, 等待其响应，Agent: {}, 问题: {}", mission.getAgent(), mission.getMessageInfo());
-                    emitMessage(sink, "******" + AGENT_NAME + "转发请求到其他的Agent, 等待其响应，Agent: " + mission.getAgent() + "，问题: " + mission.getMessageInfo(), false);
-                    dealMissionByMessage(mission, taskId, sessionId);
+                if (mission == null) {
+                    log.warn("Parsed mission is null from content: '{}'. Skipping.", content);
+                    return;
                 }
+                String taskId = UUID.randomUUID().toString();
+                TaskInfo taskInfo = taskMap.computeIfAbsent(taskId, k -> new TaskInfo(taskId, mission.getMessageInfo(), sessionId, userId, sink));
+                if (null != taskList) {
+                    taskList.add(taskInfo);
+                }
+                log.info("转发请求到其他的Agent, 等待其响应，Agent: {}, 问题: {}", mission.getAgent(), mission.getMessageInfo());
+                emitMessage(sink, "******" + AGENT_NAME + "转发请求到其他的Agent, 等待其响应，Agent: " + mission.getAgent() + "，问题: " + mission.getMessageInfo(), false);
+                dealMissionByMessage(mission, taskId, sessionId);
             } catch (Exception e) {
                 log.error("解析过程出现异常, " + e.getMessage());
             }
@@ -209,6 +319,20 @@ public class AgentService {
         }
     }
 
+    /**
+     * Sends a mission message to the target agent via its registered client.
+     * <p>
+     * This method looks up the {@link Client} instance associated with the specified agent name,
+     * then sends a formatted A2A text message containing the user's query, task ID, and session context.
+     * </p>
+     * <p>
+     * If the agent is not available or any parameter is invalid, an error is logged and the operation is skipped.
+     * </p>
+     *
+     * @param mission    the mission object containing agent name and message content
+     * @param taskId     the unique identifier for this task
+     * @param sessionId  the session ID associated with the conversation
+     */
     private void dealMissionByMessage(Mission mission, String taskId, String sessionId) {
         if (null == mission || StringUtils.isEmpty(mission.getAgent()) || StringUtils.isEmpty(mission.getMessageInfo()) || StringUtils.isEmpty(taskId) || StringUtils.isEmpty(sessionId)) {
             log.error("dealMissionByMessage param error, mission: {}, taskId: {}, sessionId: {}", JSON.toJSONString(mission), taskId, sessionId);
@@ -269,6 +393,24 @@ public class AgentService {
             .build();
     }
 
+    /**
+     * Initializes and registers a client for a remote agent using A2A protocol over RocketMQ.
+     * <p>
+     * This method:
+     * - Fetches the agent's public card (metadata) from the given URL
+     * - Sets up event listeners to handle task updates and streaming responses
+     * - Configures RocketMQ transport with provided credentials
+     * - Registers the built client into the global {@link #AgentClientMap}
+     * </p>
+     * <p>
+     * If initialization fails due to invalid parameters or network issues, an error is logged and the method returns early.
+     * </p>
+     *
+     * @param accessKey   the access key for RocketMQ authentication
+     * @param secretKey   the secret key for RocketMQ signature
+     * @param agentName   the logical name used to identify this agent in the local system
+     * @param agentUrl    the URL where the agent card (metadata) can be retrieved
+     */
     private void initAgentCardInfo(String accessKey, String secretKey, String agentName, String agentUrl) {
         if (StringUtils.isEmpty(agentName) || StringUtils.isEmpty(agentUrl)) {
             log.error("initAgentCardInfo param error, agentName: {}, agentUrl: {}", agentName, agentUrl);
@@ -328,26 +470,53 @@ public class AgentService {
             .withTransport(RocketMQTransport.class, rocketMQTransportConfig)
             .build();
         AgentClientMap.put(agentName, client);
-        log.info("init success");
+        log.info("Successfully initialized and registered agent client. agentName='{}', url='{}'", agentName, agentUrl);
     }
 
+    /**
+     * Extracts all text content from the given {@link Artifact} by iterating over its parts.
+     * <p>
+     * Only extracts content from {@link TextPart} instances.
+     * </p>
+     *
+     * @param artifact the artifact to extract text from
+     * @return concatenated text from all text parts, or empty string if null or no text found
+     */
     private static String extractTextFromMessage(Artifact artifact) {
-        if (null == artifact) {
+        // Return empty string for null input
+        if (artifact == null || CollectionUtils.isEmpty(artifact.parts())) {
             return "";
         }
         List<io.a2a.spec.Part<?>> parts = artifact.parts();
-        if (CollectionUtils.isEmpty(parts)) {
-            return "";
-        }
         StringBuilder textBuilder = new StringBuilder();
-        for (io.a2a.spec.Part part : parts) {
+
+        for (io.a2a.spec.Part<?> part : parts) {
             if (part instanceof TextPart textPart) {
-                textBuilder.append(textPart.getText());
+                String text = textPart.getText();
+                if (text != null) {
+                    textBuilder.append(text);
+                }
             }
         }
         return textBuilder.toString();
     }
 
+    /**
+     * Processes the final response from a remote agent and triggers next-step actions.
+     * <p>
+     * This method:
+     * - Persists the received result into the session history
+     * - Runs the local LLM agent asynchronously to generate follow-up behavior
+     * - Emits messages through the reactive sink based on the generated events
+     * - Forwards new missions to other agents if needed
+     * - Completes the task stream when appropriate
+     * </p>
+     *
+     * @param result     the raw response content from the agent; may be empty but not null
+     * @param userId     the ID of the user
+     * @param sessionId  the current session ID
+     * @param taskId     the associated task ID for tracking
+     */
     private void dealAgentResponse(String result, String userId, String sessionId, String taskId) {
         if (StringUtils.isEmpty(result)) {
             return;
@@ -395,8 +564,18 @@ public class AgentService {
     }
 
     /**
-     * 对Task相关的资源进行清理
-     * @param taskInfo
+     * Completes and cleans up a task by removing it from shared state maps.
+     * <p>
+     * This method:
+     * - Removes the task from the global {@link #taskMap} using its task ID
+     * - Attempts to remove it from the user-session-specific task list
+     * - Logs cleanup results for monitoring and debugging
+     * </p>
+     * <p>
+     * Safe to call multiple times — will log and return early if task info is invalid or already removed.
+     * </p>
+     *
+     * @param taskInfo the task to be completed; must not be null with valid taskId
      */
     private void completeTask(TaskInfo taskInfo) {
         if (null == taskInfo || StringUtils.isEmpty(taskInfo.getTaskId())) {
@@ -405,7 +584,7 @@ public class AgentService {
         }
         String taskId = taskInfo.getTaskId();
         taskMap.remove(taskId);
-        log.info("completeTask taskMap clear success taskId: {}", taskId);
+        log.info("completeTask taskMap clear success, taskId: {}", taskId);
         Map<String, List<TaskInfo>> sessionTaskListMap = userSessionTaskListMap.get(taskInfo.getUserId());
         if (null != sessionTaskListMap) {
             List<TaskInfo> taskInfos = sessionTaskListMap.get(taskInfo.getSessionId());

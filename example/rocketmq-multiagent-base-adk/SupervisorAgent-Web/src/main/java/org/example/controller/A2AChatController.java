@@ -63,7 +63,7 @@ public class A2AChatController {
         }
         log.info("Starting stream chat: userId={}, sessionId={}, question={}", userId, sessionId, question);
         try {
-            return agentService.streamChat(userId, sessionId, question);
+            return agentService.startStreamChat(userId, sessionId, question);
         } catch (Exception e) {
             log.error("Error during stream chat: userId={}, sessionId={}, question={}", userId, sessionId, question, e);
             return Flux.error(e);
@@ -84,7 +84,7 @@ public class A2AChatController {
     public ResponseEntity<String> closeStreamChat(@RequestParam String userId, @RequestParam String sessionId) {
         log.info("Closing stream chat: userId={}, sessionId={}", userId, sessionId);
         try {
-            agentService.closeStreamChat(userId, sessionId);
+            agentService.endStreamChat(userId, sessionId);
             return ResponseEntity.ok("Stream closed successfully");
         } catch (Exception e) {
             log.error("Failed to close stream: userId={}, sessionId={}", userId, sessionId, e);
