@@ -67,26 +67,28 @@ import org.springframework.util.CollectionUtils;
  */
 public class SupervisorAgentA2ASDKMainStream {
     private static final Logger log = LoggerFactory.getLogger(SupervisorAgentA2ASDKMainStream.class);
-    // Agent 配置常量
+    // Agent configuration constants
     private static final String AGENT_NAME = "SupervisorAgent";
     private static final String USER_ID = "rocketmq_a2a_user";
     private static final String APP_NAME = "rocketmq_a2a";
-    // 子 Agent 名称与地址
+    // Sub-agent names and URLs
     private static final String WEATHER_AGENT_NAME = "WeatherAgent";
     private static final String WEATHER_AGENT_URL = "http://localhost:8080";
     private static final String TRAVEL_AGENT_NAME = "TravelAgent";
     private static final String TRAVEL_AGENT_URL = "http://localhost:8888";
-    // 环境变量配置项
+
+    // Environment variable configuration items
     private static final String WORK_AGENT_RESPONSE_TOPIC = System.getProperty("workAgentResponseTopic");
     private static final String WORK_AGENT_RESPONSE_GROUP_ID = System.getProperty("workAgentResponseGroupID");
     private static final String ROCKETMQ_NAMESPACE = System.getProperty("rocketMQNamespace");
     private static final String ACCESS_KEY = System.getProperty("rocketMQAK");
     private static final String SECRET_KEY = System.getProperty("rocketMQSK");
     private static final String API_KEY = System.getProperty("apiKey");
-    // 角色标识
+    // Role identifiers
     private static final String YOU = "You";
     private static final String AGENT = "Agent";
-    // 全局状态
+
+    // Global state
     private static String lastQuestion = "";
     private static InMemorySessionService sessionService;
     private static final Map<String, Client> AgentClientMap = new HashMap<>();
@@ -94,63 +96,63 @@ public class SupervisorAgentA2ASDKMainStream {
     private static Runner runner;
 
     /**
-     * 应用程序主入口
+     * Main entry point of the application.
      */
     public static void main(String[] args) {
-        //校验参数
+        // Validate configuration parameters
         validateConfigParams();
-        // 初始化主Agent
+        // Initialize the main agent
         BaseAgent baseAgent = initAgent(WEATHER_AGENT_NAME, TRAVEL_AGENT_NAME);
         printSystemInfo("🚀 启动 QWen为底座模型的 " + AGENT_NAME + "，擅长处理天气问题与行程安排规划问题，在本例中使用RocketMQ LiteTopic版本实现多个Agent之间的通讯");
         printSystemInfo("📋 初始化会话...");
-        // 初始化ADK相关的服务组件
+        // Initialize ADK-related service components
         sessionService = new InMemorySessionService();
         runner = new Runner(baseAgent, APP_NAME, new InMemoryArtifactService(), sessionService, /* memoryService= */ null);
-        // 创建用户会话
+        // Create a user session
         Session session = runner.sessionService().createSession(APP_NAME, USER_ID).blockingGet();
         printSystemSuccess("✅ 会话创建成功: " + session.id());
         sessionId = session.id();
-        // 初始化并注册子Agent客户端
+        // Initialize and register sub-agent clients
         registerAgentClient(WEATHER_AGENT_NAME, WEATHER_AGENT_URL);
         registerAgentClient(TRAVEL_AGENT_NAME, TRAVEL_AGENT_URL);
         printSystemInfo("💡 输入 'quit' 退出，输入 'help' 查看帮助");
-        // 循环处理用户的交互
+        // Enter the user interaction loop
         startInteractionLoop();
     }
 
     /**
-     * 校验必要配置参数
+     * Validates required configuration parameters.
      *
-     * @return true 表示配置完整，false 表示缺少关键参数
+     * @throws IllegalArgumentException if any critical parameter is missing
      */
     private static void validateConfigParams() {
         List<String> missingParams = new ArrayList<>();
         if (StringUtils.isEmpty(WORK_AGENT_RESPONSE_TOPIC)) {
-            missingParams.add("workAgentResponseTopic (RocketMQ 轻量消息 Topic)");
+            missingParams.add("workAgentResponseTopic (RocketMQ LiteTopic for agent responses)");
         }
         if (StringUtils.isEmpty(WORK_AGENT_RESPONSE_GROUP_ID)) {
-            missingParams.add("workAgentResponseGroupID (RocketMQ 轻量消息消费者 Group ID)");
+            missingParams.add("workAgentResponseGroupID (RocketMQ consumer group ID for LiteTopic)");
         }
         if (StringUtils.isEmpty(API_KEY)) {
-            missingParams.add("apiKey (SupervisorAgent qwen-plus API Key)");
+            missingParams.add("apiKey (API key for SupervisorAgent using Qwen-plus model)");
         }
         if (!missingParams.isEmpty()) {
-            String message = "以下配置参数缺失，请在环境变量或配置文件中设置：\n" +
-                String.join("\n", missingParams);
+            String message = "The following required configuration parameters are missing. Please set them via environment variables or system properties:\n" + String.join("\n", missingParams);
             throw new IllegalArgumentException(message);
         }
     }
 
     /**
-     * 初始化 Agent
-     * @param weatherAgent 天气Agent名称
-     * @param travelAgent 行程规划Agent名称
-     * @return BaseAgent
+     * Initializes the main agent.
+     *
+     * @param weatherAgent the name of the Weather Agent
+     * @param travelAgent  the name of the Travel Planning Agent
+     * @return a configured BaseAgent instance
      */
     public static BaseAgent initAgent(String weatherAgent, String travelAgent) {
         if (StringUtils.isEmpty(weatherAgent) || StringUtils.isEmpty(travelAgent)) {
-            log.error("initAgent 参数缺失，请补充天气助手weatherAgent、行程安排助手travelAgent");
-            throw new IllegalArgumentException("SupervisorAgentA2ASDKMainStream: 参数缺失，请补充天气助手weatherAgent、行程安排助手travelAgent");
+            log.error("Missing parameters in initAgent: please provide both weatherAgent and travelAgent names.");
+            throw new IllegalArgumentException("SupervisorAgentA2ASDKMainStream: Missing required agent names. Please specify both weatherAgent and travelAgent.");
         }
         QWModel qwModel = QWModelRegistry.getModel(API_KEY);
         return LlmAgent.builder()
@@ -193,7 +195,7 @@ public class SupervisorAgentA2ASDKMainStream {
     }
 
     /**
-     * 开始用户交互主循环
+     * Starts the main user interaction loop.
      */
     private static void startInteractionLoop() {
         try (Scanner scanner = new Scanner(System.in, String.valueOf(StandardCharsets.UTF_8))) {
@@ -201,7 +203,7 @@ public class SupervisorAgentA2ASDKMainStream {
                 printPrompt(YOU);
                 String userInput = scanner.nextLine().trim();
                 if ("quit".equalsIgnoreCase(userInput)) {
-                    printSystemInfo("👋 再见！");
+                    printSystemInfo("👋 Goodbye!");
                     System.exit(0);
                     break;
                 }
@@ -210,11 +212,11 @@ public class SupervisorAgentA2ASDKMainStream {
                     continue;
                 }
                 if (StringUtils.isEmpty(userInput)) {
-                    printSystemInfo("请不要输入空值");
+                    printSystemInfo("Please do not submit empty input.");
                     continue;
                 }
-                printSystemInfo("🤔 正在思考...");
-                log.info("用户输入: {}", userInput);
+                printSystemInfo("🤔 Thinking...");
+                log.info("User input: {}", userInput);
                 Content userMsg = Content.fromParts(Part.fromText(userInput));
                 Flowable<Event> events = runner.runAsync(USER_ID, sessionId, userMsg);
                 events.blockingForEach(event -> {
@@ -226,8 +228,9 @@ public class SupervisorAgentA2ASDKMainStream {
     }
 
     /**
-     * 处理来自主Agent的LLM返回的响应结果，并触发后续推理流程
-     * @param eventContent LLM返回的响应结果内容
+     * Processes the response content returned by the main Agent's LLM and triggers subsequent reasoning workflows.
+     *
+     * @param eventContent The response content returned by the LLM.
      */
     private static void dealEventContent(String eventContent) {
         if (StringUtils.isEmpty(eventContent)) {
@@ -238,22 +241,22 @@ public class SupervisorAgentA2ASDKMainStream {
                 Mission mission = JSON.parseObject(eventContent, Mission.class);
                 if (null != mission) {
                     printPrompt(AGENT);
-                    log.info("Agent: {}, 转发请求到其他的Agent, 等待其响应，Agent: {}, 问题: {}", AGENT_NAME, mission.getAgent(), mission.getMessageInfo());
+                    log.info("Agent: {}, forwarding request to another agent and waiting for its response. Target Agent: {}, Query: {}", AGENT_NAME, mission.getAgent(), mission.getMessageInfo());
                     forwardMissionToAgent(mission);
                 }
             } catch (Exception e) {
-                log.error("解析过程出现异常", e);
+                log.error("An error occurred while parsing the event content", e);
             }
         } else {
             printPrompt(AGENT);
-            System.out.println(eventContent);
+            log.warn(eventContent);
         }
     }
 
     /**
-     * 转发任务到指定 Agent
+     * Forwards a task to the specified agent.
      *
-     * @param mission 任务指令
+     * @param mission The task instruction to be forwarded.
      */
     private static void forwardMissionToAgent(Mission mission) {
         if (null == mission || StringUtils.isEmpty(mission.getAgent()) || StringUtils.isEmpty(mission.getMessageInfo())) {
@@ -265,23 +268,24 @@ public class SupervisorAgentA2ASDKMainStream {
             client.sendMessage(A2A.toUserMessage(mission.getMessageInfo()));
             log.info("Sending message: {}", mission.getMessageInfo());
         } catch (Exception e) {
-            log.error("forwardMissionToAgent error", e);
+            log.error("Error occurred while forwarding mission to agent", e);
         }
     }
 
     /**
-     * 注册一个远程的Agent 客户端(通过 AgentCard)
-     * @param agentName Agent 名称
-     * @param agentUrl Agent 服务链接
+     * Registers a remote agent client (via AgentCard).
+     *
+     * @param agentName The name of the agent.
+     * @param agentUrl  The service URL of the agent.
      */
     private static void registerAgentClient(String agentName, String agentUrl) {
         if (StringUtils.isEmpty(agentName) || StringUtils.isEmpty(agentUrl)) {
-            log.error("registerAgentClient param error, agentName: {}, agentUrl: {}", agentName, agentUrl);
+            log.error("Invalid parameters in registerAgentClient: agentName={}, agentUrl={}", agentName, agentUrl);
             return;
         }
         AgentCard finalAgentCard = new A2ACardResolver(agentUrl).getAgentCard();
-        System.out.println("Successfully fetched public agent card: " + finalAgentCard.description());
-        // 构建事件消费者
+        log.info("Successfully fetched public agent card: {}", finalAgentCard.description());
+        // Build event consumers
         List<BiConsumer<ClientEvent, AgentCard>> consumers = buildEventConsumers();
         RocketMQTransportConfig rocketMQTransportConfig = new RocketMQTransportConfig();
         rocketMQTransportConfig.setNamespace(ROCKETMQ_NAMESPACE);
@@ -295,7 +299,7 @@ public class SupervisorAgentA2ASDKMainStream {
             .withTransport(RocketMQTransport.class, rocketMQTransportConfig)
             .build();
         AgentClientMap.put(agentName, client);
-        log.info("Agent: {} init success", agentName);
+        log.info("Agent '{}' initialized successfully", agentName);
     }
 
     private static List<BiConsumer<ClientEvent, AgentCard>> buildEventConsumers() {
@@ -342,9 +346,10 @@ public class SupervisorAgentA2ASDKMainStream {
     }
 
     /**
-     * 提取 Artifact 中的文本内容
-     * @param artifact 内容片段
-     * @return 文本字符串
+     * Extracts the text content from an Artifact.
+     *
+     * @param artifact The content fragment (Artifact) to extract text from.
+     * @return A concatenated string of all text parts, or an empty string if none exist.
      */
     private static String extractTextFromMessage(Artifact artifact) {
         if (artifact == null || CollectionUtils.isEmpty(artifact.parts())) {return "";}
@@ -355,8 +360,9 @@ public class SupervisorAgentA2ASDKMainStream {
     }
 
     /**
-     * 处理来自子 Agent 的响应，并触发后续推理流程
-     * @param result 子 Agent 返回的内容
+     * Processes the response from a sub-agent and triggers subsequent reasoning steps.
+     *
+     * @param result The content returned by the sub-agent.
      */
     private static void dealAgentResponse(String result) {
         if (StringUtils.isEmpty(result)) {
@@ -364,7 +370,7 @@ public class SupervisorAgentA2ASDKMainStream {
         }
         Maybe<Session> sessionMaybe = sessionService.getSession(APP_NAME, USER_ID, sessionId, Optional.empty());
         Session session = sessionMaybe.blockingGet();
-        // 构造事件并追加到会话历史
+        // Construct an event and append it to the session history
         Event event = Event.builder()
             .id(UUID.randomUUID().toString())
             .invocationId(UUID.randomUUID().toString())
@@ -387,15 +393,15 @@ public class SupervisorAgentA2ASDKMainStream {
                         Mission mission = JSON.parseObject(content, Mission.class);
                         if (null != mission && !StringUtils.isEmpty(mission.getMessageInfo()) && !StringUtils.isEmpty(mission.getAgent())) {
                             printPrompt(AGENT);
-                            log.info("转发到其他的Agent, 等待其他Agent响应，Agent: {}, 问题: {}", mission.getAgent(), mission.getMessageInfo());
+                            log.info("Forwarding to another agent and waiting for its response. Target Agent: {}, Query: {}", mission.getAgent(), mission.getMessageInfo());
                             forwardMissionToAgent(mission);
                         }
                     } catch (Exception e) {
-                        log.error("解析过程出现异常", e);
+                        log.error("An error occurred while parsing the response content", e);
                     }
                 }
             } else {
-                log.debug("Agent 响应: {}", content);
+                log.debug("Agent response: {}", content);
             }
         });
         printPrompt(YOU);
