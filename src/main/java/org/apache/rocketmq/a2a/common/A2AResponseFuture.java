@@ -20,25 +20,38 @@ import java.util.concurrent.CompletableFuture;
 import com.fasterxml.jackson.core.type.TypeReference;
 
 /**
- * Used to handle the response results of pending outgoing requests,
- * where the responses are asynchronously obtained and deserialized by a message listener
+ * Represents a future result of an Agent-to-Agent (A2A) communication.
+ * <p>
+ * This class wraps a {@link CompletableFuture} that holds the raw JSON response string
+ * from a remote agent, along with a {@link TypeReference} that specifies how to
+ * deserialize the response into a strongly-typed generic object (e.g., using Jackson).
+ * </p>
+ * <p>
+ * It is typically used in asynchronous A2A interactions where the caller needs to
+ * process the response in a type-safe manner once it becomes available.
+ * </p>
  */
 public class A2AResponseFuture {
 
     /**
-     * Asynchronously passing results across threads
+     * A {@link CompletableFuture} that asynchronously delivers the raw JSON response
+     * string from a remote agent. The result is completed when the agent's reply is received.
      */
     private CompletableFuture<String> completableFuture;
 
     /**
-     * Generic type reference used for deserializing A2A protocol response results
+     * A {@link TypeReference} that captures the generic type information of the expected deserialized response.
+     * This is necessary for correct JSON deserialization of parameterized types.
      */
     private TypeReference typeReference;
 
     /**
-     * Creates an AsyncTypedResult with the given future and type reference
-     * @param completableFuture Asynchronously passing results across threads
-     * @param typeReference TypeReference used to deserialize the response into the correct generic type
+     * Constructs a new {@code A2AResponseFuture} instance.
+     *
+     * @param completableFuture a {@link CompletableFuture} containing the raw JSON response
+     *                          from a remote agent
+     * @param typeReference     a {@link TypeReference} specifying the target type for
+     *                          deserializing the JSON response
      */
     public A2AResponseFuture(CompletableFuture<String> completableFuture, TypeReference typeReference) {
         this.completableFuture = completableFuture;
