@@ -83,8 +83,8 @@ import static org.apache.rocketmq.a2a.common.RocketMQUtil.MESSAGE_STREAM_RESPONS
 import static org.apache.rocketmq.a2a.common.RocketMQUtil.RECOVER_MESSAGE_STREAM_RESPONSE_MAP;
 import static org.apache.rocketmq.a2a.common.RocketMQUtil.checkConfigParam;
 import static org.apache.rocketmq.a2a.common.RocketMQUtil.getResult;
-import static org.apache.rocketmq.a2a.common.RocketMQUtil.initAndGetLitePushConsumer;
-import static org.apache.rocketmq.a2a.common.RocketMQUtil.initAndGetProducer;
+import static org.apache.rocketmq.a2a.common.RocketMQUtil.getOrCreateLitePushConsumer;
+import static org.apache.rocketmq.a2a.common.RocketMQUtil.getOrCreateProducer;
 import static org.apache.rocketmq.a2a.common.RocketMQUtil.sendRocketMQRequest;
 import static org.apache.rocketmq.a2a.common.RocketMQUtil.unmarshalResponse;
 
@@ -221,7 +221,7 @@ public class RocketMQTransport implements ClientTransport {
         // Parse RocketMQ resource info from the agent card
         RocketMQResourceInfo rocketAgentCardInfo = parseAgentCardAddition(this.agentCard);
         if (null == rocketAgentCardInfo) {
-            throw new RuntimeException("RocketMQTransport failed to parse RocketMQResourceInfo from AgentCard");
+            throw new IllegalArgumentException("RocketMQTransport failed to parse RocketMQResourceInfo from AgentCard");
         }
         // Validate namespace consistency if explicitly provided
         if (null != namespace && !namespace.equals(rocketAgentCardInfo.getNamespace())) {
@@ -235,13 +235,8 @@ public class RocketMQTransport implements ClientTransport {
         // Validate required configuration parameters
         checkConfigParam(this.endpoint, this.workAgentResponseTopic, this.workAgentResponseGroupID, this.liteTopic, this.agentTopic);
         // Initialize RocketMQ clients
-        try {
-            this.litePushConsumer = initAndGetLitePushConsumer(this.namespace, this.endpoint, this.accessKey, this.secretKey, this.workAgentResponseTopic, this.workAgentResponseGroupID, this.liteTopic);
-            this.producer = initAndGetProducer(this.namespace, this.endpoint, this.accessKey, this.secretKey, this.agentTopic);
-        } catch (ClientException e) {
-            log.error("RocketMQTransport init rocketmq client error, e: {}", e.getMessage());
-            throw new RuntimeException("RocketMQTransport initialization failed", e);
-        }
+        this.litePushConsumer = getOrCreateLitePushConsumer(this.namespace, this.endpoint, this.accessKey, this.secretKey, this.workAgentResponseTopic, this.workAgentResponseGroupID, this.liteTopic);
+        this.producer = getOrCreateProducer(this.namespace, this.endpoint, this.accessKey, this.secretKey, this.agentTopic);
     }
 
     /**
@@ -321,13 +316,13 @@ public class RocketMQTransport implements ClientTransport {
                 if (!StringUtils.isEmpty(responseMessageId)) {
                     MESSAGE_STREAM_RESPONSE_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>()).put(responseMessageId, sseEventListener);
                 }
-                String liteTopic = (String)request.metadata().get(RocketMQA2AConstant.LITE_TOPIC);
+                String liteTopic = (String)request.metadata().get(RocketMQA2AConstant.SUB_LITE_TOPIC);
                 if (null != litePushConsumer && !StringUtils.isEmpty(liteTopic)) {
                     litePushConsumer.subscribeLite(liteTopic);
                     log.info("RocketMQTransport litePushConsumer subscribeLite liteTopic: {}", liteTopic);
                     LITE_TOPIC_USE_DEFAULT_RECOVER_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>()).put(liteTopic, this.useDefaultRecoverMode);
                 }
-                String closeLiteTopic = (String)request.metadata().get(RocketMQA2AConstant.CLOSE_LITE_TOPIC);
+                String closeLiteTopic = (String)request.metadata().get(RocketMQA2AConstant.UNSUB_LITE_TOPIC);
                 if (null != litePushConsumer && !StringUtils.isEmpty(closeLiteTopic)) {
                     litePushConsumer.unsubscribeLite(closeLiteTopic);
                     log.info("RocketMQTransport litePushConsumer unsubscribeLite liteTopic: {}", closeLiteTopic);

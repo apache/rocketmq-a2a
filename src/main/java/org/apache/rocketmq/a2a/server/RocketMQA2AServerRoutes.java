@@ -17,6 +17,10 @@
 package org.apache.rocketmq.a2a.server;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CompletableFuture;
@@ -83,8 +87,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import static io.a2a.util.Utils.OBJECT_MAPPER;
 import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.METHOD;
-import static org.apache.rocketmq.a2a.common.RocketMQUtil.newLitePushConsumer;
-import static org.apache.rocketmq.a2a.common.RocketMQUtil.buildMessage;
+import static org.apache.rocketmq.a2a.common.RocketMQUtil.buildLitePushConsumer;
+import static org.apache.rocketmq.a2a.common.RocketMQUtil.buildMessageForResponse;
 import static org.apache.rocketmq.a2a.common.RocketMQUtil.buildProducer;
 import static org.apache.rocketmq.a2a.common.RocketMQUtil.toJsonString;
 
@@ -190,9 +194,9 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
         try {
             checkConfigParam();
             this.producer = buildProducer(ROCKETMQ_NAMESPACE, ROCKETMQ_ENDPOINT, ACCESS_KEY, SECRET_KEY);
-            this.pushConsumer = RocketMQUtil.newPushConsumer(ROCKETMQ_ENDPOINT, ROCKETMQ_NAMESPACE, ACCESS_KEY, SECRET_KEY, BIZ_CONSUMER_GROUP, BIZ_TOPIC, buildMessageListener());
+            this.pushConsumer = RocketMQUtil.buildPushConsumer(ROCKETMQ_ENDPOINT, ROCKETMQ_NAMESPACE, ACCESS_KEY, SECRET_KEY, BIZ_CONSUMER_GROUP, BIZ_TOPIC, buildMessageListener());
             this.multiSseSupport = new MultiSseSupport(this.producer);
-            this.litePushConsumer = newLitePushConsumer(ROCKETMQ_ENDPOINT, ROCKETMQ_NAMESPACE, ACCESS_KEY, SECRET_KEY, WORK_AGENT_RESPONSE_GROUP_ID, WORK_AGENT_RESPONSE_TOPIC, buildMessageListener());
+            this.litePushConsumer = buildLitePushConsumer(ROCKETMQ_ENDPOINT, ROCKETMQ_NAMESPACE, ACCESS_KEY, SECRET_KEY, WORK_AGENT_RESPONSE_TOPIC, WORK_AGENT_RESPONSE_GROUP_ID, buildMessageListener());
             //Init serverLiteTopic
             this.serverLiteTopic = UUID.randomUUID().toString();
             this.litePushConsumer.subscribeLite(serverLiteTopic);
@@ -252,7 +256,6 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
                         response.setStream(false);
                         response.setServerLiteTopic(serverLiteTopic);
                         response.setServerWorkAgentResponseTopic(WORK_AGENT_RESPONSE_TOPIC);
-                        response.setLiteTopic(request.getLiteTopic());
                         // Set error info
                         response.setResponseBody(JSON.toJSONString(error));
                         // Set the MessageId sent by the client for result correlation on the client side
@@ -274,14 +277,14 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
                         response.setStream(false);
                         response.setServerLiteTopic(serverLiteTopic);
                         response.setServerWorkAgentResponseTopic(WORK_AGENT_RESPONSE_TOPIC);
-                        response.setLiteTopic(request.getLiteTopic());
                         response.setMessageId(messageView.getMessageId().toString());
                         // Set the data in the non-streaming response object
                         response.setResponseBody(toJsonString(nonStreamingResponse));
                     }
                     if (null != response) {
                         // Send the response result by invoking the Producer
-                        SendReceipt send = this.producer.send(buildMessage(request.getWorkAgentResponseTopic(), request.getLiteTopic(), response));
+                        SendReceipt send = this.producer.send(
+                            buildMessageForResponse(request.getWorkAgentResponseTopic(), request.getLiteTopic(), response));
                         log.info("RocketMQA2AServerRoutes send nonStreamingResponse success, msgId: {}, time: {}, " + "response: {}", send.getMessageId(), System.currentTimeMillis(), JSON.toJSONString(response));
                     }
                 }
@@ -458,8 +461,9 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
                 public void onNext(Buffer item) {
                     try {
                         // Construct a RocketMQResponse object for the incremental data item from the upstream output
-                        RocketMQResponse response = new RocketMQResponse(liteTopic, null, item.toString(), msgId, true, false);
-                        SendReceipt send = producer.send(buildMessage(workAgentResponseTopic, liteTopic, response));
+                        RocketMQResponse response = new RocketMQResponse(item.toString(), msgId, true, false);
+                        SendReceipt send = producer.send(
+                            buildMessageForResponse(workAgentResponseTopic, liteTopic, response));
                         log.debug("MultiSseSupport send response success, msgId: {}, time: {}", send.getMessageId(), System.currentTimeMillis(), JSON.toJSONString(response));
                     } catch (Exception e) {
                         log.error("MultiSseSupport send stream error, {}", e.getMessage());
@@ -477,10 +481,11 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
                 @Override
                 public void onComplete() {
                     // Construct a RocketMQResponse object to represent a completion status data object
-                    RocketMQResponse response = new RocketMQResponse(liteTopic, null, null, msgId, true, true);
+                    RocketMQResponse response = new RocketMQResponse(null, msgId, true, true);
                     try {
                         // Send the corresponding response result via RocketMQ Producer
-                        SendReceipt send = producer.send(buildMessage(workAgentResponseTopic, liteTopic, response));
+                        SendReceipt send = producer.send(
+                            buildMessageForResponse(workAgentResponseTopic, liteTopic, response));
                         log.debug("MultiSseSupport send response success, msgId: {}, time: {}, response: {}", send.getMessageId(), System.currentTimeMillis(), JSON.toJSONString(response));
                     } catch (ClientException e) {
                         log.error("MultiSseSupport error send complete, msgId: {}", e.getMessage());
@@ -524,23 +529,24 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
     }
 
     private void checkConfigParam() {
-        if (StringUtils.isEmpty(ROCKETMQ_ENDPOINT) || StringUtils.isEmpty(BIZ_TOPIC) || StringUtils.isEmpty(BIZ_CONSUMER_GROUP) || StringUtils.isEmpty(WORK_AGENT_RESPONSE_TOPIC) || StringUtils.isEmpty(WORK_AGENT_RESPONSE_GROUP_ID)) {
-            if (StringUtils.isEmpty(ROCKETMQ_ENDPOINT)) {
-                log.error("rocketMQEndpoint is empty");
+        Map<String, String> configParams = new LinkedHashMap<>();
+        configParams.put("rocketMQEndpoint", ROCKETMQ_ENDPOINT);
+        configParams.put("bizTopic", BIZ_TOPIC);
+        configParams.put("bizConsumerGroup", BIZ_CONSUMER_GROUP);
+        configParams.put("workAgentResponseTopic", WORK_AGENT_RESPONSE_TOPIC);
+        configParams.put("workAgentResponseGroupID", WORK_AGENT_RESPONSE_GROUP_ID);
+        List<String> missingParams = new ArrayList<>();
+        for (Map.Entry<String, String> entry : configParams.entrySet()) {
+            if (StringUtils.isEmpty(entry.getValue())) {
+                String paramName = entry.getKey();
+                log.error("RocketMQA2AServerRoutes checkConfigParam [{}] is empty", paramName);
+                missingParams.add(paramName);
             }
-            if (StringUtils.isEmpty(BIZ_TOPIC)) {
-                log.error("bizTopic is empty");
-            }
-            if (StringUtils.isEmpty(BIZ_CONSUMER_GROUP)) {
-                log.error("bizConsumerGroup is empty");
-            }
-            if (StringUtils.isEmpty(WORK_AGENT_RESPONSE_TOPIC)) {
-                log.error("workAgentResponseTopic is empty");
-            }
-            if (StringUtils.isEmpty(WORK_AGENT_RESPONSE_GROUP_ID)) {
-                log.error("workAgentResponseGroupID is empty");
-            }
-            throw new IllegalArgumentException("RocketMQA2AServerRoutes check init rocketmq param error");
+        }
+        if (!missingParams.isEmpty()) {
+            throw new IllegalArgumentException(
+                "RocketMQA2AServerRoutes init failed: missing required params: " + missingParams
+            );
         }
     }
 }

@@ -79,30 +79,36 @@ public class RocketMQA2AConstant {
      */
     public static final TypeReference<DeleteTaskPushNotificationConfigResponse> DELETE_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE = new TypeReference<>() { };
 
-    /** Prefix for HTTP URLs. */
+    /**
+     * Prefix for HTTP URLs.
+     */
     public static final String HTTP_URL_PREFIX = "http://";
 
-    /** Prefix for HTTPS URLs. */
+    /**
+     * Prefix for HTTPS URLs.
+     */
     public static final String HTTPS_URL_PREFIX = "https://";
 
-    /** Protocol identifier used in A2A communication. */
+    /**
+     * Protocol identifier used in A2A communication.
+     */
     public static final String ROCKETMQ_PROTOCOL = "RocketMQ";
 
-    /** Field name for message response ID in A2A responses. */
+    /**
+     * Field name for message response ID in A2A responses.
+     */
     public static final String MESSAGE_RESPONSE_ID = "messageResponseId";
 
     /**
-     * Topic type marker for lightweight messaging.
-     * Used to distinguish LiteTopic from normal topics.
-     * todo
+     * The marker for subscribing to LiteTopic.
      */
-    public static final String LITE_TOPIC = "LITE_TOPIC";
+    public static final String SUB_LITE_TOPIC = "SUB_LITE_TOPIC";
 
     /**
-     * Command to close or disable LiteTopic subscription.
-     * todo
+     * The marker for unsubscribing from LiteTopic.
      */
-    public static final String CLOSE_LITE_TOPIC = "CLOSE_LITE_TOPIC";
+    public static final String UNSUB_LITE_TOPIC = "UNSUB_LITE_TOPIC";
+
     public static final String DEFAULT_STREAM_RECOVER = "default";
 
     /**

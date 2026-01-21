@@ -28,15 +28,15 @@ import java.util.Map;
  *   <li>Protocol headers in {@link #requestHeader}</li>
  *   <li>The serialized {@link #requestBody} (typically JSON)</li>
  *   <li>Routing information: destination topic ({@link #destAgentTopic})</li>
- *   <li>Reply routing: response topic ({@link #workAgentResponseTopic}) and optional LiteTopic ({@link #liteTopic})</li>
+ *   <li>Reply routing: response lightweight topic ({@link #workAgentResponseTopic}) and LiteTopic ({@link #liteTopic})</li>
  * </ul>
  *
- * <p><strong>Note:</strong> The response is expected to be sent back via the specified response topic(s).
+ * <p><strong>Note:</strong> The response is expected to be sent back via the specified response topic.
  */
 public class RocketMQRequest {
 
     /**
-     * Headers carrying A2A protocol metadata (e.g., method name, trace ID) as key-value pairs.
+     * Headers carrying A2A protocol metadata (e.g., method name) as key-value pairs.
      * Initialized lazily in {@link #addHeader(String, String)}.
      */
     private Map<String, String> requestHeader;
@@ -52,23 +52,26 @@ public class RocketMQRequest {
     private String destAgentTopic;
 
     /**
-     * The dedicated topic for receiving reply messages from the target agent.
-     * Typically a lightweight Topic
+     * The dedicated topic for receiving reply messages from the target agent(Typically, a lightweight Topic).
      */
     private String workAgentResponseTopic;
 
-    //todo
+    /**
+     * The dedicated topic for receiving reply messages from the target agent.
+     * Typically, a liteTopic that is bound to {@link #workAgentResponseTopic}.
+     * LiteTopic is a lightweight session identifier, similar to a SessionId, dynamically created at runtime for data storage and isolation.
+     */
     private String liteTopic;
 
     /**
      * Constructs a new RocketMQRequest with the given parameters.
      *
-     * @param requestBody the serialized request body (e.g., JSON), must not be null
-     * @param requestHeader headers containing A2A metadata; will be initialized if null
-     * @param destAgentTopic the destination agent topic where the request is sent
-     * @param workAgentResponseTopic the dedicated topic for receiving reply messages from the target agent
-     * @param liteTopic the optional lightweight topic for streaming or incremental responses; todo
-     *
+     * @param requestBody the serialized request body (e.g., JSON).
+     * @param requestHeader headers containing A2A metadata.
+     * @param destAgentTopic the destination agent topic where the request is sent.
+     * @param workAgentResponseTopic The dedicated topic for receiving reply messages from the target agent(Typically, a lightweight Topic).
+     * @param liteTopic The dedicated topic for receiving reply messages from the target agent(Typically, a liteTopic that is bound to {@link #workAgentResponseTopic})
+     * LiteTopic is a lightweight session identifier, similar to a SessionId, dynamically created at runtime for data storage and isolation
      */
     public RocketMQRequest(String requestBody, Map<String, String> requestHeader, String destAgentTopic, String workAgentResponseTopic, String liteTopic) {
         this.requestBody = requestBody;

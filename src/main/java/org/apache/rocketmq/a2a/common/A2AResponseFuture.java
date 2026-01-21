@@ -24,12 +24,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
  * <p>
  * This class wraps a {@link CompletableFuture} that holds the raw JSON response string
  * from a remote agent, along with a {@link TypeReference} that specifies how to
- * deserialize the response into a strongly-typed generic object (e.g., using Jackson).
- * </p>
- * <p>
- * It is typically used in asynchronous A2A interactions where the caller needs to
- * process the response in a type-safe manner once it becomes available.
- * </p>
+ * deserialize the response into a strongly-typed generic object.
  */
 public class A2AResponseFuture {
 
@@ -49,9 +44,9 @@ public class A2AResponseFuture {
      * Constructs a new {@code A2AResponseFuture} instance.
      *
      * @param completableFuture a {@link CompletableFuture} containing the raw JSON response
-     *                          from a remote agent
+     *                          from a remote agent.
      * @param typeReference     a {@link TypeReference} specifying the target type for
-     *                          deserializing the JSON response
+     *                          deserializing the JSON response.
      */
     public A2AResponseFuture(CompletableFuture<String> completableFuture, TypeReference typeReference) {
         this.completableFuture = completableFuture;

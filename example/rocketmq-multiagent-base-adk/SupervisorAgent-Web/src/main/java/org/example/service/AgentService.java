@@ -202,7 +202,7 @@ public class AgentService {
         }
         // Prepare metadata to indicate session closure
         Map<String, Object> metadata = new HashMap<>();
-        metadata.put(RocketMQA2AConstant.CLOSE_LITE_TOPIC, sessionId);
+        metadata.put(RocketMQA2AConstant.UNSUB_LITE_TOPIC, sessionId);
         // Get all connected agent clients
         Collection<Client> clients = AgentClientMap.values();
         // Notify each client only if there are active clients
@@ -256,7 +256,7 @@ public class AgentService {
             Collection<Client> clients = AgentClientMap.values();
             if (!CollectionUtils.isEmpty(clients)) {
                 Map<String, Object> metadata = new HashMap<>();
-                metadata.put(RocketMQA2AConstant.LITE_TOPIC, sessionId);
+                metadata.put(RocketMQA2AConstant.SUB_LITE_TOPIC, sessionId);
                 for (Client client : clients) {
                     try {
                         client.resubscribe(new TaskIdParams("", metadata));

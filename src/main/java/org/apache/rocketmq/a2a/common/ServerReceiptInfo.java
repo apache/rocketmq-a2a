@@ -21,13 +21,13 @@ package org.apache.rocketmq.a2a.common;
  */
 public class ServerReceiptInfo {
     /**
-     * The lite topic used by the server to receive response results
+     * The lightweight topic used by the server to receive response results.
      */
     private String serverWorkAgentResponseTopic;
 
     /**
-     * todo
-     * The lite topic used by the server to receive response results(sessionId)
+     * Typically, a serverLiteTopic that is bound to {@code #serverWorkAgentResponseTopic}.
+     * LiteTopic is a lightweight session identifier, similar to a SessionId, dynamically created at runtime for data storage and isolation.
      */
     private String serverLiteTopic;
 

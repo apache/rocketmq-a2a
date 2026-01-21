@@ -34,44 +34,16 @@ package org.apache.rocketmq.a2a.common;
  */
 public class RocketMQResponse {
 
-    //The LiteTopic subscribed to by the client
-    //todo
-    private String liteTopic;
-
-    /**
-     * Context ID, used to associate a complete A2A request-response session.
-     * Must not be null.
-     */
-    private String contextId;
-
     /**
      * Response body content, typically serialized business data (e.g., JSON).
      */
     private String responseBody;
 
     /**
-     * Task ID, which identifies the specific task corresponding to this A2A operation.
-     */
-    private String taskId;
-
-    /**
      * The message ID obtained by the RocketMQ client upon successfully sending an A2A request.
      * Used for message tracking and acknowledgment.
      */
     private String messageId;
-
-    /**
-     * The response topic used by the server for asynchronous replies.
-     * Optional, used for routing follow-up requests.
-     */
-    private String serverWorkAgentResponseTopic;
-
-    /**
-     * The lite topic used by the server to indicate that subsequent requests of a specific type
-     * should be routed back to this particular server instance (sticky session).
-     * Optional. todo
-     */
-    private String serverLiteTopic;
 
     /**
      * Whether this response is part of a streaming sequence.
@@ -84,76 +56,46 @@ public class RocketMQResponse {
     private boolean isEnd;
 
     /**
-     * Creates a basic RocketMQResponse instance for simple responses.
-     *
-     * @param liteTopic the LiteTopic subscribed by the client
-     * @param contextId session correlation ID
-     * @param responseBody the response payload (e.g., JSON)
-     * @param messageId the original request message ID for acknowledgment
-     * @param isStream true if this is a streaming response
-     * @param isEnd true if this is the last message in the stream
+     * Context ID, used to associate a complete A2A request-response session.
      */
-    public RocketMQResponse(String liteTopic, String contextId, String responseBody, String messageId, boolean isStream, boolean isEnd) {
-        this.liteTopic = liteTopic;
-        this.contextId = contextId;
+    private String contextId;
+
+    /**
+     * Task ID, which identifies the specific task corresponding to this A2A operation.
+     */
+    private String taskId;
+
+    /**
+     * The response topic used by the server for asynchronous replies.
+     * Optional, used for routing follow-up requests.
+     */
+    private String serverWorkAgentResponseTopic;
+
+    /**
+     * The lite topic used by the server to enforce client affinity (sticky session) for subsequent requests
+     * of a specific type, ensuring they are routed back to this server instance.
+     * <p>
+     * A {@code LiteTopic} is a lightweight, runtime-generated session identifier—similar to a {@code SessionId}
+     * used for temporary data storage and isolation.
+     */
+    private String serverLiteTopic;
+
+    /**
+     * Constructs a new RocketMQResponse instance for simple responses.
+     *
+     * @param responseBody the response payload (e.g., JSON)
+     * @param messageId    the original request message ID for acknowledgment
+     * @param isStream     true if this is a streaming response
+     * @param isEnd        true if this is the last message in the stream
+     */
+    public RocketMQResponse(String responseBody, String messageId, boolean isStream, boolean isEnd) {
         this.responseBody = responseBody;
         this.messageId = messageId;
         this.isStream = isStream;
         this.isEnd = isEnd;
     }
 
-    /**
-     * Creates a full RocketMQResponse with task and server routing information.
-     * Suitable for complex workflows requiring sticky sessions or callback routing.
-     */
-    public RocketMQResponse(String liteTopic, String contextId, String responseBody, String messageId, boolean isStream, boolean isEnd, String taskId, String serverWorkAgentResponseTopic, String serverLiteTopic) {
-        this(liteTopic, contextId, responseBody, messageId, isStream, isEnd);
-        this.taskId = taskId;
-        this.serverWorkAgentResponseTopic = serverWorkAgentResponseTopic;
-        this.serverLiteTopic = serverLiteTopic;
-    }
-
-    public String getTaskId() {
-        return taskId;
-    }
-
-    public String getServerWorkAgentResponseTopic() {
-        return serverWorkAgentResponseTopic;
-    }
-
-    public String getServerLiteTopic() {
-        return serverLiteTopic;
-    }
-
-    public void setTaskId(String taskId) {
-        this.taskId = taskId;
-    }
-
-    public void setServerWorkAgentResponseTopic(String serverWorkAgentResponseTopic) {
-        this.serverWorkAgentResponseTopic = serverWorkAgentResponseTopic;
-    }
-
-    public void setServerLiteTopic(String serverLiteTopic) {
-        this.serverLiteTopic = serverLiteTopic;
-    }
-
     public RocketMQResponse() {}
-
-    public String getLiteTopic() {
-        return liteTopic;
-    }
-
-    public void setLiteTopic(String liteTopic) {
-        this.liteTopic = liteTopic;
-    }
-
-    public String getContextId() {
-        return contextId;
-    }
-
-    public void setContextId(String contextId) {
-        this.contextId = contextId;
-    }
 
     public String getResponseBody() {
         return responseBody;
@@ -161,6 +103,14 @@ public class RocketMQResponse {
 
     public void setResponseBody(String responseBody) {
         this.responseBody = responseBody;
+    }
+
+    public String getMessageId() {
+        return messageId;
+    }
+
+    public void setMessageId(String messageId) {
+        this.messageId = messageId;
     }
 
     public boolean isStream() {
@@ -179,11 +129,36 @@ public class RocketMQResponse {
         isEnd = end;
     }
 
-    public String getMessageId() {
-        return messageId;
+    public String getContextId() {
+        return contextId;
     }
 
-    public void setMessageId(String messageId) {
-        this.messageId = messageId;
+    public void setContextId(String contextId) {
+        this.contextId = contextId;
     }
+
+    public String getTaskId() {
+        return taskId;
+    }
+
+    public void setTaskId(String taskId) {
+        this.taskId = taskId;
+    }
+
+    public String getServerWorkAgentResponseTopic() {
+        return serverWorkAgentResponseTopic;
+    }
+
+    public void setServerWorkAgentResponseTopic(String serverWorkAgentResponseTopic) {
+        this.serverWorkAgentResponseTopic = serverWorkAgentResponseTopic;
+    }
+
+    public String getServerLiteTopic() {
+        return serverLiteTopic;
+    }
+
+    public void setServerLiteTopic(String serverLiteTopic) {
+        this.serverLiteTopic = serverLiteTopic;
+    }
+
 }
