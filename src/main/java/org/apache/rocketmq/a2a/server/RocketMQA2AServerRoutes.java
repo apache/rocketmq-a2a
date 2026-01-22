@@ -90,6 +90,7 @@ import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.METHOD;
 import static org.apache.rocketmq.a2a.common.RocketMQUtil.buildLitePushConsumer;
 import static org.apache.rocketmq.a2a.common.RocketMQUtil.buildMessageForResponse;
 import static org.apache.rocketmq.a2a.common.RocketMQUtil.buildProducer;
+import static org.apache.rocketmq.a2a.common.RocketMQUtil.buildPushConsumer;
 import static org.apache.rocketmq.a2a.common.RocketMQUtil.toJsonString;
 
 /**
@@ -109,42 +110,42 @@ import static org.apache.rocketmq.a2a.common.RocketMQUtil.toJsonString;
 public class RocketMQA2AServerRoutes extends A2AServerRoutes {
     private static final Logger log = LoggerFactory.getLogger(RocketMQA2AServerRoutes.class);
     /**
-     * The network address of the RocketMQ service, used by clients to connect to a specific RocketMQ cluster
+     * The network endpoint of the RocketMQ service.
      */
     private static final String ROCKETMQ_ENDPOINT = System.getProperty("rocketMQEndpoint", "");
 
     /**
-     * Used for logical isolation of different business units or environments
+     * The namespace used for logical isolation of RocketMQ resources.
      */
     private static final String ROCKETMQ_NAMESPACE = System.getProperty("rocketMQNamespace", "");
 
     /**
-     * The standard RocketMQ business topic bound to the Agent, used for receiving task requests and other information
+     * The standard RocketMQ business topic bound to the Agent, used for receiving task requests and other information.
      */
     private static final String BIZ_TOPIC = System.getProperty("bizTopic", "");
 
     /**
-     * The CID used to subscribe to the standard business topic bound to the Agent
+     * The CID used to subscribe to the standard business topic bound to the Agent.
      */
     private static final String BIZ_CONSUMER_GROUP = System.getProperty("bizConsumerGroup", "");
 
     /**
-     * RocketMQ Account Name
+     * The access key for authenticating with the RocketMQ service.
      */
     private static final String ACCESS_KEY = System.getProperty("rocketMQAK", "");
 
     /**
-     * RocketMQ Account Password
+     * The secret key for authenticating with the RocketMQ service.
      */
     private static final String SECRET_KEY = System.getProperty("rocketMQSK", "");
 
     /**
-     * The LiteTopic on the server, used to receive point-to-point request messages sent from clients to the server
+     * The lightweight topic used to receive asynchronous replies.
      */
     private static final String WORK_AGENT_RESPONSE_TOPIC = System.getProperty("workAgentResponseTopic","");
 
     /**
-     * The CID for subscribing to the server-side LiteTopic
+     * The consumer group ID used when subscribing to the {@link #WORK_AGENT_RESPONSE_TOPIC}.
      */
     private static final String WORK_AGENT_RESPONSE_GROUP_ID = System.getProperty("workAgentResponseGroupID","");
 
@@ -157,7 +158,7 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
         new CallerRunsPolicy()
     );
     /**
-     * The RocketMQ Producer used to send response results
+     * The RocketMQ Producer used to send response results.
      */
     private Producer producer;
 
@@ -167,24 +168,22 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
     private PushConsumer pushConsumer;
 
     /**
-     * The consumer for receiving request messages during point-to-point interactions from clients to server
+     * The consumer for receiving request messages during point-to-point interactions from clients to server.
      */
     private LitePushConsumer litePushConsumer;
 
     /**
      * Dynamically generated topic for this server instance to receive direct (point-to-point) requests.
-     * <p>
-     * Each server instance uses a unique UUID-based topic to enable session-scoped communication.
      */
     private String serverLiteTopic;
 
     /**
-     * Used to send SSE data streams
+     * Used to send SSE data streams.
      */
     private MultiSseSupport multiSseSupport;
 
     /**
-     * The JSONRPCHandler in the A2A protocol
+     * The JSONRPCHandler in the A2A protocol.
      */
     @Inject
     JSONRPCHandler jsonRpcHandler;
@@ -194,15 +193,15 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
         try {
             checkConfigParam();
             this.producer = buildProducer(ROCKETMQ_NAMESPACE, ROCKETMQ_ENDPOINT, ACCESS_KEY, SECRET_KEY);
-            this.pushConsumer = RocketMQUtil.buildPushConsumer(ROCKETMQ_ENDPOINT, ROCKETMQ_NAMESPACE, ACCESS_KEY, SECRET_KEY, BIZ_CONSUMER_GROUP, BIZ_TOPIC, buildMessageListener());
+            this.pushConsumer = buildPushConsumer(ROCKETMQ_ENDPOINT, ROCKETMQ_NAMESPACE, ACCESS_KEY, SECRET_KEY, BIZ_CONSUMER_GROUP, BIZ_TOPIC, buildMessageListener());
             this.multiSseSupport = new MultiSseSupport(this.producer);
             this.litePushConsumer = buildLitePushConsumer(ROCKETMQ_ENDPOINT, ROCKETMQ_NAMESPACE, ACCESS_KEY, SECRET_KEY, WORK_AGENT_RESPONSE_TOPIC, WORK_AGENT_RESPONSE_GROUP_ID, buildMessageListener());
             //Init serverLiteTopic
             this.serverLiteTopic = UUID.randomUUID().toString();
             this.litePushConsumer.subscribeLite(serverLiteTopic);
-            log.info("RocketMQA2AServerRoutes init success, server liteTopic: {}", serverLiteTopic);
+            log.info("RocketMQA2AServerRoutes init success, bizTopic: [{}], bizConsumerGroup: [{}], workAgentResponseTopic: [{}], workAgentResponseGroupID: [{}], serverLiteTopic: [{}]", BIZ_TOPIC, BIZ_CONSUMER_GROUP, WORK_AGENT_RESPONSE_GROUP_ID, WORK_AGENT_RESPONSE_TOPIC, serverLiteTopic);
         } catch (Exception e) {
-            log.error("RocketMQA2AServerRoutes error: {}", e.getMessage());
+            log.error("RocketMQA2AServerRoutes error", e);
         }
     }
 
@@ -217,50 +216,38 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
             try {
                 byte[] result = new byte[messageView.getBody().remaining()];
                 messageView.getBody().get(result);
-                String messageStr = new String(result, StandardCharsets.UTF_8);
                 // Deserialize into RocketMQRequest
-                RocketMQRequest request = JSON.parseObject(messageStr, RocketMQRequest.class);
+                RocketMQRequest request = JSON.parseObject(new String(result, StandardCharsets.UTF_8), RocketMQRequest.class);
                 boolean streaming = false;
-                String body = request.getRequestBody();
                 JSONRPCResponse<?> nonStreamingResponse = null;
                 Multi<? extends JSONRPCResponse<?>> streamingResponse = null;
                 JSONRPCErrorResponse error = null;
                 try {
                     // Deserialize the body data into a JsonNode
-                    JsonNode node = OBJECT_MAPPER.readTree(body);
+                    JsonNode node = OBJECT_MAPPER.readTree(request.getRequestBody());
                     JsonNode method = node != null ? node.get(METHOD) : null;
-                    // Determine whether the method type is streaming
                     streaming = method != null && (SendStreamingMessageRequest.METHOD.equals(method.asText()) || TaskResubscriptionRequest.METHOD.equals(method.asText()));
                     if (streaming) {
-                        // Deserialize to obtain a StreamingJSONRPCRequest
                         StreamingJSONRPCRequest<?> streamingJSONRPCRequest = OBJECT_MAPPER.treeToValue(node, StreamingJSONRPCRequest.class);
-                        // Process the streaming request and obtain a streaming response output object
                         streamingResponse = processStreamingRequest(streamingJSONRPCRequest, null);
                     } else {
-                        // Deserialize to obtain a NonStreamingJSONRPCRequest
                         NonStreamingJSONRPCRequest<?> nonStreamingJSONRPCRequest = OBJECT_MAPPER.treeToValue(node, NonStreamingJSONRPCRequest.class);
-                        // Process the non-streaming request and obtain the corresponding response
                         nonStreamingResponse = processNonStreamingRequest(nonStreamingJSONRPCRequest, null);
                     }
                 } catch (JsonProcessingException e) {
-                    // Handle JsonProcessingException
                     error = handleError(e);
                 } catch (Throwable t) {
                     error = new JSONRPCErrorResponse(new InternalError(t.getMessage()));
                 } finally {
                     RocketMQResponse response = null;
-                    //If an error occurs
                     if (error != null) {
                         response = new RocketMQResponse();
                         response.setEnd(true);
                         response.setStream(false);
                         response.setServerLiteTopic(serverLiteTopic);
                         response.setServerWorkAgentResponseTopic(WORK_AGENT_RESPONSE_TOPIC);
-                        // Set error info
                         response.setResponseBody(JSON.toJSONString(error));
-                        // Set the MessageId sent by the client for result correlation on the client side
                         response.setMessageId(messageView.getMessageId().toString());
-                    // Handle streaming requests
                     } else if (streaming) {
                         final Multi<? extends JSONRPCResponse<?>> finalStreamingResponse = streamingResponse;
                         log.info("RocketMQA2AServerRoutes streaming finalStreamingResponse: {}", JSON.toJSONString(finalStreamingResponse));
@@ -283,27 +270,25 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
                     }
                     if (null != response) {
                         // Send the response result by invoking the Producer
-                        SendReceipt send = this.producer.send(
-                            buildMessageForResponse(request.getWorkAgentResponseTopic(), request.getLiteTopic(), response));
+                        SendReceipt send = this.producer.send(buildMessageForResponse(request.getWorkAgentResponseTopic(), request.getLiteTopic(), response));
                         log.info("RocketMQA2AServerRoutes send nonStreamingResponse success, msgId: {}, time: {}, " + "response: {}", send.getMessageId(), System.currentTimeMillis(), JSON.toJSONString(response));
                     }
                 }
             } catch (Exception e) {
-                log.error("RocketMQA2AServerRoutes error: {}", e.getMessage());
+                log.error("RocketMQA2AServerRoutes error,", e);
                 return ConsumeResult.FAILURE;
             }
             if (null != completableFuture) {
                 try {
-                    // By obtaining the completion status of CompletableFuture.
                     if (Boolean.TRUE.equals(completableFuture.get(15, TimeUnit.MINUTES))) {
-                        log.info("RocketMQA2AServerRoutes deal msg success");
+                        log.debug("RocketMQA2AServerRoutes deal msg success");
                         return ConsumeResult.SUCCESS;
                     } else {
-                        log.info("RocketMQA2AServerRoutes deal msg failed");
+                        log.error("RocketMQA2AServerRoutes deal msg failed");
                         return ConsumeResult.FAILURE;
                     }
                 } catch (Exception e) {
-                    log.error("RocketMQA2AServerRoutes error: {}", e.getMessage());
+                    log.error("RocketMQA2AServerRoutes error", e);
                     return ConsumeResult.FAILURE;
                 }
             }
@@ -528,6 +513,11 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
         }
     }
 
+    /**
+     * Validates required configuration parameters for initializing RocketMQA2AServerRoutes.
+     * <p>All parameters are mandatory. If any is {@code null} or empty, an {@link IllegalArgumentException}
+     * is thrown with detailed information about which field(s) failed validation.
+     */
     private void checkConfigParam() {
         Map<String, String> configParams = new LinkedHashMap<>();
         configParams.put("rocketMQEndpoint", ROCKETMQ_ENDPOINT);
