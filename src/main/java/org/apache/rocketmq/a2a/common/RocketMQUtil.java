@@ -131,10 +131,10 @@ public class RocketMQUtil {
      * <p>If a Producer already exists for the specified (namespace, agentTopic), it is reused.
      * Otherwise, a new Producer is created using the provided credentials and endpoint.
      *
-     * @param namespace the logical isolation unit.
-     * @param endpoint the network address of the RocketMQ service, used by clients to connect to a specific RocketMQ cluster.
-     * @param accessKey the account access key.
-     * @param secretKey the account secret key.
+     * @param namespace the namespace used for logical isolation of RocketMQ resources.
+     * @param endpoint the network endpoint of the RocketMQ service.
+     * @param accessKey the access key for authenticating with the RocketMQ service.
+     * @param secretKey the secret key for authenticating with the RocketMQ service.
      * @param agentTopic the target topic to which messages will be sent.
      * @return a Producer instance.
      */
@@ -158,10 +158,10 @@ public class RocketMQUtil {
     /**
      * Creates a new {@link Producer} without caching.
      *
-     * @param namespace the logical isolation unit.
-     * @param endpoint the network address of the RocketMQ service, used by clients to connect to a specific RocketMQ cluster
-     * @param accessKey the account access key.
-     * @param secretKey the account secret key.
+     * @param namespace the namespace used for logical isolation of RocketMQ resources.
+     * @param endpoint  the network endpoint of the RocketMQ service.
+     * @param accessKey the access key for authenticating with the RocketMQ service.
+     * @param secretKey the secret key for authenticating with the RocketMQ service.
      * @param topics the destination topics this producer is allowed to send to.
      * @return a Producer instance.
      * @throws ClientException if client initialization fails
@@ -191,10 +191,10 @@ public class RocketMQUtil {
      * <p>The consumer is cached per (namespace, workAgentResponseTopic). If already exists, it is reused.
      * After initialization, it subscribes to the specified {@code liteTopic}.</p>
      *
-     * @param namespace the logical isolation unit.
-     * @param endpoint the network address of the RocketMQ service, used by clients to connect to a specific RocketMQ cluster.
-     * @param accessKey the account access key.
-     * @param secretKey the account secret key.
+     * @param namespace the namespace used for logical isolation of RocketMQ resources.
+     * @param endpoint  the network endpoint of the RocketMQ service.
+     * @param accessKey the access key for authenticating with the RocketMQ service.
+     * @param secretKey the secret key for authenticating with the RocketMQ service.
      * @param workAgentResponseTopic the lightweight topic used to receive asynchronous replies.
      * @param workAgentResponseGroupID the consumer group ID (CID) for subscribing to the response topic {@code workAgentResponseTopic}.
      * @param liteTopic Typically, a liteTopic that is bound to {@code #workAgentResponseTopic}.
@@ -232,10 +232,10 @@ public class RocketMQUtil {
     /**
      * Creates a new {@link LitePushConsumer} without caching.
      *
-     * @param endpoint the network address of the RocketMQ service, used by clients to connect to a specific RocketMQ cluster.
-     * @param namespace the logical isolation unit.
-     * @param accessKey the account access key.
-     * @param secretKey the account secret key.
+     * @param endpoint  the network endpoint of the RocketMQ service.
+     * @param namespace the namespace used for logical isolation of RocketMQ resources.
+     * @param accessKey the access key for authenticating with the RocketMQ service.
+     * @param secretKey the secret key for authenticating with the RocketMQ service.
      * @param workAgentResponseTopic the lightweight topic used to receive asynchronous replies.
      * @param workAgentResponseGroupID the consumer group ID (CID) for subscribing to the response topic {@code workAgentResponseTopic}.
      * @param messageListener the listener for processing incoming messages.
@@ -266,10 +266,10 @@ public class RocketMQUtil {
      *
      * <p>This consumer uses a wildcard tag expression ({@code *}) to receive all messages from the specified topic.</p>
      *
-     * @param endpoint the network address of the RocketMQ service, used by clients to connect to a specific RocketMQ cluster.
-     * @param namespace the logical namespace for tenant/environment isolation.
-     * @param accessKey the account access key.
-     * @param secretKey the account secret key.
+     * @param endpoint the network endpoint of the RocketMQ service.
+     * @param namespace the namespace used for logical isolation of RocketMQ resources.
+     * @param accessKey the access key for authenticating with the RocketMQ service.
+     * @param secretKey the secret key for authenticating with the RocketMQ service.
      * @param bizGroup the consumer group ID (CID).
      * @param bizTopic the target business topic to subscribe.
      * @param messageListener the listener that processes incoming messages.
@@ -607,7 +607,7 @@ public class RocketMQUtil {
      * </ul>
      *
      * @param responseMessageId the unique message ID of the sent request.
-     * @param namespace logical isolation unit.
+     * @param namespace namespace used for logical isolation of RocketMQ resources.
      * @param typeReference the expected response type for later deserialization.
      * @return the raw JSON response string.
      * @throws ExecutionException if the future completed exceptionally.

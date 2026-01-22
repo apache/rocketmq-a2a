@@ -27,36 +27,34 @@ import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.ROCKETMQ_PROTOC
  * <p>
  * This class implements the {@link ClientTransportProvider} interface to support
  * RocketMQ-based message transport between A2A clients and remote agents.
- * It is responsible for instantiating transports with the appropriate configuration,
- * agent identity, and endpoint information.
+ * It is responsible for instantiating transports with the appropriate configuration, agent identity, and endpoint information.
  */
 public class RocketMQTransportProvider implements ClientTransportProvider<RocketMQTransport, RocketMQTransportConfig> {
 
     /**
      * Creates a new {@link RocketMQTransport} instance using the provided configuration and agent details.
      * <p>
-     * If the given {@code clientTransportConfig} is {@code null}, a default configuration
-     * will be created using a standard {@link JdkA2AHttpClient}.
+     * If the given {@code clientTransportConfig} is {@code null}, a default configuration will be created using a standard {@link JdkA2AHttpClient}.
      *
-     * @param clientTransportConfig the transport configuration (may be {@code null})
-     * @param agentCard             the agent's identity and metadata
-     * @param agentUrl              the remote agent's endpoint URL (used for routing or diagnostics)
-     * @return a configured {@link RocketMQTransport} instance
-     * @throws A2AClientException if transport creation fails due to invalid configuration or initialization error
+     * @param clientTransportConfig the transport configuration (may be {@code null}).
+     * @param agentCard             the agent's identity and metadata.
+     * @param agentUrl              the remote agent's endpoint URL (used for routing or diagnostics).
+     * @return a configured {@link RocketMQTransport} instance.
+     * @throws A2AClientException if transport creation fails due to invalid configuration or initialization error.
      */
     @Override
     public RocketMQTransport create(RocketMQTransportConfig clientTransportConfig, AgentCard agentCard, String agentUrl) throws
         A2AClientException {
         if (clientTransportConfig == null) {
-            clientTransportConfig = new RocketMQTransportConfig(new JdkA2AHttpClient());
+           throw new IllegalArgumentException("RocketMQTransportProvider create RocketMQTransport param error, clientTransportConfig is null");
         }
-        return new RocketMQTransport(clientTransportConfig.getNamespace(), clientTransportConfig.getAccessKey(), clientTransportConfig.getSecretKey(), clientTransportConfig.getWorkAgentResponseTopic(), clientTransportConfig.getWorkAgentResponseGroupID(), clientTransportConfig.getInterceptors(), clientTransportConfig.getAgentUrl(), clientTransportConfig.getHttpClient(), clientTransportConfig.getLiteTopic(), clientTransportConfig.isUseDefaultRecoverMode(), agentCard);
+        return new RocketMQTransport(clientTransportConfig, agentCard);
     }
 
     /**
      * Returns the protocol name associated with this transport provider.
      *
-     * @return the constant {@link #ROCKETMQ_PROTOCOL}, identifying the RocketMQ-based A2A transport
+     * @return the constant {@link #ROCKETMQ_PROTOCOL}, identifying the RocketMQ-based A2A transport.
      */
     @Override
     public String getTransportProtocol() {
