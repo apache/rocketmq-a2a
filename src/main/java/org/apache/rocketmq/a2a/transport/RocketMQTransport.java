@@ -392,10 +392,10 @@ public class RocketMQTransport implements ClientTransport {
     /**
      * Cancels the execution of a specific task on the remote agent.
      *
-     * @param request the task ID parameters
-     * @param context optional client call context (may be {@code null})
-     * @return the updated task state, or {@code null} if an error occurred
-     * @throws A2AClientException if the request fails
+     * @param request the task ID parameters.
+     * @param context optional client call context (may be {@code null}).
+     * @return the updated task state, or {@code null} if an error occurred.
+     * @throws A2AClientException if the request fails.
      */
     @Override
     public Task cancelTask(TaskIdParams request, ClientCallContext context) throws A2AClientException {
@@ -415,10 +415,10 @@ public class RocketMQTransport implements ClientTransport {
     /**
      * Sets the push notification configuration for a specific task.
      *
-     * @param request the push notification configuration to apply
-     * @param context optional client call context (may be {@code null})
-     * @return the applied configuration, or {@code null} if an error occurred
-     * @throws A2AClientException if the request fails
+     * @param request the push notification configuration to apply.
+     * @param context optional client call context (may be {@code null}).
+     * @return the applied configuration, or {@code null} if an error occurred.
+     * @throws A2AClientException if the request fails.
      */
     @Override
     public TaskPushNotificationConfig setTaskPushNotificationConfiguration(TaskPushNotificationConfig request, ClientCallContext context) throws A2AClientException {
@@ -438,10 +438,10 @@ public class RocketMQTransport implements ClientTransport {
     /**
      * Retrieves the push notification configuration for a specific task.
      *
-     * @param request the parameters identifying the task
-     * @param context optional client call context (may be {@code null})
-     * @return the current configuration, or {@code null} if an error occurred
-     * @throws A2AClientException if the request fails
+     * @param request the parameters identifying the task.
+     * @param context optional client call context (may be {@code null}).
+     * @return the current configuration, or {@code null} if an error occurred.
+     * @throws A2AClientException if the request fails.
      */
     @Override
     public TaskPushNotificationConfig getTaskPushNotificationConfiguration(GetTaskPushNotificationConfigParams request, ClientCallContext context) throws A2AClientException {
@@ -461,10 +461,10 @@ public class RocketMQTransport implements ClientTransport {
     /**
      * Lists all push notification configurations for a given task or scope.
      *
-     * @param request the listing parameters
-     * @param context optional client call context (may be {@code null})
-     * @return a list of configurations, or {@code null} if an error occurred
-     * @throws A2AClientException if the request fails
+     * @param request the listing parameters.
+     * @param context optional client call context (may be {@code null}).
+     * @return a list of configurations, or {@code null} if an error occurred.
+     * @throws A2AClientException if the request fails.
      */
     @Override
     public List<TaskPushNotificationConfig> listTaskPushNotificationConfigurations(ListTaskPushNotificationConfigParams request, ClientCallContext context) throws A2AClientException {
@@ -484,9 +484,9 @@ public class RocketMQTransport implements ClientTransport {
     /**
      * Deletes the push notification configuration for a specific task.
      *
-     * @param request the deletion parameters
-     * @param context optional client call context (may be {@code null})
-     * @throws A2AClientException if the request fails
+     * @param request the deletion parameters.
+     * @param context optional client call context (may be {@code null}).
+     * @throws A2AClientException if the request fails.
      */
     @Override
     public void deleteTaskPushNotificationConfigurations(DeleteTaskPushNotificationConfigParams request,
@@ -580,8 +580,8 @@ public class RocketMQTransport implements ClientTransport {
     /**
      * Extracts HTTP headers from the client call context, or returns an empty map if none.
      *
-     * @param context the client call context (may be {@code null})
-     * @return a map of HTTP headers
+     * @param context the client call context (may be {@code null}).
+     * @return a map of HTTP headers.
      */
     private Map<String, String> getHttpHeaders(@Nullable ClientCallContext context) {
         return context != null ? context.getHeaders() : Collections.emptyMap();
