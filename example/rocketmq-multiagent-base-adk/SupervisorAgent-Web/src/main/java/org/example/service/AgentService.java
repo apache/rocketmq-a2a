@@ -604,11 +604,11 @@ public class AgentService {
             if (!content.startsWith(LEFT_BRACE)) {
                 sink.tryEmitComplete();
                 completeTask(taskInfo);
+                return;
             }
             try {
                 Mission mission = JSON.parseObject(content, Mission.class);
-                if (null != mission && !StringUtils.isEmpty(mission.getMessageInfo()) && !StringUtils.isEmpty(
-                    mission.getAgent())) {
+                if (null != mission && !StringUtils.isEmpty(mission.getMessageInfo()) && !StringUtils.isEmpty(mission.getAgent())) {
                     log.debug("转发到其他的Agent, 等待其他Agent响应，Agent: [{}], 问题: [{}]", mission.getAgent(), mission.getMessageInfo());
                     emitMessage(sink, "\n \n ******" + AGENT_NAME + " 转发请求到其他的Agent, 等待其响应，Agent: " + mission.getAgent() + "， 问题: " + mission.getMessageInfo(), false);
                     dealMissionByMessage(mission, taskId, sessionId);
