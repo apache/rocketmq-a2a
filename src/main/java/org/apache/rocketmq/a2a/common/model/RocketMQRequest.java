@@ -28,11 +28,12 @@ import java.util.Map;
  *   <li>Protocol headers in {@link #requestHeader}</li>
  *   <li>The serialized {@link #requestBody} (typically JSON)</li>
  *   <li>Routing information: destination topic ({@link #destAgentTopic})</li>
- *   <li>Reply routing: response lightweight topic ({@link #workAgentResponseTopic}) and LiteTopic ({@link #liteTopic})</li>
+ *   <li>Reply routing: response lightweight topic ({@link #workAgentResponseTopic})
+ *   and LiteTopic ({@link #liteTopic}, LiteTopic is a lightweight session identifier,
+ *   similar to a SessionId, dynamically created at runtime for data storage and isolation.)</li>
  * </ul>
  *
- * <p><strong>Note:</strong> The response is expected to be sent back via the specified response topic.
- */
+ **/
 public class RocketMQRequest {
 
     /**

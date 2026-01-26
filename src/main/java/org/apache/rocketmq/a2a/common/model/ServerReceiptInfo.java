@@ -21,7 +21,9 @@ package org.apache.rocketmq.a2a.common.model;
  */
 public class ServerReceiptInfo {
     /**
-     * The lightweight topic used by the server to receive response results.
+     * The response topic designated for this specific client-server interaction,
+     * used to achieve a "sticky" communication pattern where all replies from the server
+     * are sent back through this dedicated channel.
      */
     private String serverWorkAgentResponseTopic;
 
