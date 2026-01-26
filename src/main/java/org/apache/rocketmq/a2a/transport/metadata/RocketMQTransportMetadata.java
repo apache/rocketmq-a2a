@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.a2a.transport;
+package org.apache.rocketmq.a2a.transport.metadata;
 
 import io.a2a.server.TransportMetadata;
-import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.ROCKETMQ_PROTOCOL;
+import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.ROCKETMQ_PROTOCOL;
 
 /**
  * Metadata implementation for the RocketMQTransport.

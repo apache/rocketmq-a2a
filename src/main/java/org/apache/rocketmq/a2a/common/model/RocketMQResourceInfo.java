@@ -14,17 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.a2a.common;
+package org.apache.rocketmq.a2a.common.model;
 import java.util.List;
 import com.alibaba.fastjson.JSON;
 import io.a2a.spec.AgentCard;
 import io.a2a.spec.AgentInterface;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant;
 import org.apache.rocketmq.shaded.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.HTTPS_URL_PREFIX;
-import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.HTTP_URL_PREFIX;
+import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.HTTPS_URL_PREFIX;
+import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.HTTP_URL_PREFIX;
 
 /**
  * Encapsulates RocketMQ resource information, including endpoint, namespace, and topic.

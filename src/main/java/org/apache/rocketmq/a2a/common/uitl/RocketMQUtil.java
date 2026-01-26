@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.a2a.common;
+package org.apache.rocketmq.a2a.common.uitl;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -45,6 +45,11 @@ import io.a2a.spec.Task;
 import io.a2a.spec.TaskState;
 import io.a2a.spec.TaskStatus;
 import io.a2a.util.Utils;
+import org.apache.rocketmq.a2a.common.model.ServerReceiptInfo;
+import org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant;
+import org.apache.rocketmq.a2a.common.future.A2AResponseFuture;
+import org.apache.rocketmq.a2a.common.model.RocketMQRequest;
+import org.apache.rocketmq.a2a.common.model.RocketMQResponse;
 import org.apache.rocketmq.client.apis.ClientConfiguration;
 import org.apache.rocketmq.client.apis.ClientException;
 import org.apache.rocketmq.client.apis.ClientServiceProvider;
@@ -64,9 +69,9 @@ import org.apache.rocketmq.shaded.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import static io.a2a.util.Utils.OBJECT_MAPPER;
-import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.CANCEL_TASK_RESPONSE_REFERENCE;
-import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.GET_TASK_RESPONSE_REFERENCE;
-import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.SEND_MESSAGE_RESPONSE_REFERENCE;
+import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.CANCEL_TASK_RESPONSE_REFERENCE;
+import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.GET_TASK_RESPONSE_REFERENCE;
+import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.SEND_MESSAGE_RESPONSE_REFERENCE;
 
 /**
  * Central utility class for managing RocketMQ client resources (Producers, Consumers) in A2A protocol.

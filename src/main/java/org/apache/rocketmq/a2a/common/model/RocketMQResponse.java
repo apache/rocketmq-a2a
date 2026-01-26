@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.a2a.common;
+package org.apache.rocketmq.a2a.common.model;
 
 /**
  * Encapsulates an A2A (Agent-to-Agent) protocol response message delivered via RocketMQ.

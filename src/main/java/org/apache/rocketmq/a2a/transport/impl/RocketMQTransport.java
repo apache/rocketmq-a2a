@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.a2a.transport;
+package org.apache.rocketmq.a2a.transport.impl;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -25,8 +25,8 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import io.a2a.client.transport.spi.ClientTransport;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.rocketmq.a2a.common.RocketMQResourceInfo;
-import org.apache.rocketmq.a2a.common.RocketMQA2AConstant;
+import org.apache.rocketmq.a2a.common.model.RocketMQResourceInfo;
+import org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant;
 import io.a2a.client.http.A2ACardResolver;
 import io.a2a.client.http.A2AHttpClient;
 import io.a2a.client.transport.jsonrpc.sse.SSEEventListener;
@@ -63,6 +63,7 @@ import io.a2a.spec.Task;
 import io.a2a.spec.TaskIdParams;
 import io.a2a.spec.TaskPushNotificationConfig;
 import io.a2a.spec.TaskQueryParams;
+import org.apache.rocketmq.a2a.transport.config.RocketMQTransportConfig;
 import org.apache.rocketmq.client.apis.ClientException;
 import org.apache.rocketmq.client.apis.consumer.LitePushConsumer;
 import org.apache.rocketmq.client.apis.producer.Producer;
@@ -70,24 +71,24 @@ import org.apache.rocketmq.shaded.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import static io.a2a.util.Assert.checkNotNullParam;
-import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.CANCEL_TASK_RESPONSE_REFERENCE;
-import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.DELETE_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE;
-import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.GET_AUTHENTICATED_EXTENDED_CARD_RESPONSE_REFERENCE;
-import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.GET_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE;
-import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.GET_TASK_RESPONSE_REFERENCE;
-import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.LIST_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE;
-import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.SEND_MESSAGE_RESPONSE_REFERENCE;
-import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.SET_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE;
-import static org.apache.rocketmq.a2a.common.RocketMQResourceInfo.parseAgentCardAddition;
-import static org.apache.rocketmq.a2a.common.RocketMQUtil.LITE_TOPIC_USE_DEFAULT_RECOVER_MAP;
-import static org.apache.rocketmq.a2a.common.RocketMQUtil.MESSAGE_STREAM_RESPONSE_MAP;
-import static org.apache.rocketmq.a2a.common.RocketMQUtil.RECOVER_MESSAGE_STREAM_RESPONSE_MAP;
-import static org.apache.rocketmq.a2a.common.RocketMQUtil.checkConfigParam;
-import static org.apache.rocketmq.a2a.common.RocketMQUtil.getResult;
-import static org.apache.rocketmq.a2a.common.RocketMQUtil.getOrCreateLitePushConsumer;
-import static org.apache.rocketmq.a2a.common.RocketMQUtil.getOrCreateProducer;
-import static org.apache.rocketmq.a2a.common.RocketMQUtil.sendRocketMQRequest;
-import static org.apache.rocketmq.a2a.common.RocketMQUtil.unmarshalResponse;
+import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.CANCEL_TASK_RESPONSE_REFERENCE;
+import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.DELETE_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE;
+import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.GET_AUTHENTICATED_EXTENDED_CARD_RESPONSE_REFERENCE;
+import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.GET_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE;
+import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.GET_TASK_RESPONSE_REFERENCE;
+import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.LIST_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE;
+import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.SEND_MESSAGE_RESPONSE_REFERENCE;
+import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.SET_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE;
+import static org.apache.rocketmq.a2a.common.model.RocketMQResourceInfo.parseAgentCardAddition;
+import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.LITE_TOPIC_USE_DEFAULT_RECOVER_MAP;
+import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.MESSAGE_STREAM_RESPONSE_MAP;
+import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.RECOVER_MESSAGE_STREAM_RESPONSE_MAP;
+import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.checkConfigParam;
+import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.getResult;
+import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.getOrCreateLitePushConsumer;
+import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.getOrCreateProducer;
+import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.sendRocketMQRequest;
+import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.unmarshalResponse;
 
 /**
  * A RocketMQ-based implementation of the {@link ClientTransport} interface for A2A protocol communication.

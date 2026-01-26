@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.a2a.common;
+package org.apache.rocketmq.a2a.common.future;
 
 import java.util.concurrent.CompletableFuture;
 import com.fasterxml.jackson.core.type.TypeReference;

@@ -14,13 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.a2a.transport;
+package org.apache.rocketmq.a2a.transport.provider;
 
 import io.a2a.client.http.JdkA2AHttpClient;
 import io.a2a.client.transport.spi.ClientTransportProvider;
 import io.a2a.spec.A2AClientException;
 import io.a2a.spec.AgentCard;
-import static org.apache.rocketmq.a2a.common.RocketMQA2AConstant.ROCKETMQ_PROTOCOL;
+import org.apache.rocketmq.a2a.transport.impl.RocketMQTransport;
+import org.apache.rocketmq.a2a.transport.config.RocketMQTransportConfig;
+
+import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.ROCKETMQ_PROTOCOL;
 
 /**
  * A provider for creating {@link RocketMQTransport} instances used in A2A client communication.

@@ -14,10 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.a2a.transport;
+package org.apache.rocketmq.a2a.transport.config;
 
 import io.a2a.client.http.A2AHttpClient;
 import io.a2a.client.transport.spi.ClientTransportConfig;
+import org.apache.rocketmq.a2a.transport.impl.RocketMQTransport;
 
 /**
  * Configuration class for RocketMQTransport.

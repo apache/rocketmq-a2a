@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.a2a.common;
+package org.apache.rocketmq.a2a.common.constant;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.a2a.spec.CancelTaskRequest;
