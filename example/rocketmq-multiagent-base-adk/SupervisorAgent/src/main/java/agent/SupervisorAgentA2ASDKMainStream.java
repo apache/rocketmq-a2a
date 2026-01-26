@@ -292,7 +292,7 @@ public class SupervisorAgentA2ASDKMainStream {
             Mission mission = JSON.parseObject(eventContent, Mission.class);
             if (null != mission) {
                 printPrompt(AGENT);
-                log.debug("Agent: {}, forwarding request to another agent and waiting for its response. Target Agent: {}, Query: {}", AGENT_NAME, mission.getAgent(), mission.getMessageInfo());
+                log.debug("Agent: [{}], forwarding request to another agent and waiting for its response. Target Agent: [{}], Query: [{}]", AGENT_NAME, mission.getAgent(), mission.getMessageInfo());
                 forwardMissionToAgent(mission);
             }
         } catch (Exception e) {
@@ -452,6 +452,14 @@ public class SupervisorAgentA2ASDKMainStream {
         });
     }
 
+    /**
+     * Constructs a structured {@link Content} object from a plain text string.
+     * Used when preparing input messages to send to the LLM or agent system.
+     *
+     * @param content content the raw text input (e.g., user query or agent response)
+     * @return a built {@link Content} object with role set to {@link #APP_NAME} and text wrapped in a Part,
+     * or {@code null} if content is blank
+     */
     private static Content buildContent(String content) {
         if (StringUtils.isEmpty(content)) {
             return null;
@@ -462,20 +470,48 @@ public class SupervisorAgentA2ASDKMainStream {
             .build();
     }
 
+    /**
+     * Prints a system-level informational message in blue color to the console,
+     * and logs it at INFO level.
+     *
+     * <p>Used for displaying internal status, initialization steps, or non-critical notifications.
+     *
+     * @param message the message to display and log
+     */
     private static void printSystemInfo(String message) {
         System.out.println("\u001B[34m[SYSTEM] " + message + "\u001B[0m");
         log.info(message);
     }
 
+    /**
+     * Prints a success message in green color to the console,
+     * and logs it at INFO level.
+     *
+     * <p>Indicates successful completion of an operation (e.g., connection established, task completed).
+     *
+     * @param message the success message to display and log
+     */
     private static void printSystemSuccess(String message) {
         System.out.println("\u001B[32m[SUCCESS] " + message + "\u001B[0m");
         log.info(message);
     }
 
+    /**
+     * Prints a prompt indicator in cyan color to signal that the agent or user is about to write.
+     *
+     * <p>Typical format: {@code Agent > } or {@code You > }, followed by text without line break.</p>
+     *
+     * @param role the speaker role, e.g., "You" or "Agent"
+     */
     private static void printPrompt(String role) {
         System.out.print("\n\u001B[36m" + role + " > \u001B[0m");
     }
 
+    /**
+     * Displays a help menu in magenta/purple color listing available commands.
+     *
+     * <p>Shown when the user types 'help'. Provides guidance on supported queries and actions.
+     */
     private static void printHelp() {
         System.out.println("\n\u001B[35m📖 帮助信息:\u001B[0m");
         System.out.println("  • 询问天气: '杭州明天的天气情况怎么样'");
