@@ -48,22 +48,22 @@ public class A2AChatController {
      * <p>
      * Returns a Server-Sent Events (SSE) stream of response chunks.
      *
-     * @param question   the user's input question (must not be empty)
-     * @param userId     the unique identifier of the user (must not be empty)
-     * @param sessionId  the unique session identifier (must not be empty)
-     * @return a {@code Flux<String>} emitting response chunks via SSE; never null
+     * @param question   the user's input question.
+     * @param userId     the unique identifier of the user.
+     * @param sessionId  the unique session identifier.
+     * @return a {@code Flux<String>} emitting response chunks via SSE.
      */
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> streamChat(@RequestParam String question, @RequestParam String userId, @RequestParam String sessionId) {
         if (StringUtils.isEmpty(question) || StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId)) {
-            log.error("Invalid parameters for /stream: question={}, userId={}, sessionId={}", question, userId, sessionId);
-            return Flux.error(new IllegalArgumentException("Missing required parameters: question, userId, or sessionId"));
+            log.error("streamChat param error, question: [{}], userId: [{}], sessionId: [{}]", question, userId, sessionId);
+            return Flux.error(new IllegalArgumentException("streamChat param error"));
         }
-        log.info("Starting stream chat: userId={}, sessionId={}, question={}", userId, sessionId, question);
+        log.debug("starting stream chat, userId: [{}], sessionId: [{}], question: [{}]", userId, sessionId, question);
         try {
             return agentService.startStreamChat(userId, sessionId, question);
         } catch (Exception e) {
-            log.error("Error during stream chat: userId={}, sessionId={}, question={}", userId, sessionId, question, e);
+            log.error("streamChat error during stream chat, userId: [{}], sessionId: [{}], question: [{}]", userId, sessionId, question, e);
             return Flux.error(e);
         }
     }
@@ -73,19 +73,23 @@ public class A2AChatController {
      * <p>
      * This endpoint signals the backend to release resources associated with the given session.
      *
-     * @param userId     the user identifier
-     * @param sessionId  the session identifier
-     * @return a success message upon closure
+     * @param userId     the user identifier.
+     * @param sessionId  the session identifier.
+     * @return a message about this operation.
      */
     @GetMapping("/closeStream")
     public ResponseEntity<String> closeStreamChat(@RequestParam String userId, @RequestParam String sessionId) {
-        log.info("Closing stream chat: userId={}, sessionId={}", userId, sessionId);
+        if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId)) {
+            log.error("closeStreamChat param error, userId: [{}], sessionId: [{}]", userId, sessionId);
+            return ResponseEntity.status(400).body("closeStreamChat param is error");
+        }
         try {
             agentService.endStreamChat(userId, sessionId);
-            return ResponseEntity.ok("Stream closed successfully");
+            log.debug("closeStreamChat success, userId: [{}], sessionId: [{}]", userId, sessionId);
+            return ResponseEntity.ok("stream closed successfully");
         } catch (Exception e) {
-            log.error("Failed to close stream: userId={}, sessionId={}", userId, sessionId, e);
-            return ResponseEntity.status(500).body("Failed to close stream: " + e.getMessage());
+            log.error("failed to close stream, userId: [{}], sessionId: [{}]", userId, sessionId, e);
+            return ResponseEntity.status(500).body("failed to close stream");
         }
     }
 
@@ -95,24 +99,23 @@ public class A2AChatController {
      * This endpoint allows a client to reconnect (e.g., after a network drop) and resume
      * receiving pending or new response messages from the agent system via Server-Sent Events (SSE).
      *
-     * @param userId     the unique identifier of the user (must not be empty)
-     * @param sessionId  the unique identifier of the session (must not be empty)
-     * @return a {@code Flux<String>} emitting response chunks via SSE; never null
+     * @param userId the user identifier.
+     * @param sessionId the session identifier.
+     * @return a {@code Flux<String>} emitting response chunks via SSE.
      */
     @GetMapping(value = "/resubscribeStream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> resubscribeStreamChat(@RequestParam String userId, @RequestParam String sessionId) {
         if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId)) {
-            log.error("Missing required parameters for /resubscribeStream: userId={}, sessionId={}", userId, sessionId);
-            return Flux.error(new IllegalArgumentException("User ID and Session ID must not be empty"));
+            log.error("resubscribeStreamChat param error, userId: [{}], sessionId: [{}]", userId, sessionId);
+            return Flux.error(new IllegalArgumentException("userId and sessionId must not be empty"));
         }
-
-        log.info("Resubscribing to stream: userId={}, sessionId={}", userId, sessionId);
         try {
-            return agentService.resubscribeStream(userId, sessionId);
+            Flux<String> flux = agentService.resubscribeStream(userId, sessionId);
+            log.debug("resubscribeStreamChat success, userId: [{}], sessionId: [{}]", userId, sessionId);
+            return flux;
         } catch (Exception e) {
-            log.error("Failed to resubscribe to stream for userId={}, sessionId={}", userId, sessionId, e);
+            log.error("failed to resubscribe to stream, userId: [{}], sessionId: [{}]", userId, sessionId, e);
             return Flux.error(e);
         }
     }
-
 }

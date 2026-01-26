@@ -90,7 +90,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>agent.SupervisorAgentA2ASDKMainStream</mainClass>
+                            <mainClass>agent.SupervisorAgentMain</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>

@@ -71,8 +71,8 @@ import org.springframework.util.CollectionUtils;
  * <p>Uses Apache RocketMQ as the A2A (Application-to-Application) messaging middleware
  * for asynchronous, decoupled communication between agents.
  */
-public class SupervisorAgentA2ASDKMainStream {
-    private static final Logger log = LoggerFactory.getLogger(SupervisorAgentA2ASDKMainStream.class);
+public class SupervisorAgentMain {
+    private static final Logger log = LoggerFactory.getLogger(SupervisorAgentMain.class);
 
     /**
      * The logical name of this agent in the multi-agent system.
@@ -191,14 +191,14 @@ public class SupervisorAgentA2ASDKMainStream {
     /**
      * Initializes the main agent.
      *
-     * @param weatherAgent the name of the Weather Agent
-     * @param travelAgent  the name of the Travel Planning Agent
-     * @return a configured BaseAgent instance
+     * @param weatherAgent the name of the Weather Agent.
+     * @param travelAgent  the name of the Travel Planning Agent.
+     * @return a configured BaseAgent instance.
      */
     public static BaseAgent initAgent(String weatherAgent, String travelAgent) {
         if (StringUtils.isEmpty(weatherAgent) || StringUtils.isEmpty(travelAgent)) {
             log.error("Missing parameters in initAgent, please provide both weatherAgent and travelAgent names.");
-            throw new IllegalArgumentException("SupervisorAgentA2ASDKMainStream Missing required agent names. Please specify both weatherAgent and travelAgent.");
+            throw new IllegalArgumentException("SupervisorAgentMain Missing required agent names. Please specify both weatherAgent and travelAgent.");
         }
         QWModel qwModel = QWModelRegistry.getModel(API_KEY);
         return LlmAgent.builder()

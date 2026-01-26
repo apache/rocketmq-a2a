@@ -14,16 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.example.common;
+package org.example.common.model;
 import reactor.core.publisher.Sinks;
 import reactor.core.publisher.Sinks.Many;
 
 /**
  * Encapsulates task context information for asynchronous stream processing.
  * <p>
- * Contains task metadata (ID, description, user/session identifiers) and a Sink
- * for streaming real-time responses to the client.
- * </p>
+ * Contains task metadata (id, description, user/session identifiers) and
+ * a Sink for streaming real-time responses to the client.
  */
 public class TaskInfo {
     /**
@@ -56,11 +55,11 @@ public class TaskInfo {
     /**
      * Constructs a {@code TaskInfo} with basic metadata and a response sink.
      *
-     * @param taskId     the unique task ID
-     * @param taskDesc   the task description
-     * @param userId     the user ID
-     * @param sessionId  the session ID
-     * @param sink       the reactive sink for streaming responses
+     * @param taskId     the unique task ID.
+     * @param taskDesc   the task description.
+     * @param userId     the user ID.
+     * @param sessionId  the session ID.
+     * @param sink       the reactive sink for streaming responses.
      */
     public TaskInfo(String taskId, String taskDesc, String sessionId, String userId, Sinks.Many<String> sink) {
         this.taskId = taskId;
