@@ -32,6 +32,7 @@ import com.google.adk.agents.LlmAgent;
 import com.google.adk.artifacts.InMemoryArtifactService;
 import com.google.adk.events.Event;
 import com.google.adk.runner.Runner;
+import com.google.adk.sessions.BaseSessionService;
 import com.google.adk.sessions.InMemorySessionService;
 import com.google.adk.sessions.Session;
 import com.google.common.collect.ImmutableList;
@@ -43,7 +44,6 @@ import common.qwen.QWModelRegistry;
 import io.a2a.A2A;
 import io.a2a.client.Client;
 import io.a2a.client.ClientEvent;
-import io.a2a.client.TaskEvent;
 import io.a2a.client.TaskUpdateEvent;
 import io.a2a.client.http.A2ACardResolver;
 import io.a2a.spec.AgentCard;
@@ -61,13 +61,23 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
 /**
- * SupervisorAgent 主控代理类，基于 Qwen 模型实现多 Agent 协同调度。
- * 负责协调 WeatherAgent 和 TravelAgent 完成天气查询与行程规划任务。
- * 使用 RocketMQ 作为 A2A 通信中间件。
+ * SupervisorAgent: The master control agent class that implements multi-agent
+ * coordination based on the Qwen (Qwen) model.
+ *
+ * <p>Responsible for orchestrating collaborative tasks between specialized agents,
+ * such as WeatherAgent and TravelAgent, to fulfill complex user requests —
+ * including weather querying and travel planning.
+ *
+ * <p>Uses Apache RocketMQ as the A2A (Application-to-Application) messaging middleware
+ * for asynchronous, decoupled communication between agents.
  */
 public class SupervisorAgentA2ASDKMainStream {
     private static final Logger log = LoggerFactory.getLogger(SupervisorAgentA2ASDKMainStream.class);
-    // Agent configuration constants
+
+    /**
+     * The logical name of this agent in the multi-agent system.
+     * Used for message routing, logging, and identification in distributed communication.
+     */
     private static final String AGENT_NAME = "SupervisorAgent";
     private static final String USER_ID = "rocketmq_a2a_user";
     private static final String APP_NAME = "rocketmq_a2a";
@@ -77,21 +87,57 @@ public class SupervisorAgentA2ASDKMainStream {
     private static final String TRAVEL_AGENT_NAME = "TravelAgent";
     private static final String TRAVEL_AGENT_URL = "http://localhost:8888";
 
-    // Environment variable configuration items
+    /**
+     * The dedicated topic for receiving reply messages from the target agent(Typically, a lightweight Topic).
+     */
     private static final String WORK_AGENT_RESPONSE_TOPIC = System.getProperty("workAgentResponseTopic");
+
+    /**
+     * The consumer group ID used when subscribing to the {@link #WORK_AGENT_RESPONSE_TOPIC}.
+     */
     private static final String WORK_AGENT_RESPONSE_GROUP_ID = System.getProperty("workAgentResponseGroupID");
+
+    /**
+     * The namespace used for logical isolation of RocketMQ resources.
+     */
     private static final String ROCKETMQ_NAMESPACE = System.getProperty("rocketMQNamespace");
+
+    /**
+     * The access key for authenticating with the RocketMQ service.
+     */
     private static final String ACCESS_KEY = System.getProperty("rocketMQAK");
+
+    /**
+     * The secret key for authenticating with the RocketMQ service.
+     */
     private static final String SECRET_KEY = System.getProperty("rocketMQSK");
+
+    /**
+     * The API key used to authenticate requests to the Qwen service.
+     */
     private static final String API_KEY = System.getProperty("apiKey");
     // Role identifiers
     private static final String YOU = "You";
     private static final String AGENT = "Agent";
-
-    // Global state
     private static String lastQuestion = "";
-    private static InMemorySessionService sessionService;
+    private static final String LEFT_BRACE = "{";
+
+    /**
+     * Service for managing conversational sessions and preserving chat history.
+     * This Demo Uses in-memory storage; replace with Redis or database in production.
+     */
+    private static BaseSessionService sessionService;
+
+    /**
+     * Maps agent names (e.g., "WeatherAgent") to their corresponding A2A client instances.
+     * Enables dynamic dispatch of messages to the appropriate remote agent.
+     */
     private static final Map<String, Client> AgentClientMap = new HashMap<>();
+
+    /**
+     * Current session identifier for grouping related interactions.
+     * Maintains continuity across multiple turns in a conversation.
+     */
     private static String sessionId;
     private static Runner runner;
 
@@ -123,7 +169,7 @@ public class SupervisorAgentA2ASDKMainStream {
     /**
      * Validates required configuration parameters.
      *
-     * @throws IllegalArgumentException if any critical parameter is missing
+     * @throws IllegalArgumentException if any critical parameter is missing.
      */
     private static void validateConfigParams() {
         List<String> missingParams = new ArrayList<>();
@@ -137,7 +183,7 @@ public class SupervisorAgentA2ASDKMainStream {
             missingParams.add("apiKey (API key for SupervisorAgent using Qwen-plus model)");
         }
         if (!missingParams.isEmpty()) {
-            String message = "The following required configuration parameters are missing. Please set them via environment variables or system properties:\n" + String.join("\n", missingParams);
+            String message = "The following required configuration parameters are missing." + String.join("\n", missingParams);
             throw new IllegalArgumentException(message);
         }
     }
@@ -151,8 +197,8 @@ public class SupervisorAgentA2ASDKMainStream {
      */
     public static BaseAgent initAgent(String weatherAgent, String travelAgent) {
         if (StringUtils.isEmpty(weatherAgent) || StringUtils.isEmpty(travelAgent)) {
-            log.error("Missing parameters in initAgent: please provide both weatherAgent and travelAgent names.");
-            throw new IllegalArgumentException("SupervisorAgentA2ASDKMainStream: Missing required agent names. Please specify both weatherAgent and travelAgent.");
+            log.error("Missing parameters in initAgent, please provide both weatherAgent and travelAgent names.");
+            throw new IllegalArgumentException("SupervisorAgentA2ASDKMainStream Missing required agent names. Please specify both weatherAgent and travelAgent.");
         }
         QWModel qwModel = QWModelRegistry.getModel(API_KEY);
         return LlmAgent.builder()
@@ -212,11 +258,11 @@ public class SupervisorAgentA2ASDKMainStream {
                     continue;
                 }
                 if (StringUtils.isEmpty(userInput)) {
-                    printSystemInfo("Please do not submit empty input.");
+                    printSystemInfo("请不要输入空值.");
                     continue;
                 }
-                printSystemInfo("🤔 Thinking...");
-                log.info("User input: {}", userInput);
+                printSystemInfo("🤔 思考中...");
+                log.info("用户输入: {}", userInput);
                 Content userMsg = Content.fromParts(Part.fromText(userInput));
                 Flowable<Event> events = runner.runAsync(USER_ID, sessionId, userMsg);
                 events.blockingForEach(event -> {
@@ -234,22 +280,23 @@ public class SupervisorAgentA2ASDKMainStream {
      */
     private static void dealEventContent(String eventContent) {
         if (StringUtils.isEmpty(eventContent)) {
+            log.warn("dealEventContent eventContent is empty");
             return;
         }
-        if (eventContent.startsWith("{")) {
-            try {
-                Mission mission = JSON.parseObject(eventContent, Mission.class);
-                if (null != mission) {
-                    printPrompt(AGENT);
-                    log.info("Agent: {}, forwarding request to another agent and waiting for its response. Target Agent: {}, Query: {}", AGENT_NAME, mission.getAgent(), mission.getMessageInfo());
-                    forwardMissionToAgent(mission);
-                }
-            } catch (Exception e) {
-                log.error("An error occurred while parsing the event content", e);
-            }
-        } else {
+        if (!eventContent.startsWith(LEFT_BRACE)) {
             printPrompt(AGENT);
-            log.warn(eventContent);
+            log.debug(eventContent);
+            return;
+        }
+        try {
+            Mission mission = JSON.parseObject(eventContent, Mission.class);
+            if (null != mission) {
+                printPrompt(AGENT);
+                log.debug("Agent: {}, forwarding request to another agent and waiting for its response. Target Agent: {}, Query: {}", AGENT_NAME, mission.getAgent(), mission.getMessageInfo());
+                forwardMissionToAgent(mission);
+            }
+        } catch (Exception e) {
+            log.error("An error occurred while parsing the event content", e);
         }
     }
 
@@ -260,15 +307,16 @@ public class SupervisorAgentA2ASDKMainStream {
      */
     private static void forwardMissionToAgent(Mission mission) {
         if (null == mission || StringUtils.isEmpty(mission.getAgent()) || StringUtils.isEmpty(mission.getMessageInfo())) {
+            log.error("forwardMissionToAgent param error, mission: [{}]", JSON.toJSONString(mission));
             return;
         }
         try {
             String agentName = mission.getAgent().replaceAll(" ", "");
             Client client = AgentClientMap.get(agentName);
             client.sendMessage(A2A.toUserMessage(mission.getMessageInfo()));
-            log.info("Sending message: {}", mission.getMessageInfo());
+            log.info("forwardMissionToAgent messageInfo: [{}]", mission.getMessageInfo());
         } catch (Exception e) {
-            log.error("Error occurred while forwarding mission to agent", e);
+            log.error("forwardMissionToAgent error occurred while forwarding mission to agent", e);
         }
     }
 
@@ -280,11 +328,11 @@ public class SupervisorAgentA2ASDKMainStream {
      */
     private static void registerAgentClient(String agentName, String agentUrl) {
         if (StringUtils.isEmpty(agentName) || StringUtils.isEmpty(agentUrl)) {
-            log.error("Invalid parameters in registerAgentClient: agentName={}, agentUrl={}", agentName, agentUrl);
+            log.error("Invalid parameters in registerAgentClient: agentName: [{}], agentUrl: [{}]", agentName, agentUrl);
             return;
         }
         AgentCard finalAgentCard = new A2ACardResolver(agentUrl).getAgentCard();
-        log.info("Successfully fetched public agent card: {}", finalAgentCard.description());
+        log.info("Successfully fetched public agent card: [{}]", finalAgentCard.description());
         // Build event consumers
         List<BiConsumer<ClientEvent, AgentCard>> consumers = buildEventConsumers();
         RocketMQTransportConfig rocketMQTransportConfig = new RocketMQTransportConfig();
@@ -295,19 +343,24 @@ public class SupervisorAgentA2ASDKMainStream {
         rocketMQTransportConfig.setWorkAgentResponseTopic(WORK_AGENT_RESPONSE_TOPIC);
         Client client = Client.builder(finalAgentCard)
             .addConsumers(consumers)
-            .streamingErrorHandler(error -> log.error("Streaming error occurred: {}", error.getMessage()))
+            .streamingErrorHandler(error -> log.error("Streaming error occurred: [{}]", error.getMessage()))
             .withTransport(RocketMQTransport.class, rocketMQTransportConfig)
             .build();
         AgentClientMap.put(agentName, client);
-        log.info("Agent '{}' initialized successfully", agentName);
+        log.info("Agent [{}] initialized successfully", agentName);
     }
 
+    /**
+     * Builds a list of event consumers that react to agent task events.
+     * Extracts text from Artifacts and forwards to output handler.
+     */
     private static List<BiConsumer<ClientEvent, AgentCard>> buildEventConsumers() {
         List<BiConsumer<ClientEvent, AgentCard>> consumers = new ArrayList<>();
         consumers.add((event, agentCard) -> {
             if (event instanceof TaskUpdateEvent taskUpdateEvent) {
                 Task task = taskUpdateEvent.getTask();
                 if (null == task) {
+                    log.error("EventConsumer task is null");
                     return;
                 }
                 List<Artifact> artifacts = task.getArtifacts();
@@ -325,21 +378,6 @@ public class SupervisorAgentA2ASDKMainStream {
                         dealAgentResponse(stringBuilder.toString());
                     }
                 }
-            } else if (event instanceof TaskEvent taskEvent) {
-                Task task = taskEvent.getTask();
-                if (null == task) {
-                    return;
-                }
-                List<Artifact> artifacts = task.getArtifacts();
-                if (null != artifacts) {
-                    printPrompt(AGENT);
-                }
-                StringBuilder stringBuilder = new StringBuilder();
-                for (Artifact artifact : artifacts) {
-                    stringBuilder.append(extractTextFromMessage(artifact));
-                }
-                System.out.print(stringBuilder);
-                dealAgentResponse(stringBuilder.toString());
             }
         });
         return consumers;
@@ -379,32 +417,39 @@ public class SupervisorAgentA2ASDKMainStream {
             .build();
         sessionService.appendEvent(session, event);
         Content userMsg = Content.fromParts(Part.fromText(result));
-        Flowable<Event> events = runner.runAsync(USER_ID, session.id(), userMsg);
+        iterEvents(runner.runAsync(USER_ID, session.id(), userMsg));
+        printPrompt(YOU);
+    }
+
+    /**
+     * Iterates over a stream of {@link Event} objects emitted by the agent (e.g., LLM or workflow engine),
+     * processes each event in blocking mode, and handles potential task delegation requests.
+     *
+     * @param events a reactive stream of Event objects (typically from an agent system)
+     */
+    private static void iterEvents(Flowable<Event> events) {
         events.blockingForEach(eventSub -> {
-            boolean equals = lastQuestion.equals(eventSub.stringifyContent());
-            if (equals) {
+            boolean isDuplicate = lastQuestion.equals(eventSub.stringifyContent());
+            if (isDuplicate) {
                 return;
             }
             lastQuestion = eventSub.stringifyContent();
             String content = lastQuestion;
-            if (!StringUtils.isEmpty(content)) {
-                if (content.startsWith("{")) {
-                    try {
-                        Mission mission = JSON.parseObject(content, Mission.class);
-                        if (null != mission && !StringUtils.isEmpty(mission.getMessageInfo()) && !StringUtils.isEmpty(mission.getAgent())) {
-                            printPrompt(AGENT);
-                            log.info("Forwarding to another agent and waiting for its response. Target Agent: {}, Query: {}", mission.getAgent(), mission.getMessageInfo());
-                            forwardMissionToAgent(mission);
-                        }
-                    } catch (Exception e) {
-                        log.error("An error occurred while parsing the response content", e);
-                    }
+            if (StringUtils.isEmpty(content) || !content.startsWith(LEFT_BRACE)) {
+                log.debug("Agent response: [{}]", content);
+                return;
+            }
+            try {
+                Mission mission = JSON.parseObject(content, Mission.class);
+                if (null != mission && !StringUtils.isEmpty(mission.getMessageInfo()) && !StringUtils.isEmpty(mission.getAgent())) {
+                    printPrompt(AGENT);
+                    log.debug("Forwarding to another agent and waiting for its response. Target Agent: [{}], Query: [{}]", mission.getAgent(), mission.getMessageInfo());
+                    forwardMissionToAgent(mission);
                 }
-            } else {
-                log.debug("Agent response: {}", content);
+            } catch (Exception e) {
+                log.error("An error occurred while parsing the response content", e);
             }
         });
-        printPrompt(YOU);
     }
 
     private static Content buildContent(String content) {

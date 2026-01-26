@@ -34,7 +34,6 @@ import reactor.core.publisher.Flux;
  * <p>
  * Provides endpoints for initiating streaming responses, resubscribing to ongoing streams,
  * and gracefully closing active streams.
- * </p>
  */
 @RestController
 @RequestMapping("/")
@@ -48,7 +47,6 @@ public class A2AChatController {
      * Initiates a streaming chat session with the agent system.
      * <p>
      * Returns a Server-Sent Events (SSE) stream of response chunks.
-     * </p>
      *
      * @param question   the user's input question (must not be empty)
      * @param userId     the unique identifier of the user (must not be empty)
@@ -74,7 +72,6 @@ public class A2AChatController {
      * Gracefully closes an active streaming chat session.
      * <p>
      * This endpoint signals the backend to release resources associated with the given session.
-     * </p>
      *
      * @param userId     the user identifier
      * @param sessionId  the session identifier
@@ -97,7 +94,6 @@ public class A2AChatController {
      * <p>
      * This endpoint allows a client to reconnect (e.g., after a network drop) and resume
      * receiving pending or new response messages from the agent system via Server-Sent Events (SSE).
-     * </p>
      *
      * @param userId     the unique identifier of the user (must not be empty)
      * @param sessionId  the unique identifier of the session (must not be empty)
