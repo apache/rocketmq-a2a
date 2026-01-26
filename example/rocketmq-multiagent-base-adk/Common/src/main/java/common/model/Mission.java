@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package common;
+package common.model;
 
 /**
  * Represents a mission (or task assignment) sent from a client to an agent in the A2A system.

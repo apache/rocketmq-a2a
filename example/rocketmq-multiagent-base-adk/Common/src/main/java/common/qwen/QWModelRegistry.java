@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package common;
+package common.qwen;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
