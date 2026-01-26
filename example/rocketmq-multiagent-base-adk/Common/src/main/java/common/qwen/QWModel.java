@@ -46,7 +46,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * An implementation of {@link BaseLlm} for the Qwen (Qwen-Plus) large language model.
+ * An implementation of {@link BaseLlm} for the Qwen large language model.
  * <p>
  * This class provides non-streaming text generation capabilities by integrating with
  * the Qwen API. It supports system instructions, multi-turn conversations, and
@@ -113,13 +113,16 @@ public class QWModel extends BaseLlm {
 
     @Override
     public Flowable<LlmResponse> generateContent(LlmRequest llmRequest, boolean stream) {
+        if (null == llmRequest) {
+            log.error("QWModel generateContent llmRequest is null");
+            throw new IllegalArgumentException("QWModel generateContent llmRequest is null");
+        }
         try {
             List<Message> userMsgList = new ArrayList<>();
             // Extract system instruction
-            String systemText = extractSystemInstruction(llmRequest);
             Message systemMsg = Message.builder()
                 .role(Role.SYSTEM.getValue())
-                .content(systemText)
+                .content(extractSystemInstruction(llmRequest))
                 .build();
             // Build user messages
             for (Content content : llmRequest.contents()) {
@@ -134,23 +137,27 @@ public class QWModel extends BaseLlm {
             // Call the model
             GenerationResult generationResult = callWithMessage(systemMsg, userMsgList);
             if (null == generationResult) {
-                log.error("generationResult is null");
-                return Flowable.error(new RuntimeException("callWithMessage is error"));
+                log.error("QWModel generationResult is null");
+                return Flowable.error(new RuntimeException("QWModel callWithMessage is error"));
             }
             LlmResponse llmResponse = convertToLlmResponse(generationResult);
             if (llmResponse == null) {
-                log.error("llmResponse is null");
-                return Flowable.error(new RuntimeException("convertToLlmResponse is error"));
+                log.error("QWModel llmResponse is null");
+                return Flowable.error(new RuntimeException("QWModel convertToLlmResponse error"));
             }
             return Flowable.just(llmResponse);
         } catch (Exception e) {
-            log.error("Error in QWen generateContent: {}", e.getMessage());
+            log.error("QWen generateContent error", e);
             return Flowable.error(e);
         }
     }
 
     @Override
     public BaseLlmConnection connect(LlmRequest llmRequest) {
+        if (null == llmRequest) {
+            log.error("QWModel connect param error, llmRequest is null");
+            throw new IllegalArgumentException("QWModel connect param error, llmRequest is null");
+        }
         return new BaseLlmConnection() {
             private boolean connected = true;
             private final List<Content> conversationHistory = new CopyOnWriteArrayList<>();
@@ -158,43 +165,40 @@ public class QWModel extends BaseLlm {
             public Completable sendHistory(List<Content> history) {
                 return Completable.fromAction(() -> {
                     if (!connected) {
-                        throw new IllegalStateException("Connection is closed");
+                        throw new IllegalStateException("QWModel connection is closed");
                     }
                     conversationHistory.clear();
                     conversationHistory.addAll(history);
-                    log.debug("Qwen: history updated with {} messages", history.size());
-
+                    log.debug("QWModel connect history updated with [{}] messages", history.size());
                 });
             }
             @Override
             public Completable sendContent(Content content) {
                 return Completable.fromAction(() -> {
                     if (!connected) {
-                        throw new IllegalStateException("Connection is closed");
+                        throw new IllegalStateException("QWModel connection is closed");
                     }
                     conversationHistory.add(content);
-                    log.debug("QWen sendContent content: {}", content);
+                    log.debug("QWModel sendContent content: [{}]", content);
                 });
             }
             @Override
             public Completable sendRealtime(Blob blob) {
                 return Completable.fromAction(() -> {
-                    log.warn("Qwen does not support real-time audio/video input; ignoring blob");
+                    log.warn("QWModel does not support real-time audio/video input; ignoring blob");
                 });
             }
             @Override
             public Flowable<LlmResponse> receive() {
                 return Flowable.defer(() -> {
                     if (!connected) {
-                        return Flowable.error(new IllegalStateException("connected is closed"));
+                        return Flowable.error(new IllegalStateException("QWModel connection is closed"));
                     }
                     if (conversationHistory.isEmpty()) {
-                        log.warn("Qwen receive() called with empty conversation history");
+                        log.warn("QWModel receive called with empty conversation history");
                         return Flowable.empty();
                     }
-                    LlmRequest request = LlmRequest.builder()
-                        .contents(new ArrayList<>(conversationHistory))
-                        .build();
+                    LlmRequest request = LlmRequest.builder().contents(new ArrayList<>(conversationHistory)).build();
                     return QWModel.this.generateContent(request, false);
                 });
             }
@@ -202,13 +206,13 @@ public class QWModel extends BaseLlm {
             public void close() {
                 this.connected = false;
                 this.conversationHistory.clear();
-                log.debug("Qwen connection closed gracefully");
+                log.debug("QWModel connection closed gracefully");
             }
             @Override
             public void close(Throwable throwable) {
                 connected = false;
                 conversationHistory.clear();
-                log.error("Qwen connection closed due to error", throwable);
+                log.error("QWModel connection closed due to error", throwable);
             }
         };
     }
@@ -241,23 +245,19 @@ public class QWModel extends BaseLlm {
      */
     private LlmResponse convertToLlmResponse(GenerationResult chatResponse) {
         LlmResponse.Builder responseBuilder = LlmResponse.builder();
+        Part part = null;
         try {
             String content = chatResponse.getOutput().getChoices().get(0).getMessage().getContent();
-            if (content != null && !content.trim().isEmpty()) {
-                Part part = Part.builder().text(content).build();
-                Content responseContent = Content.builder().role(MODEL_ROLE).parts(ImmutableList.of(part)).build();
-                responseBuilder.content(responseContent);
+            if (!StringUtils.isEmpty(content)) {
+                part = Part.builder().text(content).build();
             } else {
-                Part errorPart = Part.builder().text("Sorry, no valid response content was received").build();
-                Content errorContent = Content.builder().role(MODEL_ROLE).parts(ImmutableList.of(errorPart)).build();
-                responseBuilder.content(errorContent);
+                part = Part.builder().text("Sorry, no valid response content was received").build();
             }
         } catch (Exception e) {
-            Part errorPart = Part.builder().text("Sorry, an error occurred while processing the response, error: " + e.getMessage()).build();
-            Content errorContent = Content.builder().role(MODEL_ROLE).parts(ImmutableList.of(errorPart)).build();
-            responseBuilder.content(errorContent);
+            log.error("convertToLlmResponse error", e);
+            part = Part.builder().text("Sorry, an error occurred while processing the response, error: " + e.getMessage()).build();
         }
-        return responseBuilder.build();
+       return responseBuilder.content(Content.builder().role(MODEL_ROLE).parts(ImmutableList.of(part)).build()).build();
     }
 
 }

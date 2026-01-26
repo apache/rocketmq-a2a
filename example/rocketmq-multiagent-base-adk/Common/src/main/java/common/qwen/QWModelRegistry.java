@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 /**
  * A registry for managing the singleton instance of {@link QWModel}.
  * <p>
- * This class ensures that the Qwen (QWen) large language model is initialized only once,
+ * This class ensures that the QWen large language model is initialized only once,
  * using the provided API key. It supports lazy initialization and thread-safe access.
  */
 public class QWModelRegistry {
@@ -32,12 +32,12 @@ public class QWModelRegistry {
     /**
      * Flag indicating whether the QWen model has been successfully initialized.
      */
-    private static boolean initialized = false;
+    private static volatile boolean initialized = false;
 
     /**
      * The singleton instance of the QWen model.
      */
-    private static QWModel qwModel;
+    private static volatile QWModel qwModel;
 
     /**
      * Registers and initializes the QWen model with the given API key.
