@@ -124,7 +124,6 @@ public class SupervisorAgentMain {
 
     /**
      * Service for managing conversational sessions and preserving chat history.
-     * This Demo Uses in-memory storage; replace with Redis or database in production.
      */
     private static BaseSessionService sessionService;
 
