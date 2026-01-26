@@ -48,9 +48,9 @@ public class A2AChatController {
      * <p>
      * Returns a Server-Sent Events (SSE) stream of response chunks.
      *
-     * @param question   the user's input question.
-     * @param userId     the unique identifier of the user.
-     * @param sessionId  the unique session identifier.
+     * @param question the user's input question.
+     * @param userId the unique identifier of the user.
+     * @param sessionId the unique session identifier.
      * @return a {@code Flux<String>} emitting response chunks via SSE.
      */
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -73,8 +73,8 @@ public class A2AChatController {
      * <p>
      * This endpoint signals the backend to release resources associated with the given session.
      *
-     * @param userId     the user identifier.
-     * @param sessionId  the session identifier.
+     * @param userId the user identifier.
+     * @param sessionId the session identifier.
      * @return a message about this operation.
      */
     @GetMapping("/closeStream")

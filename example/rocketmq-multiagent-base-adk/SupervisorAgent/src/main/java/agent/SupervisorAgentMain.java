@@ -261,7 +261,7 @@ public class SupervisorAgentMain {
                     continue;
                 }
                 printSystemInfo("🤔 思考中...");
-                log.info("用户输入: {}", userInput);
+                log.info("用户输入: [{}]", userInput);
                 Content userMsg = Content.fromParts(Part.fromText(userInput));
                 Flowable<Event> events = runner.runAsync(USER_ID, sessionId, userMsg);
                 events.blockingForEach(event -> {
@@ -498,7 +498,7 @@ public class SupervisorAgentMain {
     /**
      * Prints a prompt indicator in cyan color to signal that the agent or user is about to write.
      *
-     * <p>Typical format: {@code Agent > } or {@code You > }, followed by text without line break.</p>
+     * <p>Typical format: {@code Agent > } or {@code You > }, followed by text without line break.
      *
      * @param role the speaker role, e.g., "You" or "Agent"
      */

@@ -231,16 +231,18 @@ public class AgentService {
         // Get all connected agent clients
         Collection<Client> clients = AgentClientMap.values();
         // Notify each client only if there are active clients
-        if (!CollectionUtils.isEmpty(clients)) {
-            for (Client client : clients) {
-                try {
-                    client.resubscribe(new TaskIdParams("", metadata));
-                } catch (Exception e) {
-                    log.error("failed to resubscribe client during session close. Client: [{}], sessionId: [{}]", client, sessionId, e);
-                }
-            }
-            log.info("stream closed successfully. userId: [{}], sessionId: [{}]", userId, sessionId);
+        if (CollectionUtils.isEmpty(clients)) {
+            log.debug("endStreamChat success, clients is empty");
+            return;
         }
+        for (Client client : clients) {
+            try {
+                client.resubscribe(new TaskIdParams("", metadata));
+            } catch (Exception e) {
+                log.error("endStreamChat error, Client: [{}], sessionId: [{}]", client, sessionId, e);
+            }
+        }
+        log.debug("endStreamChat success, userId: [{}], sessionId: [{}]", userId, sessionId);
     }
 
     /**
@@ -292,11 +294,11 @@ public class AgentService {
                     }
                 }
             }
-            log.debug("Successfully re-established stream. userId={}, sessionId={}", userId, sessionId);
+            log.debug("resubscribeStream Successfully, userId: [{}], sessionId: [{}]", userId, sessionId);
             return Flux.from(sink.asFlux());
         } catch (Exception e) {
-            log.error("Unexpected error during resubscribeStream. userId={}, sessionId={}", userId, sessionId, e);
-            return Flux.error(new RuntimeException("Failed to re-establish stream due to internal error", e));
+            log.error("Unexpected error during resubscribeStream, userId: [{}], sessionId: [{}]", userId, sessionId, e);
+            return Flux.error(new RuntimeException("resubscribeStream error", e));
         }
     }
 
@@ -490,7 +492,7 @@ public class AgentService {
                 if (!CollectionUtils.isEmpty(artifacts)) {
                     TaskState state = task.getStatus().state();
                     String msg = extractTextFromMessage(artifacts.get(artifacts.size() - 1));
-                    log.debug("receive msg: {}", msg);
+                    log.debug("receive msg: [{}]", msg);
                     String lastOutput = taskInfo.getLastOutput();
                     if (!lastOutput.equals(msg)) {
                         boolean result = emitMessage(sink, msg, false);
@@ -585,7 +587,7 @@ public class AgentService {
             boolean isDuplicate = lastQuestion.equals(eventSub.stringifyContent());
             TaskInfo taskInfo = taskMap.get(taskId);
             if (null == taskInfo || null == taskInfo.getSink()) {
-                log.error("iterEvents taskInfo is null or getSink is null");
+                log.error("iterEvents taskInfo/sink is null");
                 return;
             }
             Many<String> sink = taskInfo.getSink();
@@ -607,7 +609,7 @@ public class AgentService {
                 Mission mission = JSON.parseObject(content, Mission.class);
                 if (null != mission && !StringUtils.isEmpty(mission.getMessageInfo()) && !StringUtils.isEmpty(
                     mission.getAgent())) {
-                    log.debug("转发到其他的Agent, 等待其他Agent响应，Agent: {}, 问题: {}", mission.getAgent(), mission.getMessageInfo());
+                    log.debug("转发到其他的Agent, 等待其他Agent响应，Agent: [{}], 问题: [{}]", mission.getAgent(), mission.getMessageInfo());
                     emitMessage(sink, "\n \n ******" + AGENT_NAME + " 转发请求到其他的Agent, 等待其响应，Agent: " + mission.getAgent() + "， 问题: " + mission.getMessageInfo(), false);
                     dealMissionByMessage(mission, taskId, sessionId);
                 }
@@ -638,7 +640,7 @@ public class AgentService {
         }
         String taskId = taskInfo.getTaskId();
         taskMap.remove(taskId);
-        log.debug("completeTask taskMap clear success, taskId: {}", taskId);
+        log.debug("completeTask taskMap clear success, taskId: [{}]", taskId);
         Map<String, List<TaskInfo>> sessionTaskListMap = userSessionTaskListMap.get(taskInfo.getUserId());
         if (null != sessionTaskListMap) {
             List<TaskInfo> taskInfos = sessionTaskListMap.get(taskInfo.getSessionId());
@@ -646,7 +648,7 @@ public class AgentService {
                 return;
             }
             boolean result = taskInfos.removeIf(next -> next.getTaskId().equals(taskId));
-            log.debug("completeTask userSessionTaskListMap clear success, taskId: {}, result: {}", taskId, result);
+            log.debug("completeTask userSessionTaskListMap clear success, taskId: [{}], result: [{}]", taskId, result);
         }
     }
 
@@ -694,15 +696,15 @@ public class AgentService {
         Sinks.EmitResult result = sink.tryEmitNext(msg);
         switch (result) {
             case OK:
-                log.info("📤 成功发送: {}", msg);
+                log.info("📤 成功发送: [{}]", msg);
                 break;
             case FAIL_OVERFLOW:
             case FAIL_CANCELLED:
             case FAIL_TERMINATED:
-                log.error("🛑 上游检测到问题，停止发送。原因: {}", result);
+                log.error("🛑 上游检测到问题，停止发送。原因: [{}]", result);
                 return false;
             default:
-                log.error("⚠️ 发送状态: {}", result);
+                log.error("⚠️ 发送状态: [{}]", result);
         }
         if (isFinish) {
             sink.tryEmitComplete();
