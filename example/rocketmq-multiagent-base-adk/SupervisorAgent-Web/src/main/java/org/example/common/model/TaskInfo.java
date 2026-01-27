@@ -118,4 +118,58 @@ public class TaskInfo {
     public void setLastOutput(String lastOutput) {
         this.lastOutput = lastOutput;
     }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        private String taskId;
+        private String taskDesc;
+        private String userId;
+        private String sessionId;
+        private Sinks.Many<String> sink;
+        private String lastOutput = "";
+
+        public Builder taskId(String taskId) {
+            this.taskId = taskId;
+            return this;
+        }
+
+        public Builder taskDesc(String taskDesc) {
+            this.taskDesc = taskDesc;
+            return this;
+        }
+
+        public Builder userId(String userId) {
+            this.userId = userId;
+            return this;
+        }
+
+        public Builder sessionId(String sessionId) {
+            this.sessionId = sessionId;
+            return this;
+        }
+
+        public Builder sink(Sinks.Many<String> sink) {
+            this.sink = sink;
+            return this;
+        }
+
+        public Builder lastOutput(String lastOutput) {
+            this.lastOutput = lastOutput != null ? lastOutput : "";
+            return this;
+        }
+
+        public TaskInfo build() {
+            TaskInfo taskInfo = new TaskInfo();
+            taskInfo.setTaskId(taskId);
+            taskInfo.setTaskDesc(taskDesc);
+            taskInfo.setUserId(userId);
+            taskInfo.setSessionId(sessionId);
+            taskInfo.setSink(sink);
+            taskInfo.setLastOutput(lastOutput);
+            return taskInfo;
+        }
+    }
 }

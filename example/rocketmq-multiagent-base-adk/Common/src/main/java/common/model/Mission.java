@@ -76,4 +76,44 @@ public class Mission {
     public void setSessionId(String sessionId) {
         this.sessionId = sessionId;
     }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        private String agent;
+        private String messageInfo;
+        private String taskId;
+        private String sessionId;
+
+        public Builder agent(String agent) {
+            this.agent = agent;
+            return this;
+        }
+
+        public Builder messageInfo(String messageInfo) {
+            this.messageInfo = messageInfo;
+            return this;
+        }
+
+        public Builder taskId(String taskId) {
+            this.taskId = taskId;
+            return this;
+        }
+
+        public Builder sessionId(String sessionId) {
+            this.sessionId = sessionId;
+            return this;
+        }
+
+        public Mission build() {
+            Mission mission = new Mission();
+            mission.setAgent(agent);
+            mission.setMessageInfo(messageInfo);
+            mission.setTaskId(taskId);
+            mission.setSessionId(sessionId);
+            return mission;
+        }
+    }
 }

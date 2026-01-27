@@ -317,7 +317,7 @@ public class AgentService {
                 return;
             }
             String taskId = UUID.randomUUID().toString();
-            TaskInfo taskInfo = taskMap.computeIfAbsent(taskId, k -> new TaskInfo(taskId, mission.getMessageInfo(), sessionId, userId, sink));
+            TaskInfo taskInfo = taskMap.computeIfAbsent(taskId, k -> TaskInfo.builder().taskId(taskId).taskDesc(mission.getMessageInfo()).sessionId(sessionId).userId(userId).sink(sink).build());
             if (null != taskList) {
                 taskList.add(taskInfo);
             }
