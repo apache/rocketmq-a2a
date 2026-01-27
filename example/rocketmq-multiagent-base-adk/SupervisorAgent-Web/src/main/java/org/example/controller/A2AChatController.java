@@ -81,7 +81,7 @@ public class A2AChatController {
     public ResponseEntity<String> closeStreamChat(@RequestParam String userId, @RequestParam String sessionId) {
         if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId)) {
             log.error("closeStreamChat param error, userId: [{}], sessionId: [{}]", userId, sessionId);
-            return ResponseEntity.status(400).body("closeStreamChat param is error");
+            return ResponseEntity.status(400).body("param is error");
         }
         try {
             agentService.endStreamChat(userId, sessionId);

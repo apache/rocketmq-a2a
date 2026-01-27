@@ -53,13 +53,13 @@ public class TaskInfo {
     private Sinks.Many<String> sink;
 
     /**
-     * Constructs a {@code TaskInfo} with basic metadata and a response sink.
+     * Constructs a {@link TaskInfo} with basic metadata and a response sink.
      *
-     * @param taskId     the unique task ID.
-     * @param taskDesc   the task description.
-     * @param userId     the user ID.
-     * @param sessionId  the session ID.
-     * @param sink       the reactive sink for streaming responses.
+     * @param taskId the unique task ID.
+     * @param taskDesc the task description.
+     * @param userId the user ID.
+     * @param sessionId the session ID.
+     * @param sink the reactive sink for streaming responses.
      */
     public TaskInfo(String taskId, String taskDesc, String sessionId, String userId, Sinks.Many<String> sink) {
         this.taskId = taskId;
