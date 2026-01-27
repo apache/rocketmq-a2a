@@ -108,12 +108,6 @@ public class RocketMQResourceInfo {
     /**
      * Parses RocketMQ-related information from an AgentCard.
      *
-     * <p>Tries to extract connection details in the following order:
-     * <ol>
-     *   <li>From the preferred transport if it's RocketMQ.</li>
-     *   <li>From additional interfaces if any use RocketMQ transport.</li>
-     * </ol>
-     *
      * @param agentCard the AgentCard containing transport endpoints.
      * @return RocketMQResourceInfo, or {@code null} if parsing fails or no RocketMQ interface found.
      */
