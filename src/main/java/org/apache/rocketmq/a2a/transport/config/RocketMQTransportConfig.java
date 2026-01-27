@@ -79,48 +79,7 @@ public class RocketMQTransportConfig extends ClientTransportConfig<RocketMQTrans
      */
     private boolean useDefaultRecoverMode = false;
 
-    /**
-     * Creates a configuration instance for RocketMQTransport.
-     *
-     * @param accessKey the access key for authenticating with the RocketMQ service.
-     * @param secretKey the secret key for authenticating with the RocketMQ service.
-     * @param endpoint the network endpoint of the RocketMQ service.
-     * @param namespace the namespace used for logical isolation of RocketMQ resources.
-     * @param agentTopic the RocketMQ topic associated with the target agent, used as the destination for client requests.
-     * @param httpClient HttpClient.
-     */
-    public RocketMQTransportConfig(String accessKey, String secretKey, String endpoint, String namespace, String agentTopic, A2AHttpClient httpClient) {
-        this.accessKey = accessKey;
-        this.secretKey = secretKey;
-        this.endpoint = endpoint;
-        this.namespace = namespace;
-        this.agentTopic = agentTopic;
-        this.httpClient = httpClient;
-    }
-
-    /**
-     * Creates a configuration instance for RocketMQTransport.
-     *
-     * @param accessKey the access key for authenticating with the RocketMQ service.
-     * @param secretKey the secret key for authenticating with the RocketMQ service.
-     * @param endpoint the network endpoint of the RocketMQ service.
-     * @param namespace the namespace used for logical isolation of RocketMQ resources.
-     * @param workAgentResponseTopic the lightweight topic used to receive asynchronous replies.
-     * @param workAgentResponseGroupID the consumer group ID used when subscribing to the {@link #workAgentResponseTopic}.
-     * @param agentTopic the RocketMQ topic associated with the target agent, used as the destination for client requests.
-     * @param httpClient HttpClient.
-     */
-    public RocketMQTransportConfig(String accessKey, String secretKey, String endpoint, String namespace,
-        String workAgentResponseTopic, String workAgentResponseGroupID, String agentTopic, A2AHttpClient httpClient) {
-        this.accessKey = accessKey;
-        this.secretKey = secretKey;
-        this.endpoint = endpoint;
-        this.namespace = namespace;
-        this.workAgentResponseTopic = workAgentResponseTopic;
-        this.workAgentResponseGroupID = workAgentResponseGroupID;
-        this.agentTopic = agentTopic;
-        this.httpClient = httpClient;
-    }
+    private A2AHttpClient httpClient;
 
     /**
      * Creates a configuration instance for RocketMQTransport.
@@ -150,11 +109,7 @@ public class RocketMQTransportConfig extends ClientTransportConfig<RocketMQTrans
         this.useDefaultRecoverMode = useDefaultRecoverMode;
     }
 
-    private A2AHttpClient httpClient;
-
-    public RocketMQTransportConfig() {
-        this.httpClient = null;
-    }
+    public RocketMQTransportConfig() {}
 
     public RocketMQTransportConfig(A2AHttpClient httpClient) {
         this.httpClient = httpClient;
@@ -246,6 +201,90 @@ public class RocketMQTransportConfig extends ClientTransportConfig<RocketMQTrans
 
     public void setUseDefaultRecoverMode(boolean useDefaultRecoverMode) {
         this.useDefaultRecoverMode = useDefaultRecoverMode;
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        private String accessKey;
+        private String secretKey;
+        private String endpoint;
+        private String namespace;
+        private String workAgentResponseTopic;
+        private String workAgentResponseGroupID;
+        private String agentTopic;
+        private String agentUrl;
+        private String liteTopic;
+        private boolean useDefaultRecoverMode = false;
+        private A2AHttpClient httpClient;
+
+        public Builder accessKey(String accessKey) {
+            this.accessKey = accessKey;
+            return this;
+        }
+
+        public Builder secretKey(String secretKey) {
+            this.secretKey = secretKey;
+            return this;
+        }
+
+        public Builder endpoint(String endpoint) {
+            this.endpoint = endpoint;
+            return this;
+        }
+
+        public Builder namespace(String namespace) {
+            this.namespace = namespace;
+            return this;
+        }
+
+        public Builder workAgentResponseTopic(String workAgentResponseTopic) {
+            this.workAgentResponseTopic = workAgentResponseTopic;
+            return this;
+        }
+
+        public Builder workAgentResponseGroupID(String workAgentResponseGroupID) {
+            this.workAgentResponseGroupID = workAgentResponseGroupID;
+            return this;
+        }
+
+        public Builder agentTopic(String agentTopic) {
+            this.agentTopic = agentTopic;
+            return this;
+        }
+
+        public Builder agentUrl(String agentUrl) {
+            this.agentUrl = agentUrl;
+            return this;
+        }
+
+        public Builder liteTopic(String liteTopic) {
+            this.liteTopic = liteTopic;
+            return this;
+        }
+
+        public Builder useDefaultRecoverMode(boolean useDefaultRecoverMode) {
+            this.useDefaultRecoverMode = useDefaultRecoverMode;
+            return this;
+        }
+
+        public Builder httpClient(A2AHttpClient httpClient) {
+            this.httpClient = httpClient;
+            return this;
+        }
+
+        public RocketMQTransportConfig build() {
+            // Use full constructor to ensure all fields are properly initialized
+            RocketMQTransportConfig config = new RocketMQTransportConfig(
+                accessKey, secretKey, endpoint, namespace,
+                workAgentResponseTopic, workAgentResponseGroupID,
+                agentTopic, httpClient, liteTopic, useDefaultRecoverMode
+            );
+            config.setAgentUrl(agentUrl);
+            return config;
+        }
     }
 }
 

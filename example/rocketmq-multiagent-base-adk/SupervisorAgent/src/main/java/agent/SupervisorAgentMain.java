@@ -337,12 +337,12 @@ public class SupervisorAgentMain {
         AgentCard finalAgentCard = new A2ACardResolver(agentUrl).getAgentCard();
         log.info("Successfully fetched public agent card: [{}]", finalAgentCard.description());
         // Build event consumers
-        RocketMQTransportConfig rocketMQTransportConfig = new RocketMQTransportConfig();
-        rocketMQTransportConfig.setNamespace(ROCKETMQ_NAMESPACE);
-        rocketMQTransportConfig.setAccessKey(ACCESS_KEY);
-        rocketMQTransportConfig.setSecretKey(SECRET_KEY);
-        rocketMQTransportConfig.setWorkAgentResponseGroupID(WORK_AGENT_RESPONSE_GROUP_ID);
-        rocketMQTransportConfig.setWorkAgentResponseTopic(WORK_AGENT_RESPONSE_TOPIC);
+        RocketMQTransportConfig rocketMQTransportConfig = RocketMQTransportConfig.builder()
+            .namespace(ROCKETMQ_NAMESPACE)
+            .accessKey(ACCESS_KEY)
+            .secretKey(SECRET_KEY)
+            .workAgentResponseGroupID(WORK_AGENT_RESPONSE_GROUP_ID)
+            .workAgentResponseTopic(WORK_AGENT_RESPONSE_TOPIC).build();
         Client client = Client.builder(finalAgentCard)
             .addConsumers(buildEventConsumers())
             .streamingErrorHandler(error -> log.error("Streaming error occurred: [{}]", error.getMessage()))

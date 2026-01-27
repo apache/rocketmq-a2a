@@ -423,12 +423,12 @@ public class AgentService {
         AgentCard finalAgentCard = new A2ACardResolver(agentUrl).getAgentCard();
         log.info("successfully fetched public agent card: [{}]", finalAgentCard.description());
         // config rocketmq info
-        RocketMQTransportConfig rocketMQTransportConfig = new RocketMQTransportConfig();
-        rocketMQTransportConfig.setNamespace(ROCKETMQ_NAMESPACE);
-        rocketMQTransportConfig.setAccessKey(accessKey);
-        rocketMQTransportConfig.setSecretKey(secretKey);
-        rocketMQTransportConfig.setWorkAgentResponseGroupID(WORK_AGENT_RESPONSE_GROUP_ID);
-        rocketMQTransportConfig.setWorkAgentResponseTopic(WORK_AGENT_RESPONSE_TOPIC);
+        RocketMQTransportConfig rocketMQTransportConfig = RocketMQTransportConfig.builder()
+            .namespace(ROCKETMQ_NAMESPACE)
+            .accessKey(accessKey)
+            .secretKey(secretKey)
+            .workAgentResponseGroupID(WORK_AGENT_RESPONSE_GROUP_ID)
+            .workAgentResponseTopic(WORK_AGENT_RESPONSE_TOPIC).build();
         Client client = Client.builder(finalAgentCard)
             .addConsumers(buildBiConsumers())
             .streamingErrorHandler(error -> log.error("Streaming error occurred: [{}]", error.getMessage()))
