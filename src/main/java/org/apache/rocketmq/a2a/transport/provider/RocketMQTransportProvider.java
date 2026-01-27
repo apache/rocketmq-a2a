@@ -42,10 +42,11 @@ public class RocketMQTransportProvider implements ClientTransportProvider<Rocket
      * @throws IllegalArgumentException if clientTransportConfig is null.
      */
     @Override
-    public RocketMQTransport create(RocketMQTransportConfig clientTransportConfig, AgentCard agentCard, String agentUrl) throws
+    public RocketMQTransport create(RocketMQTransportConfig clientTransportConfig, AgentCard agentCard, String agentUrl)
+        throws
         A2AClientException {
         if (clientTransportConfig == null) {
-           throw new IllegalArgumentException("RocketMQTransportProvider create RocketMQTransport param error, clientTransportConfig is null");
+            throw new IllegalArgumentException("RocketMQTransportProvider create RocketMQTransport param error, clientTransportConfig is null");
         }
         return new RocketMQTransport(clientTransportConfig, agentCard);
     }

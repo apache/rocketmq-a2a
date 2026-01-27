@@ -43,10 +43,8 @@ public class A2AResponseFuture {
     /**
      * Constructs a new {@code A2AResponseFuture} instance.
      *
-     * @param completableFuture a {@link CompletableFuture} containing the raw JSON response
-     *                          from a remote agent.
-     * @param typeReference a {@link TypeReference} specifying the target type for
-     *                          deserializing the JSON response.
+     * @param completableFuture a {@link CompletableFuture} containing the raw JSON response from a remote agent.
+     * @param typeReference a {@link TypeReference} specifying the target type for deserializing the JSON response.
      */
     public A2AResponseFuture(CompletableFuture<String> completableFuture, TypeReference typeReference) {
         this.completableFuture = completableFuture;
@@ -60,4 +58,34 @@ public class A2AResponseFuture {
     public TypeReference getTypeReference() {
         return typeReference;
     }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        private CompletableFuture<String> completableFuture;
+        private TypeReference<?> typeReference;
+
+        public Builder completableFuture(CompletableFuture<String> completableFuture) {
+            this.completableFuture = completableFuture;
+            return this;
+        }
+
+        public Builder typeReference(TypeReference<?> typeReference) {
+            this.typeReference = typeReference;
+            return this;
+        }
+
+        public A2AResponseFuture build() {
+            if (completableFuture == null) {
+                throw new IllegalArgumentException("completableFuture must not be null");
+            }
+            if (typeReference == null) {
+                throw new IllegalArgumentException("typeReference must not be null");
+            }
+            return new A2AResponseFuture(completableFuture, typeReference);
+        }
+    }
+
 }

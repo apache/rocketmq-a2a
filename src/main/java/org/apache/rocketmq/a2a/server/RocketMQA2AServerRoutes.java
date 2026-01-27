@@ -566,7 +566,7 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
         }
         if (!missingParams.isEmpty()) {
             throw new IllegalArgumentException(
-                "RocketMQA2AServerRoutes init failed: missing required params: " + missingParams
+                "RocketMQA2AServerRoutes init failed, missing required params: " + missingParams
             );
         }
     }

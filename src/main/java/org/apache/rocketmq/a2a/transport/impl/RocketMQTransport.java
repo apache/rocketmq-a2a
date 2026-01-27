@@ -174,7 +174,7 @@ public class RocketMQTransport implements ClientTransport {
         this.liteTopic = StringUtils.isEmpty(liteTopic) ? UUID.randomUUID().toString() : liteTopic;
         // Parse RocketMQ resource info from the agent card
         RocketMQResourceInfo rocketAgentCardInfo = parseAgentCardAddition(this.agentCard);
-        if (null == rocketAgentCardInfo ) {
+        if (null == rocketAgentCardInfo) {
             throw new IllegalArgumentException("RocketMQTransport failed to parse RocketMQResourceInfo from AgentCard");
         }
         if (null != rocketMQTransportConfig.getNamespace() && !rocketMQTransportConfig.getNamespace().equals(rocketAgentCardInfo.getNamespace())) {

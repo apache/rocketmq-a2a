@@ -89,6 +89,8 @@ public class RocketMQA2AConstant {
      */
     public static final String HTTPS_URL_PREFIX = "https://";
 
+    public static final String RESOURCE_SPLIT = "/";
+
     /**
      * Protocol identifier used in A2A communication.
      */

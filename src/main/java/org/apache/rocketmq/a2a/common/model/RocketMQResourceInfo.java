@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.HTTPS_URL_PREFIX;
 import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.HTTP_URL_PREFIX;
+import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.RESOURCE_SPLIT;
 
 /**
  * Encapsulates RocketMQ resource information, including endpoint, namespace, and topic.
@@ -33,7 +34,6 @@ import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.HTTP_U
  */
 public class RocketMQResourceInfo {
     private static final Logger log = LoggerFactory.getLogger(RocketMQResourceInfo.class);
-
     /**
      * The namespace of RocketMQ service.
      */
@@ -149,13 +149,14 @@ public class RocketMQResourceInfo {
 
     /**
      * Parses RocketMQ resource info from a URL in format:
-     * {@code http://endpoint/namespace/topic} or {@code https://endpoint/namespace/topic}
+     * {@code http://endpoint/namespace/topic} or {@code https://endpoint/namespace/topic}.
      *
-     * @param agentCardUrl the full URL string
-     * @return a new RocketMQResourceInfo instance, or {@code null} if parsing fails
+     * @param agentCardUrl the full URL string.
+     * @return a new RocketMQResourceInfo instance, or {@code null} if parsing fails.
      */
     public static RocketMQResourceInfo pareAgentCardUrl(String agentCardUrl) {
-        if (StringUtils.isEmpty(agentCardUrl) || (!agentCardUrl.startsWith(HTTPS_URL_PREFIX) && !agentCardUrl.startsWith(HTTP_URL_PREFIX))) {
+        if (StringUtils.isEmpty(agentCardUrl) || !agentCardUrl.startsWith(HTTPS_URL_PREFIX) && !agentCardUrl.startsWith(HTTP_URL_PREFIX)) {
+            log.error("RocketMQResourceInfo pareAgentCardUrl param error, agentCardUrl: [{}]", agentCardUrl);
             return null;
         }
         if (agentCardUrl.startsWith(HTTPS_URL_PREFIX)) {
@@ -163,16 +164,10 @@ public class RocketMQResourceInfo {
         } else if (agentCardUrl.startsWith(HTTP_URL_PREFIX)) {
             agentCardUrl = agentCardUrl.substring(HTTP_URL_PREFIX.length());
         }
-        String[] split = agentCardUrl.split("/");
+        String[] split = agentCardUrl.split(RESOURCE_SPLIT);
         if (split.length != 3) {
             return null;
         }
-        RocketMQResourceInfo rocketMQResourceInfo = new RocketMQResourceInfo();
-        rocketMQResourceInfo.setEndpoint(split[0].trim());
-        rocketMQResourceInfo.setNamespace(split[1].trim());
-        rocketMQResourceInfo.setTopic(split[2].trim());
-        return rocketMQResourceInfo;
+        return RocketMQResourceInfo.builder().endpoint(split[0].trim()).namespace(split[1].trim()).topic(split[2].trim()).build();
     }
-
-
 }
