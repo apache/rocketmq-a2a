@@ -10,7 +10,7 @@
 部署 [Apache RocketMQ](http://rocketmq.apache.org/) 的 LiteTopic 版本(关于开源版本，预计在2月发布)，或购买支持 LiteTopic 的 RocketMQ 商业版实例，并创建以下资源：
 
 - **1.1** 创建 LiteTopic：`WorkerAgentResponse`
-- **1.2** 为 `WorkerAgentResponse` 创建绑定的 Lite 消费者ID：`CID_HOST_AGENT_LITE`
+- **1.2** 为 `WorkerAgentResponse` 创建绑定的 Lite消费者ID：`CID_HOST_AGENT_LITE`
 - **1.3** 创建天气助手普通 Topic：`WeatherAgentTask`
 - **1.4** 创建天气助手普通消费者 ID：`WeatherAgentTaskConsumerGroup`
 - **1.5** 创建行程规划助手普通 Topic：`TravelAgentTask`

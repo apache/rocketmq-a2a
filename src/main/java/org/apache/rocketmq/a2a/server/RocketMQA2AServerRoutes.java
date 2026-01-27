@@ -148,8 +148,6 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
      */
     private static final String WORK_AGENT_RESPONSE_GROUP_ID = System.getProperty("workAgentResponseGroupID","");
 
-    private static volatile Runnable streamingMultiSseSupportSubscribedRunnable;
-
     private final ThreadPoolExecutor executor = new ThreadPoolExecutor(
         6, 6, 60L, TimeUnit.SECONDS,
         new ArrayBlockingQueue<>(100_000),
@@ -298,11 +296,10 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
     /**
      * Converts a {@link JsonProcessingException} into a corresponding JSON-RPC error response.
      * <p>
-     * This method inspects the type of the exception to determine the appropriate JSON-RPC error code
-     * (e.g., parse error, invalid request, method not found) and preserves the request ID if available.
+     * This method inspects the type of the exception to determine the appropriate JSON-RPC error code.
      *
-     * @param exception the JSON parsing or mapping exception thrown during request deserialization
-     * @return a {@link JSONRPCErrorResponse} representing the error in JSON-RPC format
+     * @param exception the JSON parsing or mapping exception thrown during request deserialization.
+     * @return a {@link JSONRPCErrorResponse} representing the error in JSON-RPC format.
      */
     private JSONRPCErrorResponse handleError(JsonProcessingException exception) {
         Object id = null;
@@ -333,9 +330,9 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
      * Supported request types include task management, message sending, and push notification configuration.
      * If the request type is not recognized, an {@link UnsupportedOperationError} is returned.
      *
-     * @param request the incoming non-streaming JSON-RPC request
-     * @param context the server call context (may be {@code null})
-     * @return the JSON-RPC response corresponding to the request
+     * @param request the incoming non-streaming JSON-RPC request.
+     * @param context the server call context (may be {@code null}).
+     * @return the JSON-RPC response corresponding to the request.
      */
     private JSONRPCResponse<?> processNonStreamingRequest(NonStreamingJSONRPCRequest<?> request,
         ServerCallContext context) {
@@ -371,9 +368,9 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
      * </ul>
      * Unsupported request types result in an immediate error response wrapped in a {@link Multi}.
      *
-     * @param request the incoming streaming JSON-RPC request
-     * @param context the server call context (may be {@code null})
-     * @return a reactive stream ({@link Multi}) of JSON-RPC responses
+     * @param request the incoming streaming JSON-RPC request.
+     * @param context the server call context (may be {@code null}).
+     * @return a reactive stream ({@link Multi}) of JSON-RPC responses.
      */
     private Multi<? extends JSONRPCResponse<?>> processStreamingRequest(JSONRPCRequest<?> request, ServerCallContext context) {
         Flow.Publisher<? extends JSONRPCResponse<?>> publisher;
@@ -397,10 +394,6 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
      */
     private JSONRPCResponse<?> generateErrorResponse(JSONRPCRequest<?> request, JSONRPCError error) {
         return new JSONRPCErrorResponse(request.getId(), error);
-    }
-
-    static void setStreamingMultiSseSupportSubscribedRunnable(Runnable runnable) {
-        streamingMultiSseSupportSubscribedRunnable = runnable;
     }
 
     /**
@@ -435,10 +428,6 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
                     this.upstream = subscription;
                     // Request first item
                     this.upstream.request(1);
-                    Runnable runnable = streamingMultiSseSupportSubscribedRunnable;
-                    if (runnable != null) {
-                        runnable.run();
-                    }
                 }
 
                 @Override
@@ -446,9 +435,8 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
                     try {
                         // Construct a RocketMQResponse object for the incremental data item from the upstream output
                         RocketMQResponse response = new RocketMQResponse(item.toString(), msgId, true, false);
-                        SendReceipt send = producer.send(
-                            buildMessageForResponse(workAgentResponseTopic, liteTopic, response));
-                        log.debug("MultiSseSupport send response success, msgId: {}, time: {}", send.getMessageId(), System.currentTimeMillis(), JSON.toJSONString(response));
+                        SendReceipt send = producer.send(buildMessageForResponse(workAgentResponseTopic, liteTopic, response));
+                        log.debug("MultiSseSupport send response success, msgId: [{}], time: [{}], response: [{}]", send.getMessageId(), System.currentTimeMillis(), JSON.toJSONString(response));
                     } catch (Exception e) {
                         log.error("MultiSseSupport send stream error, {}", e.getMessage());
                     }
@@ -468,8 +456,7 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
                     RocketMQResponse response = new RocketMQResponse(null, msgId, true, true);
                     try {
                         // Send the corresponding response result via RocketMQ Producer
-                        SendReceipt send = producer.send(
-                            buildMessageForResponse(workAgentResponseTopic, liteTopic, response));
+                        SendReceipt send = producer.send(buildMessageForResponse(workAgentResponseTopic, liteTopic, response));
                         log.debug("MultiSseSupport send response success, msgId: {}, time: {}, response: {}", send.getMessageId(), System.currentTimeMillis(), JSON.toJSONString(response));
                     } catch (ClientException e) {
                         log.error("MultiSseSupport error send complete, msgId: {}", e.getMessage());
@@ -482,12 +469,12 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
         /**
          * Subscribes to a stream of objects, formats them as SSE messages, and sends via RocketMQ.
          *
-         * @param multi                  the stream of response objects
-         * @param rc                     routing context (may be null)
-         * @param workAgentResponseTopic the topic where the client listens for responses
-         * @param liteTopic              the client's session-specific lite topic (used for correlation)
-         * @param msgId                  the original message ID for request-response correlation
-         * @param completableFuture      completes with true on success, false on error
+         * @param multi the stream of response objects.
+         * @param rc routing context.
+         * @param workAgentResponseTopic the topic where the client listens for responses.
+         * @param liteTopic the client's session-specific lite topic (used for correlation).
+         * @param msgId the original message ID for request-response correlation.
+         * @param completableFuture completes with true on success, false on error.
          */
         public void subscribeObjectRocketMQ(Multi<Object> multi, RoutingContext rc, String workAgentResponseTopic,
             String liteTopic, String msgId, CompletableFuture<Boolean> completableFuture) {

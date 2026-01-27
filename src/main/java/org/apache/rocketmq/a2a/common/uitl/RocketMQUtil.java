@@ -102,11 +102,11 @@ public class RocketMQUtil {
      * <p>All parameters are mandatory. If any is {@code null} or empty, an {@link IllegalArgumentException}
      * is thrown with detailed information about which field(s) failed validation.
      *
-     * @param endpoint the network address of the RocketMQ service, used by clients to connect to a specific RocketMQ cluster
-     * @param workAgentResponseTopic the lightweight topic used to receive asynchronous replies todo
-     * @param workAgentResponseGroupID the consumer group ID (CID) for subscribing to the response topic {@code workAgentResponseTopic}
-     * @param liteTopic the lite topic for streaming or fast-path responses todo
-     * @param agentTopic the normal business topic bound to the target agent
+     * @param endpoint the network address of the RocketMQ service, used by clients to connect to a specific RocketMQ cluster.
+     * @param workAgentResponseTopic the lightweight topic used to receive asynchronous replies.
+     * @param workAgentResponseGroupID the consumer group ID (CID) for subscribing to the response topic {@code workAgentResponseTopic}.
+     * @param liteTopic LiteTopic is a lightweight session identifier, similar to a SessionId, dynamically created at runtime for data storage and isolation.
+     * @param agentTopic the normal business topic bound to the target agent.
      */
     public static void checkConfigParam(String endpoint, String workAgentResponseTopic, String workAgentResponseGroupID, String liteTopic, String agentTopic) {
         Map<String, String> params = new HashMap<>();
@@ -164,12 +164,12 @@ public class RocketMQUtil {
      * Creates a new {@link Producer} without caching.
      *
      * @param namespace the namespace used for logical isolation of RocketMQ resources.
-     * @param endpoint  the network endpoint of the RocketMQ service.
+     * @param endpoint the network endpoint of the RocketMQ service.
      * @param accessKey the access key for authenticating with the RocketMQ service.
      * @param secretKey the secret key for authenticating with the RocketMQ service.
      * @param topics the destination topics this producer is allowed to send to.
      * @return a Producer instance.
-     * @throws ClientException if client initialization fails
+     * @throws ClientException if client initialization fails.
      */
     public static Producer buildProducer(String namespace, String endpoint, String accessKey, String secretKey, String... topics) throws ClientException {
         if (null == namespace || StringUtils.isEmpty(endpoint)) {
@@ -237,7 +237,7 @@ public class RocketMQUtil {
     /**
      * Creates a new {@link LitePushConsumer} without caching.
      *
-     * @param endpoint  the network endpoint of the RocketMQ service.
+     * @param endpoint the network endpoint of the RocketMQ service.
      * @param namespace the namespace used for logical isolation of RocketMQ resources.
      * @param accessKey the access key for authenticating with the RocketMQ service.
      * @param secretKey the secret key for authenticating with the RocketMQ service.
@@ -461,6 +461,29 @@ public class RocketMQUtil {
             log.debug("RocketMQUtil No SSE listener map found for namespace: [{}]", namespace);
             return ConsumeResult.SUCCESS;
         }
+        SSEEventListener sseEventListener = getSSEEventListener(sseEventListenerMap, response, namespace, liteTopic);
+        if (null == sseEventListener) {
+            return ConsumeResult.SUCCESS;
+        }
+        // Extract and process payload
+        parseAndEmit(response, sseEventListener);
+        // Clean up listener if this is the final message
+        if (response.isEnd()) {
+            sseEventListenerMap.remove(response.getMessageId());
+            log.debug("RocketMQUtil remove SSE event listener for completed stream, msgId: [{}]", response.getMessageId());
+        }
+        return ConsumeResult.SUCCESS;
+    }
+    /**
+     * Retrieves the appropriate {@link SSEEventListener} for handling a received message from RocketMQ.
+     *
+     * @param sseEventListenerMap the map of active listeners keyed by message ID (request-specific)
+     * @param response the incoming {@link RocketMQResponse}.
+     * @param namespace the RocketMQ namespace.
+     * @param liteTopic the specific LiteTopic.
+     * @return the resolved {@link SSEEventListener}, or {@code null}.
+     */
+    private static SSEEventListener getSSEEventListener(Map<String, SSEEventListener> sseEventListenerMap, RocketMQResponse response, String namespace, String liteTopic) {
         // Try to get the specific listener by messageId
         SSEEventListener sseEventListener = sseEventListenerMap.get(response.getMessageId());
         // If not found, check if we can use the default recovery listener
@@ -468,16 +491,26 @@ public class RocketMQUtil {
             Map<String, Boolean> recoverFlagMap = LITE_TOPIC_USE_DEFAULT_RECOVER_MAP.get(namespace);
             if (null == recoverFlagMap || !Boolean.TRUE.equals(recoverFlagMap.get(liteTopic))) {
                 log.debug("RocketMQUtil No SSE listener for msgId: [{}], and recovery is not enabled for liteTopic: [{}]", response.getMessageId(), liteTopic);
-                return ConsumeResult.SUCCESS;
+                return null;
             }
             Map<String, SSEEventListener> recoverListenerMap = RECOVER_MESSAGE_STREAM_RESPONSE_MAP.get(namespace);
             if (recoverListenerMap == null || null == recoverListenerMap.get(RocketMQA2AConstant.DEFAULT_STREAM_RECOVER)) {
                 log.debug("RocketMQUtil recoverListenerMap is null or default SSE Listener is null, namespace: [{}]", namespace);
-                return ConsumeResult.SUCCESS;
+                return null;
             }
             sseEventListener = recoverListenerMap.get(RocketMQA2AConstant.DEFAULT_STREAM_RECOVER);
         }
-        // Extract and process payload
+        return sseEventListener;
+    }
+
+    /**
+     * Parses the response body from a {@link RocketMQResponse} and emits the processed message
+     * to the provided {@link SSEEventListener} for real-time streaming to clients.
+     *
+     * @param response the incoming remote agent response.
+     * @param sseEventListener the event listener that forwards data to the client over SSE.
+     */
+    private static void parseAndEmit(RocketMQResponse response, SSEEventListener sseEventListener) {
         String item = response.getResponseBody();
         if (!StringUtils.isEmpty(item)) {
             String prefix = RocketMQA2AConstant.DATA_PREFIX;
@@ -492,28 +525,10 @@ public class RocketMQUtil {
                 }
             }
         }
-        // Clean up listener if this is the final message
-        if (response.isEnd()) {
-            sseEventListenerMap.remove(response.getMessageId());
-            log.debug("RocketMQUtil remove SSE event listener for completed stream, msgId: [{}]", response.getMessageId());
-        }
-        return ConsumeResult.SUCCESS;
     }
 
     /**
      * Processes a non-streaming (one-time) A2A response and completes the corresponding async future.
-     *
-     * <p>Additionally, based on the request type:
-     * <ul>
-     *   <li>{@link SendMessageResponse}: caches server-side topics in {@link #TASK_SERVER_RECEIPT_MAP} for sticky routing</li>
-     *   <li>{@link CancelTaskResponse} or completed {@link GetTaskResponse}: removes cached server info</li>
-     * </ul>
-     *
-     * <p>This enables features like:
-     * <ul>
-     *   <li>Sticky session: follow-up requests routed to the same agent instance</li>
-     *   <li>Cleanup after cancellation or completion</li>
-     * </ul>
      *
      * @param response the received response message.
      * @param namespace logical isolation unit (e.g., tenant/environment)
@@ -550,7 +565,7 @@ public class RocketMQUtil {
                 handleGetTaskResponse(response);
             }
         } catch (JsonProcessingException e) {
-            log.warn("RocketMQUtil failed to deserialize response for messageId [{}]. Ignoring post-processing.", response.getMessageId(), e);
+            log.warn("RocketMQUtil failed to deserialize response for messageId: [{}]. Ignoring post-processing.", response.getMessageId(), e);
         }
         return ConsumeResult.SUCCESS;
     }
@@ -566,7 +581,7 @@ public class RocketMQUtil {
         }
         ServerReceiptInfo info = new ServerReceiptInfo(response.getServerWorkAgentResponseTopic(), response.getServerLiteTopic());
         TASK_SERVER_RECEIPT_MAP.putIfAbsent(task.getId(), info);
-        log.debug("Cached server receipt for new task, taskId: [{}], workTopic=[{}], liteTopic=[{}]", task.getId(), info.getServerWorkAgentResponseTopic(), info.getServerLiteTopic());
+        log.debug("Cached server receipt for new task, taskId: [{}], workAgentResponseTopic: [{}], liteTopic: [{}]", task.getId(), info.getServerWorkAgentResponseTopic(), info.getServerLiteTopic());
     }
 
     /**
@@ -596,7 +611,7 @@ public class RocketMQUtil {
         if (status != null && status.state() == TaskState.COMPLETED) {
             ServerReceiptInfo removed = TASK_SERVER_RECEIPT_MAP.remove(task.getId());
             if (removed != null) {
-                log.debug("Removed server receipt after task completion: taskId={}", task.getId());
+                log.debug("Removed server receipt after task completion, taskId: [{}]", task.getId());
             }
         }
     }
@@ -611,7 +626,7 @@ public class RocketMQUtil {
      *   <li>Removes the entry upon completion or timeout to prevent memory leaks</li>
      * </ul>
      *
-     * @param responseMessageId the unique message ID of the sent request.
+     * @param responseMessageId the unique message ID of the request.
      * @param namespace namespace used for logical isolation of RocketMQ resources.
      * @param typeReference the expected response type for later deserialization.
      * @return the raw JSON response string.

@@ -45,7 +45,7 @@ public class A2AResponseFuture {
      *
      * @param completableFuture a {@link CompletableFuture} containing the raw JSON response
      *                          from a remote agent.
-     * @param typeReference     a {@link TypeReference} specifying the target type for
+     * @param typeReference a {@link TypeReference} specifying the target type for
      *                          deserializing the JSON response.
      */
     public A2AResponseFuture(CompletableFuture<String> completableFuture, TypeReference typeReference) {

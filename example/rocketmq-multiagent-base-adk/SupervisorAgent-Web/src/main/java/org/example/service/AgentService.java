@@ -83,7 +83,7 @@ public class AgentService {
     private static final String APP_NAME = "rocketmq_a2a";
 
     /**
-     * Sub-agent names and URLs
+     * Sub-agent names and URLs.
      */
     private static final String WEATHER_AGENT_NAME = "WeatherAgent";
     private static final String WEATHER_AGENT_URL = "http://localhost:8080";
@@ -164,7 +164,7 @@ public class AgentService {
             missing.add("apiKey (API key for SupervisorAgent using Qwen-plus model)");
         }
         if (!missing.isEmpty()) {
-            String msg = "Missing required configuration: " + String.join(", ", missing);
+            String msg = "missing required configuration: " + String.join(", ", missing);
             log.error(msg);
             throw new IllegalArgumentException(msg);
         }
@@ -261,7 +261,7 @@ public class AgentService {
             // Create a new sink to support multicast streaming
             Sinks.Many<String> sink = Sinks.many().multicast().onBackpressureBuffer();
             if (CollectionUtils.isEmpty(taskInfoList)) {
-                log.debug("No active tasks found for session. Returning completion message. userId: [{}], sessionId: [{}]", userId, sessionId);
+                log.debug("no active tasks found for session. Returning completion message. userId: [{}], sessionId: [{}]", userId, sessionId);
                 return Flux.just("all task have been completed");
             }
             // Rebind the new sink to all existing tasks
@@ -278,16 +278,16 @@ public class AgentService {
                 for (Client client : clients) {
                     try {
                         client.resubscribe(new TaskIdParams("", metadata));
-                        log.debug("Sent resubscribe command to client: [{}], sessionId: [{}]", client, sessionId);
+                        log.debug("sent resubscribe command to client: [{}], sessionId: [{}]", client, sessionId);
                     } catch (Exception e) {
-                        log.error("Failed to resubscribe client during stream recovery. client: [{}], userId: [{}], sessionId: [{}]", client, userId, sessionId, e);
+                        log.error("failed to resubscribe client during stream recovery. client: [{}], userId: [{}], sessionId: [{}]", client, userId, sessionId, e);
                     }
                 }
             }
             log.debug("resubscribeStream Successfully, userId: [{}], sessionId: [{}]", userId, sessionId);
             return Flux.from(sink.asFlux());
         } catch (Exception e) {
-            log.error("Unexpected error during resubscribeStream, userId: [{}], sessionId: [{}]", userId, sessionId, e);
+            log.error("unexpected error during resubscribeStream, userId: [{}], sessionId: [{}]", userId, sessionId, e);
             return Flux.error(new RuntimeException("resubscribeStream error", e));
         }
     }
@@ -421,7 +421,7 @@ public class AgentService {
             return;
         }
         AgentCard finalAgentCard = new A2ACardResolver(agentUrl).getAgentCard();
-        log.info("Successfully fetched public agent card: [{}]", finalAgentCard.description());
+        log.info("successfully fetched public agent card: [{}]", finalAgentCard.description());
         // config rocketmq info
         RocketMQTransportConfig rocketMQTransportConfig = new RocketMQTransportConfig();
         rocketMQTransportConfig.setNamespace(ROCKETMQ_NAMESPACE);
@@ -435,7 +435,7 @@ public class AgentService {
             .withTransport(RocketMQTransport.class, rocketMQTransportConfig)
             .build();
         AgentClientMap.put(agentName, client);
-        log.info("Successfully initialized and registered agent client. agentName: [{}], url: [{}]", agentName, agentUrl);
+        log.info("successfully initialized and registered agent client. agentName: [{}], url: [{}]", agentName, agentUrl);
     }
 
     /**

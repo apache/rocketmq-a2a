@@ -83,10 +83,10 @@ public class RocketMQResponse {
     /**
      * Constructs a new RocketMQResponse instance for simple responses.
      *
-     * @param responseBody the response payload (e.g., JSON)
-     * @param messageId    the original request message ID for acknowledgment
-     * @param isStream     true if this is a streaming response
-     * @param isEnd        true if this is the last message in the stream
+     * @param responseBody the response payload (e.g., JSON).
+     * @param messageId the original request message ID for acknowledgment.
+     * @param isStream true if this is a streaming response.
+     * @param isEnd true if this is the last message in the stream.
      */
     public RocketMQResponse(String responseBody, String messageId, boolean isStream, boolean isEnd) {
         this.responseBody = responseBody;

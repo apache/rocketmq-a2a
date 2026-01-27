@@ -82,10 +82,10 @@ public class RocketMQTransportConfig extends ClientTransportConfig<RocketMQTrans
     /**
      * Creates a configuration instance for RocketMQTransport.
      *
-     * @param accessKey  the access key for authenticating with the RocketMQ service.
-     * @param secretKey  the secret key for authenticating with the RocketMQ service.
-     * @param endpoint   the network endpoint of the RocketMQ service.
-     * @param namespace  the namespace used for logical isolation of RocketMQ resources.
+     * @param accessKey the access key for authenticating with the RocketMQ service.
+     * @param secretKey the secret key for authenticating with the RocketMQ service.
+     * @param endpoint the network endpoint of the RocketMQ service.
+     * @param namespace the namespace used for logical isolation of RocketMQ resources.
      * @param agentTopic the RocketMQ topic associated with the target agent, used as the destination for client requests.
      * @param httpClient HttpClient.
      */
@@ -101,14 +101,14 @@ public class RocketMQTransportConfig extends ClientTransportConfig<RocketMQTrans
     /**
      * Creates a configuration instance for RocketMQTransport.
      *
-     * @param accessKey                the access key for authenticating with the RocketMQ service.
-     * @param secretKey                the secret key for authenticating with the RocketMQ service.
-     * @param endpoint                 the network endpoint of the RocketMQ service.
-     * @param namespace                the namespace used for logical isolation of RocketMQ resources.
-     * @param workAgentResponseTopic   the lightweight topic used to receive asynchronous replies.
+     * @param accessKey the access key for authenticating with the RocketMQ service.
+     * @param secretKey the secret key for authenticating with the RocketMQ service.
+     * @param endpoint the network endpoint of the RocketMQ service.
+     * @param namespace the namespace used for logical isolation of RocketMQ resources.
+     * @param workAgentResponseTopic the lightweight topic used to receive asynchronous replies.
      * @param workAgentResponseGroupID the consumer group ID used when subscribing to the {@link #workAgentResponseTopic}.
-     * @param agentTopic               the RocketMQ topic associated with the target agent, used as the destination for client requests.
-     * @param httpClient               HttpClient.
+     * @param agentTopic the RocketMQ topic associated with the target agent, used as the destination for client requests.
+     * @param httpClient HttpClient.
      */
     public RocketMQTransportConfig(String accessKey, String secretKey, String endpoint, String namespace,
         String workAgentResponseTopic, String workAgentResponseGroupID, String agentTopic, A2AHttpClient httpClient) {
@@ -125,17 +125,17 @@ public class RocketMQTransportConfig extends ClientTransportConfig<RocketMQTrans
     /**
      * Creates a configuration instance for RocketMQTransport.
      *
-     * @param accessKey                the access key for authenticating with the RocketMQ service.
-     * @param secretKey                the secret key for authenticating with the RocketMQ service.
-     * @param endpoint                 the network endpoint of the RocketMQ service.
-     * @param namespace                the namespace used for logical isolation of RocketMQ resources.
-     * @param workAgentResponseTopic   the lightweight topic used to receive asynchronous replies.
+     * @param accessKey the access key for authenticating with the RocketMQ service.
+     * @param secretKey the secret key for authenticating with the RocketMQ service.
+     * @param endpoint the network endpoint of the RocketMQ service.
+     * @param namespace the namespace used for logical isolation of RocketMQ resources.
+     * @param workAgentResponseTopic the lightweight topic used to receive asynchronous replies.
      * @param workAgentResponseGroupID the consumer group ID used when subscribing to the {@link #workAgentResponseTopic}.
-     * @param agentTopic               the RocketMQ topic associated with the target agent, used as the destination for client requests.
-     * @param httpClient               HttpClient
-     * @param liteTopic                Typically, a liteTopic that is bound to {@link #workAgentResponseTopic}.
-     *                                 LiteTopic is a lightweight session identifier, similar to a SessionId, dynamically created at runtime for data storage and isolation.
-     * @param useDefaultRecoverMode    Whether to use the default recovery mode
+     * @param agentTopic the RocketMQ topic associated with the target agent, used as the destination for client requests.
+     * @param httpClient HttpClient
+     * @param liteTopic Typically, a liteTopic that is bound to {@link #workAgentResponseTopic}.
+     * LiteTopic is a lightweight session identifier, similar to a SessionId, dynamically created at runtime for data storage and isolation.
+     * @param useDefaultRecoverMode Whether to use the default recovery mode.
      */
     public RocketMQTransportConfig(String accessKey, String secretKey, String endpoint, String namespace, String workAgentResponseTopic, String workAgentResponseGroupID, String agentTopic, A2AHttpClient httpClient, String liteTopic, boolean useDefaultRecoverMode) {
         this.accessKey = accessKey;

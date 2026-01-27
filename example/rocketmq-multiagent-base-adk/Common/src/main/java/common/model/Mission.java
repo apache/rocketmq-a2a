@@ -35,15 +35,11 @@ public class Mission {
 
     /**
      * A unique identifier for the task associated with this mission.
-     * <p>
-     * May be {@code null} if the mission does not correspond to a long-running task.
      */
     private String taskId;
 
     /**
      * The session ID used to correlate related missions within the same user or client session.
-     * <p>
-     * This field supports session-scoped routing, recovery, or state management.
      */
     private String sessionId;
 

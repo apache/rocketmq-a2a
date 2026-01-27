@@ -39,9 +39,9 @@ public class RocketMQTransportProvider implements ClientTransportProvider<Rocket
      * <p>
      * If the given {@code clientTransportConfig} is {@code null}, a default configuration will be created using a standard {@link JdkA2AHttpClient}.
      *
-     * @param clientTransportConfig the transport configuration (may be {@code null}).
-     * @param agentCard             the agent's identity and metadata.
-     * @param agentUrl              the remote agent's endpoint URL (used for routing or diagnostics).
+     * @param clientTransportConfig the transport configuration.
+     * @param agentCard the agent's identity and metadata.
+     * @param agentUrl the remote agent's endpoint URL (used for routing or diagnostics).
      * @return a configured {@link RocketMQTransport} instance.
      * @throws A2AClientException if transport creation fails due to invalid configuration or initialization error.
      */

@@ -31,7 +31,7 @@ import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.ROCKET
  * Producer for the public {@link AgentCard} that describes this service's capabilities.
  * <p>
  * This card is used in A2A (Agent-to-Agent) ecosystems to enable discovery, interoperability,
- * and invocation of this agent’s skills (e.g., travel planning with weather awareness).
+ * and invocation of this agent’s skills.
  * </p>
  * <p>
  * The card includes:
@@ -51,14 +51,14 @@ import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.ROCKET
 @ApplicationScoped
 public class AgentCardProducer {
     /**
-     * Required configuration keys
+     * Required configuration keys.
      */
     private static final String PROP_ENDPOINT = "rocketMQEndpoint";
     private static final String PROP_NAMESPACE = "rocketMQNamespace";
     private static final String PROP_TOPIC = "bizTopic";
 
     /**
-     * Read from system properties
+     * Read from system properties.
      */
     private static final String ROCKETMQ_ENDPOINT = System.getProperty(PROP_ENDPOINT, "");
     private static final String ROCKETMQ_NAMESPACE = System.getProperty(PROP_NAMESPACE, "");
@@ -66,13 +66,12 @@ public class AgentCardProducer {
 
     /**
      * Produces the public agent card used for service discovery and capability negotiation.
-     * @return fully configured {@link AgentCard}
-     * @throws IllegalArgumentException if required config is missing
+     * @return fully configured {@link AgentCard}.
+     * @throws IllegalArgumentException if required config is missing.
      */
     @Produces
     @PublicAgentCard
     public AgentCard agentCard() {
-
         return new AgentCard.Builder()
                 .name("行程规划助手Agent")
                 .description("擅长按照天气的信息帮助用户制定旅行等规划")
@@ -102,7 +101,7 @@ public class AgentCardProducer {
      * Constructs a formatted RocketMQ Lite HTTP endpoint URL for topic access.
      * @return a valid RocketMQ Lite URL suitable for use with A2A SDK.
      * @throws IllegalArgumentException if either {@link #ROCKETMQ_ENDPOINT} or {@link #BIZ_TOPIC} is null or blank,
-     * indicating missing critical configuration
+     * indicating missing critical configuration.
      */
     private static String buildRocketMQUrl() {
         if (StringUtils.isEmpty(ROCKETMQ_ENDPOINT) || StringUtils.isEmpty(BIZ_TOPIC)) {

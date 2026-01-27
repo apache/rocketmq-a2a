@@ -50,7 +50,7 @@ public class RocketMQResourceInfo {
     private String topic;
 
     /**
-     * Constructs a new RocketMQResourceInfo
+     * Constructs a new RocketMQResourceInfo.
      */
     public RocketMQResourceInfo() {}
 

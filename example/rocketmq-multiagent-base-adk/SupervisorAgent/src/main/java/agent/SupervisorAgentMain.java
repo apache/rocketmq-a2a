@@ -82,7 +82,7 @@ public class SupervisorAgentMain {
     private static final String APP_NAME = "rocketmq_a2a";
 
     /**
-     * Sub-agent names and URLs
+     * Sub-agent names and URLs.
      */
     private static final String WEATHER_AGENT_NAME = "WeatherAgent";
     private static final String WEATHER_AGENT_URL = "http://localhost:8080";
@@ -120,7 +120,7 @@ public class SupervisorAgentMain {
     private static final String API_KEY = System.getProperty("apiKey");
 
     /**
-     * Role identifiers
+     * Role identifiers.
      */
     private static final String YOU = "You";
     private static final String AGENT = "Agent";
@@ -279,7 +279,7 @@ public class SupervisorAgentMain {
     /**
      * Processes the response content returned by the main Agent's LLM and triggers subsequent reasoning workflows.
      *
-     * @param eventContent The response content returned by the LLM.
+     * @param eventContent the response content returned by the LLM.
      */
     private static void dealEventContent(String eventContent) {
         if (StringUtils.isEmpty(eventContent)) {
@@ -306,7 +306,7 @@ public class SupervisorAgentMain {
     /**
      * Forwards a task to the specified agent.
      *
-     * @param mission The task instruction to be forwarded.
+     * @param mission the task instruction to be forwarded.
      */
     private static void forwardMissionToAgent(Mission mission) {
         if (null == mission || StringUtils.isEmpty(mission.getAgent()) || StringUtils.isEmpty(mission.getMessageInfo())) {
@@ -326,8 +326,8 @@ public class SupervisorAgentMain {
     /**
      * Registers a remote agent client (via AgentCard).
      *
-     * @param agentName The name of the agent.
-     * @param agentUrl The service URL of the agent.
+     * @param agentName the name of the agent.
+     * @param agentUrl the service URL of the agent.
      */
     private static void registerAgentClient(String agentName, String agentUrl) {
         if (StringUtils.isEmpty(agentName) || StringUtils.isEmpty(agentUrl)) {
@@ -388,8 +388,8 @@ public class SupervisorAgentMain {
     /**
      * Extracts the text content from an Artifact.
      *
-     * @param artifact The content fragment (Artifact) to extract text from.
-     * @return A concatenated string of all text parts, or an empty string if none exist.
+     * @param artifact the content fragment (Artifact) to extract text from.
+     * @return a concatenated string of all text parts, or an empty string if none exist.
      */
     private static String extractTextFromMessage(Artifact artifact) {
         if (artifact == null || CollectionUtils.isEmpty(artifact.parts())) {return "";}
@@ -402,7 +402,7 @@ public class SupervisorAgentMain {
     /**
      * Processes the response from a sub-agent and triggers subsequent reasoning steps.
      *
-     * @param result The content returned by the sub-agent.
+     * @param result the content returned by the sub-agent.
      */
     private static void dealAgentResponse(String result) {
         if (StringUtils.isEmpty(result)) {

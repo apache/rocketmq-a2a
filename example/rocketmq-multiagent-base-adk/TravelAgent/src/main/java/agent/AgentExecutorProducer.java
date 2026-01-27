@@ -47,15 +47,15 @@ import org.slf4j.LoggerFactory;
  * Producer for the {@link AgentExecutor} that handles incoming agent execution requests.
  * <p>
  * This executor:
- * - Extracts user input from the request message
- * - Manages task lifecycle (create, update, stream, complete, cancel)
- * - Streams responses from the external application (e.g., LLM) via {@link #appCallStream(String)}
- * - Updates the task in real-time using {@link TaskUpdater}
- * </p>
+ * - Extracts user input from the request message.
+ * - Manages task lifecycle (create, update, stream, complete, cancel).
+ * - Streams responses from the external application (e.g., LLM) via {@link #appCallStream(String)}.
+ * - Updates the task in real-time using {@link TaskUpdater}.
+ *
  * <p>
  * Built as an anonymous inner class to encapsulate stateless execution logic.
  * Requires system properties 'apiKey' and 'appId' to be set at startup.
- * </p>
+ *
  */
 @ApplicationScoped
 public class AgentExecutorProducer {
@@ -74,14 +74,14 @@ public class AgentExecutorProducer {
             /**
              * Executes a new task based on the incoming request context.
              *
-             * @param context     the execution context containing message and task info
-             * @param eventQueue  the queue used to emit task events (e.g., updates, completion)
-             * @throws JSONRPCError if an invalid request or state is encountered
+             * @param context the execution context containing message and task info.
+             * @param eventQueue the queue used to emit task events (e.g., updates, completion).
+             * @throws JSONRPCError if an invalid request or state is encountered.
              */
             @Override
             public void execute(RequestContext context, EventQueue eventQueue) throws JSONRPCError {
                 String userMessage = extractTextFromMessage(context.getMessage());
-                log.info("Received user message for execution. userMessage: [{}]", userMessage);
+                log.info("received user message for execution. userMessage: [{}]", userMessage);
                 Task task = context.getTask();
                 if (task == null) {
                     task = createTask(context.getMessage());
@@ -101,8 +101,8 @@ public class AgentExecutorProducer {
                     }
                     taskUpdater.complete();
                 } catch (Exception e) {
-                    log.error("Error processing streaming output", e);
-                    taskUpdater.startWork(taskUpdater.newAgentMessage(List.of(new TextPart("Error processing streaming output: " + e.getMessage())), Map.of()));
+                    log.error("error processing streaming output", e);
+                    taskUpdater.startWork(taskUpdater.newAgentMessage(List.of(new TextPart("error processing streaming output: " + e.getMessage())), Map.of()));
                     taskUpdater.fail();
                 }
             }
@@ -125,13 +125,13 @@ public class AgentExecutorProducer {
                 }
                 TaskState state = task.getStatus().state();
                 if (state == TaskState.CANCELED || state == TaskState.COMPLETED) {
-                    log.warn("Cannot cancel task, already in terminal state. taskId: [{}], state: [{}]", task.getId(), state);
+                    log.warn("can't cancel task, already in terminal state. taskId: [{}], state: [{}]", task.getId(), state);
                     throw new TaskNotCancelableError();
                 }
                 // cancel the task
                 TaskUpdater updater = new TaskUpdater(context, eventQueue);
                 updater.cancel();
-                log.info("Task canceled by user. taskId: [{}]", task.getId());
+                log.info("task canceled by user. taskId: [{}]", task.getId());
             }
         };
     }
