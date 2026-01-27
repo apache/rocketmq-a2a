@@ -235,16 +235,17 @@ public class QwenModel extends BaseLlm {
      */
     private String extractSystemInstruction(LlmRequest llmRequest) {
         Optional<GenerateContentConfig> configOpt = llmRequest.config();
-        if (configOpt.isPresent()) {
-            Optional<Content> systemInstructionOpt = configOpt.get().systemInstruction();
-            if (systemInstructionOpt.isPresent()) {
-                return systemInstructionOpt.get().parts().orElse(ImmutableList.of()).stream()
-                    .filter(p -> p.text().isPresent())
-                    .map(p -> p.text().get())
-                    .collect(Collectors.joining("\n"));
-            }
+        if (configOpt.isEmpty()) {
+            return "";
         }
-        return "";
+        Optional<Content> systemInstructionOpt = configOpt.get().systemInstruction();
+        if (systemInstructionOpt.isEmpty()) {
+            return "";
+        }
+        return systemInstructionOpt.get().parts().orElse(ImmutableList.of()).stream()
+            .filter(p -> p.text().isPresent())
+            .map(p -> p.text().get())
+            .collect(Collectors.joining("\n"));
     }
 
     /**
