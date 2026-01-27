@@ -579,7 +579,7 @@ public class RocketMQUtil {
         if (task == null || StringUtils.isEmpty(task.getId())) {
             return;
         }
-        ServerReceiptInfo info = new ServerReceiptInfo(response.getServerWorkAgentResponseTopic(), response.getServerLiteTopic());
+        ServerReceiptInfo info = ServerReceiptInfo.builder().serverWorkAgentResponseTopic(response.getServerWorkAgentResponseTopic()).serverLiteTopic(response.getServerLiteTopic()).build();
         TASK_SERVER_RECEIPT_MAP.putIfAbsent(task.getId(), info);
         log.debug("RocketMQUtil cached server receipt for new task, taskId: [{}], workAgentResponseTopic: [{}], liteTopic: [{}]", task.getId(), info.getServerWorkAgentResponseTopic(), info.getServerLiteTopic());
     }

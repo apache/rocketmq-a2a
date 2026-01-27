@@ -113,7 +113,7 @@ public class RocketMQResourceInfo {
      */
     public static RocketMQResourceInfo parseAgentCardAddition(AgentCard agentCard) {
         if (null == agentCard || StringUtils.isEmpty(agentCard.preferredTransport()) || StringUtils.isEmpty(agentCard.url()) || CollectionUtils.isEmpty(agentCard.additionalInterfaces())) {
-            log.error("RocketMQTransport parseAgentCardAddition param error, agentCard: {}", JSON.toJSONString(agentCard));
+            log.error("RocketMQTransport parseAgentCardAddition param error, agentCard: [{}]", JSON.toJSONString(agentCard));
             return null;
         }
         RocketMQResourceInfo rocketMQResourceInfo = null;
@@ -128,6 +128,10 @@ public class RocketMQResourceInfo {
         }
         // If the preferredTransport is not RocketMQ, then try to get rocketmq info from additionalInterfaces
         List<AgentInterface> agentInterfaces = agentCard.additionalInterfaces();
+        if (CollectionUtils.isEmpty(agentInterfaces)) {
+            log.warn("parseAgentCardAddition agentInterfaces is empty");
+            return null;
+        }
         for (AgentInterface agentInterface : agentInterfaces) {
             String transport = agentInterface.transport();
             if (!StringUtils.isEmpty(transport) && RocketMQA2AConstant.ROCKETMQ_PROTOCOL.equals(transport)) {

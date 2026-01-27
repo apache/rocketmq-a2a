@@ -64,24 +64,6 @@ public class RocketMQRequest {
      */
     private String liteTopic;
 
-    /**
-     * Constructs a new RocketMQRequest with the given parameters.
-     *
-     * @param requestBody the serialized request body (e.g., JSON).
-     * @param requestHeader headers containing A2A metadata.
-     * @param destAgentTopic the destination agent topic where the request is sent.
-     * @param workAgentResponseTopic The dedicated topic for receiving reply messages from the target agent(Typically, a lightweight Topic).
-     * @param liteTopic The dedicated topic for receiving reply messages from the target agent(Typically, a liteTopic that is bound to {@link #workAgentResponseTopic})
-     * LiteTopic is a lightweight session identifier, similar to a SessionId, dynamically created at runtime for data storage and isolation
-     */
-    public RocketMQRequest(String requestBody, Map<String, String> requestHeader, String destAgentTopic, String workAgentResponseTopic, String liteTopic) {
-        this.requestBody = requestBody;
-        this.requestHeader = requestHeader;
-        this.destAgentTopic = destAgentTopic;
-        this.workAgentResponseTopic = workAgentResponseTopic;
-        this.liteTopic = liteTopic;
-    }
-
     public RocketMQRequest() {}
 
     public String getRequestBody() {

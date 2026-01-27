@@ -32,13 +32,13 @@ public class A2AResponseFuture {
      * A {@link CompletableFuture} that asynchronously delivers the raw JSON response
      * string from a remote agent. The result is completed when the agent's reply is received.
      */
-    private CompletableFuture<String> completableFuture;
+    private final CompletableFuture<String> completableFuture;
 
     /**
      * A {@link TypeReference} that captures the generic type information of the expected deserialized response.
      * This is necessary for correct JSON deserialization of parameterized types.
      */
-    private TypeReference typeReference;
+    private final TypeReference typeReference;
 
     /**
      * Constructs a new {@code A2AResponseFuture} instance.
@@ -87,5 +87,4 @@ public class A2AResponseFuture {
             return new A2AResponseFuture(completableFuture, typeReference);
         }
     }
-
 }

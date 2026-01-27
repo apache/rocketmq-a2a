@@ -80,21 +80,6 @@ public class RocketMQResponse {
      */
     private String serverLiteTopic;
 
-    /**
-     * Constructs a new RocketMQResponse instance for simple responses.
-     *
-     * @param responseBody the response payload (e.g., JSON).
-     * @param messageId the original request message ID for acknowledgment.
-     * @param isStream true if this is a streaming response.
-     * @param isEnd true if this is the last message in the stream.
-     */
-    public RocketMQResponse(String responseBody, String messageId, boolean isStream, boolean isEnd) {
-        this.responseBody = responseBody;
-        this.messageId = messageId;
-        this.isStream = isStream;
-        this.isEnd = isEnd;
-    }
-
     public RocketMQResponse() {}
 
     public String getResponseBody() {

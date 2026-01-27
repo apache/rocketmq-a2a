@@ -25,13 +25,13 @@ public class ServerReceiptInfo {
      * used to achieve a "sticky" communication pattern where all replies from the server
      * are sent back through this dedicated channel.
      */
-    private String serverWorkAgentResponseTopic;
+    private final String serverWorkAgentResponseTopic;
 
     /**
      * Typically, a serverLiteTopic that is bound to {@code #serverWorkAgentResponseTopic}.
      * LiteTopic is a lightweight session identifier, similar to a SessionId, dynamically created at runtime for data storage and isolation.
      */
-    private String serverLiteTopic;
+    private final String serverLiteTopic;
 
     public ServerReceiptInfo(String serverWorkAgentResponseTopic, String serverLiteTopic) {
         this.serverWorkAgentResponseTopic = serverWorkAgentResponseTopic;

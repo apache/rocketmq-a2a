@@ -479,7 +479,7 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
                 public void onNext(Buffer item) {
                     try {
                         // Construct a RocketMQResponse object for the incremental data item from the upstream output
-                        RocketMQResponse response = new RocketMQResponse(item.toString(), msgId, true, false);
+                        RocketMQResponse response = RocketMQResponse.builder().responseBody(item.toString()).messageId(msgId).stream(true).end(false).build();
                         SendReceipt send = producer.send(buildMessageForResponse(workAgentResponseTopic, liteTopic, response));
                         log.debug("MultiSseSupport send response success, msgId: [{}], time: [{}], response: [{}]", send.getMessageId(), System.currentTimeMillis(), JSON.toJSONString(response));
                     } catch (Exception e) {
@@ -498,7 +498,7 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
                 @Override
                 public void onComplete() {
                     // Construct a RocketMQResponse object to represent a completion status data object
-                    RocketMQResponse response = new RocketMQResponse(null, msgId, true, true);
+                    RocketMQResponse response = RocketMQResponse.builder().messageId(msgId).stream(true).end(true).build();
                     try {
                         // Send the corresponding response result via RocketMQ Producer
                         SendReceipt send = producer.send(buildMessageForResponse(workAgentResponseTopic, liteTopic, response));
