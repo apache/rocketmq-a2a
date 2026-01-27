@@ -76,12 +76,14 @@ public class SupervisorAgentMain {
 
     /**
      * The logical name of this agent in the multi-agent system.
-     * Used for message routing, logging, and identification in distributed communication.
      */
     private static final String AGENT_NAME = "SupervisorAgent";
     private static final String USER_ID = "rocketmq_a2a_user";
     private static final String APP_NAME = "rocketmq_a2a";
-    // Sub-agent names and URLs
+
+    /**
+     * Sub-agent names and URLs
+     */
     private static final String WEATHER_AGENT_NAME = "WeatherAgent";
     private static final String WEATHER_AGENT_URL = "http://localhost:8080";
     private static final String TRAVEL_AGENT_NAME = "TravelAgent";
@@ -116,11 +118,16 @@ public class SupervisorAgentMain {
      * The API key used to authenticate requests to the Qwen service.
      */
     private static final String API_KEY = System.getProperty("apiKey");
-    // Role identifiers
+
+    /**
+     * Role identifiers
+     */
     private static final String YOU = "You";
     private static final String AGENT = "Agent";
     private static String lastQuestion = "";
     private static final String LEFT_BRACE = "{";
+    private static final String QUIT = "quit";
+    private static final String HELP = "help";
 
     /**
      * Service for managing conversational sessions and preserving chat history.
@@ -129,7 +136,6 @@ public class SupervisorAgentMain {
 
     /**
      * Maps agent names (e.g., "WeatherAgent") to their corresponding A2A client instances.
-     * Enables dynamic dispatch of messages to the appropriate remote agent.
      */
     private static final Map<String, Client> AgentClientMap = new HashMap<>();
 
@@ -176,13 +182,13 @@ public class SupervisorAgentMain {
             missingParams.add("workAgentResponseTopic (RocketMQ LiteTopic for agent responses)");
         }
         if (StringUtils.isEmpty(WORK_AGENT_RESPONSE_GROUP_ID)) {
-            missingParams.add("workAgentResponseGroupID (RocketMQ consumer group ID for LiteTopic)");
+            missingParams.add("workAgentResponseGroupID (RocketMQ consumer group ID for Lightweight topic)");
         }
         if (StringUtils.isEmpty(API_KEY)) {
             missingParams.add("apiKey (API key for SupervisorAgent using Qwen-plus model)");
         }
         if (!missingParams.isEmpty()) {
-            String message = "The following required configuration parameters are missing." + String.join("\n", missingParams);
+            String message = "The following required configuration parameters are missing" + String.join("\n", missingParams);
             throw new IllegalArgumentException(message);
         }
     }
@@ -191,13 +197,13 @@ public class SupervisorAgentMain {
      * Initializes the main agent.
      *
      * @param weatherAgent the name of the Weather Agent.
-     * @param travelAgent  the name of the Travel Planning Agent.
+     * @param travelAgent the name of the Travel Planning Agent.
      * @return a configured BaseAgent instance.
      */
     public static BaseAgent initAgent(String weatherAgent, String travelAgent) {
         if (StringUtils.isEmpty(weatherAgent) || StringUtils.isEmpty(travelAgent)) {
-            log.error("Missing parameters in initAgent, please provide both weatherAgent and travelAgent names.");
-            throw new IllegalArgumentException("SupervisorAgentMain Missing required agent names. Please specify both weatherAgent and travelAgent.");
+            log.error("Missing parameters in initAgent, please provide both weatherAgent and travelAgent names");
+            throw new IllegalArgumentException("SupervisorAgentMain Missing required agent names. Please specify both weatherAgent and travelAgent");
         }
         QwenModel qwenModel = QwenModelRegistry.getModel(API_KEY);
         return LlmAgent.builder()
@@ -247,26 +253,24 @@ public class SupervisorAgentMain {
             while (true) {
                 printPrompt(YOU);
                 String userInput = scanner.nextLine().trim();
-                if ("quit".equalsIgnoreCase(userInput)) {
+                if (StringUtils.isEmpty(userInput)) {
+                    printSystemInfo("请不要输入空值");
+                    continue;
+                }
+                if (QUIT.equalsIgnoreCase(userInput)) {
                     printSystemInfo("👋 Goodbye!");
                     System.exit(0);
                     break;
                 }
-                if ("help".equalsIgnoreCase(userInput)) {
+                if (HELP.equalsIgnoreCase(userInput)) {
                     printHelp();
-                    continue;
-                }
-                if (StringUtils.isEmpty(userInput)) {
-                    printSystemInfo("请不要输入空值.");
                     continue;
                 }
                 printSystemInfo("🤔 思考中...");
                 log.info("用户输入: [{}]", userInput);
-                Content userMsg = Content.fromParts(Part.fromText(userInput));
-                Flowable<Event> events = runner.runAsync(USER_ID, sessionId, userMsg);
+                Flowable<Event> events = runner.runAsync(USER_ID, sessionId, Content.fromParts(Part.fromText(userInput)));
                 events.blockingForEach(event -> {
-                    String content = event.stringifyContent();
-                    dealEventContent(content);
+                    dealEventContent(event.stringifyContent());
                 });
             }
         }
@@ -323,17 +327,16 @@ public class SupervisorAgentMain {
      * Registers a remote agent client (via AgentCard).
      *
      * @param agentName The name of the agent.
-     * @param agentUrl  The service URL of the agent.
+     * @param agentUrl The service URL of the agent.
      */
     private static void registerAgentClient(String agentName, String agentUrl) {
         if (StringUtils.isEmpty(agentName) || StringUtils.isEmpty(agentUrl)) {
-            log.error("Invalid parameters in registerAgentClient: agentName: [{}], agentUrl: [{}]", agentName, agentUrl);
+            log.error("Invalid parameters in registerAgentClient, agentName: [{}], agentUrl: [{}]", agentName, agentUrl);
             return;
         }
         AgentCard finalAgentCard = new A2ACardResolver(agentUrl).getAgentCard();
         log.info("Successfully fetched public agent card: [{}]", finalAgentCard.description());
         // Build event consumers
-        List<BiConsumer<ClientEvent, AgentCard>> consumers = buildEventConsumers();
         RocketMQTransportConfig rocketMQTransportConfig = new RocketMQTransportConfig();
         rocketMQTransportConfig.setNamespace(ROCKETMQ_NAMESPACE);
         rocketMQTransportConfig.setAccessKey(ACCESS_KEY);
@@ -341,7 +344,7 @@ public class SupervisorAgentMain {
         rocketMQTransportConfig.setWorkAgentResponseGroupID(WORK_AGENT_RESPONSE_GROUP_ID);
         rocketMQTransportConfig.setWorkAgentResponseTopic(WORK_AGENT_RESPONSE_TOPIC);
         Client client = Client.builder(finalAgentCard)
-            .addConsumers(consumers)
+            .addConsumers(buildEventConsumers())
             .streamingErrorHandler(error -> log.error("Streaming error occurred: [{}]", error.getMessage()))
             .withTransport(RocketMQTransport.class, rocketMQTransportConfig)
             .build();
@@ -407,6 +410,10 @@ public class SupervisorAgentMain {
         }
         Maybe<Session> sessionMaybe = sessionService.getSession(APP_NAME, USER_ID, sessionId, Optional.empty());
         Session session = sessionMaybe.blockingGet();
+        if (null == session) {
+            log.warn("dealAgentResponse session is null");
+            return;
+        }
         // Construct an event and append it to the session history
         Event event = Event.builder()
             .id(UUID.randomUUID().toString())
@@ -415,8 +422,7 @@ public class SupervisorAgentMain {
             .content(buildContent(result))
             .build();
         sessionService.appendEvent(session, event);
-        Content userMsg = Content.fromParts(Part.fromText(result));
-        iterEvents(runner.runAsync(USER_ID, session.id(), userMsg));
+        iterEvents(runner.runAsync(USER_ID, session.id(), Content.fromParts(Part.fromText(result))));
         printPrompt(YOU);
     }
 
@@ -424,16 +430,15 @@ public class SupervisorAgentMain {
      * Iterates over a stream of {@link Event} objects emitted by the agent (e.g., LLM or workflow engine),
      * processes each event in blocking mode, and handles potential task delegation requests.
      *
-     * @param events a reactive stream of Event objects (typically from an agent system)
+     * @param events a reactive stream of Event objects (typically from an agent system).
      */
     private static void iterEvents(Flowable<Event> events) {
         events.blockingForEach(eventSub -> {
-            boolean isDuplicate = lastQuestion.equals(eventSub.stringifyContent());
-            if (isDuplicate) {
+            String content = eventSub.stringifyContent();
+            if (lastQuestion.equals(content)) {
                 return;
             }
-            lastQuestion = eventSub.stringifyContent();
-            String content = lastQuestion;
+            lastQuestion = content;
             if (StringUtils.isEmpty(content) || !content.startsWith(LEFT_BRACE)) {
                 log.debug("Agent response: [{}]", content);
                 return;
@@ -455,9 +460,9 @@ public class SupervisorAgentMain {
      * Constructs a structured {@link Content} object from a plain text string.
      * Used when preparing input messages to send to the LLM or agent system.
      *
-     * @param content content the raw text input (e.g., user query or agent response)
+     * @param content content the raw text input (e.g., user query or agent response).
      * @return a built {@link Content} object with role set to {@link #APP_NAME} and text wrapped in a Part,
-     * or {@code null} if content is blank
+     * or {@code null} if content is blank.
      */
     private static Content buildContent(String content) {
         if (StringUtils.isEmpty(content)) {
@@ -470,12 +475,11 @@ public class SupervisorAgentMain {
     }
 
     /**
-     * Prints a system-level informational message in blue color to the console,
-     * and logs it at INFO level.
+     * Prints a system-level informational message in blue color to the console.
      *
      * <p>Used for displaying internal status, initialization steps, or non-critical notifications.
      *
-     * @param message the message to display and log
+     * @param message the message to display and log.
      */
     private static void printSystemInfo(String message) {
         System.out.println("\u001B[34m[SYSTEM] " + message + "\u001B[0m");
@@ -483,12 +487,11 @@ public class SupervisorAgentMain {
     }
 
     /**
-     * Prints a success message in green color to the console,
-     * and logs it at INFO level.
+     * Prints a success message in green color to the console.
      *
      * <p>Indicates successful completion of an operation (e.g., connection established, task completed).
      *
-     * @param message the success message to display and log
+     * @param message the success message to display and log.
      */
     private static void printSystemSuccess(String message) {
         System.out.println("\u001B[32m[SUCCESS] " + message + "\u001B[0m");
@@ -500,7 +503,7 @@ public class SupervisorAgentMain {
      *
      * <p>Typical format: {@code Agent > } or {@code You > }, followed by text without line break.
      *
-     * @param role the speaker role, e.g., "You" or "Agent"
+     * @param role the speaker role, e.g., "You" or "Agent".
      */
     private static void printPrompt(String role) {
         System.out.print("\n\u001B[36m" + role + " > \u001B[0m");
