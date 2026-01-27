@@ -15,14 +15,11 @@
  * limitations under the License.
  */
 package org.apache.rocketmq.a2a.transport.provider;
-
-import io.a2a.client.http.JdkA2AHttpClient;
 import io.a2a.client.transport.spi.ClientTransportProvider;
 import io.a2a.spec.A2AClientException;
 import io.a2a.spec.AgentCard;
 import org.apache.rocketmq.a2a.transport.impl.RocketMQTransport;
 import org.apache.rocketmq.a2a.transport.config.RocketMQTransportConfig;
-
 import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.ROCKETMQ_PROTOCOL;
 
 /**
@@ -35,15 +32,14 @@ import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.ROCKET
 public class RocketMQTransportProvider implements ClientTransportProvider<RocketMQTransport, RocketMQTransportConfig> {
 
     /**
-     * Creates a new {@link RocketMQTransport} instance using the provided configuration and agent details.
-     * <p>
-     * If the given {@code clientTransportConfig} is {@code null}, a default configuration will be created using a standard {@link JdkA2AHttpClient}.
+     * Creates a {@link RocketMQTransport} instance with the given configuration and agent metadata.
      *
-     * @param clientTransportConfig the transport configuration.
-     * @param agentCard the agent's identity and metadata.
-     * @param agentUrl the remote agent's endpoint URL (used for routing or diagnostics).
-     * @return a configured {@link RocketMQTransport} instance.
-     * @throws A2AClientException if transport creation fails due to invalid configuration or initialization error.
+     * @param clientTransportConfig transport configuration.
+     * @param agentCard agent identity and metadata.
+     * @param agentUrl remote agent endpoint.
+     * @return configured RocketMQTransport instance.
+     * @throws A2AClientException if transport creation fails.
+     * @throws IllegalArgumentException if clientTransportConfig is null.
      */
     @Override
     public RocketMQTransport create(RocketMQTransportConfig clientTransportConfig, AgentCard agentCard, String agentUrl) throws
@@ -67,7 +63,7 @@ public class RocketMQTransportProvider implements ClientTransportProvider<Rocket
     /**
      * Returns the concrete transport implementation class managed by this provider.
      *
-     * @return the {@link RocketMQTransport} class
+     * @return the {@link RocketMQTransport} class.
      */
     @Override
     public Class<RocketMQTransport> getTransportProtocolClass() {

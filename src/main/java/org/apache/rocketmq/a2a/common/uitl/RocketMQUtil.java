@@ -581,7 +581,7 @@ public class RocketMQUtil {
         }
         ServerReceiptInfo info = new ServerReceiptInfo(response.getServerWorkAgentResponseTopic(), response.getServerLiteTopic());
         TASK_SERVER_RECEIPT_MAP.putIfAbsent(task.getId(), info);
-        log.debug("Cached server receipt for new task, taskId: [{}], workAgentResponseTopic: [{}], liteTopic: [{}]", task.getId(), info.getServerWorkAgentResponseTopic(), info.getServerLiteTopic());
+        log.debug("RocketMQUtil cached server receipt for new task, taskId: [{}], workAgentResponseTopic: [{}], liteTopic: [{}]", task.getId(), info.getServerWorkAgentResponseTopic(), info.getServerLiteTopic());
     }
 
     /**
@@ -595,7 +595,7 @@ public class RocketMQUtil {
         }
         ServerReceiptInfo removed = TASK_SERVER_RECEIPT_MAP.remove(task.getId());
         if (removed != null) {
-            log.debug("Removed server receipt after task cancellation, taskId: [{}]", task.getId());
+            log.debug("RocketMQUtil removed server receipt after task cancellation, taskId: [{}]", task.getId());
         }
     }
     /**
@@ -611,7 +611,7 @@ public class RocketMQUtil {
         if (status != null && status.state() == TaskState.COMPLETED) {
             ServerReceiptInfo removed = TASK_SERVER_RECEIPT_MAP.remove(task.getId());
             if (removed != null) {
-                log.debug("Removed server receipt after task completion, taskId: [{}]", task.getId());
+                log.debug("RocketMQUtil removed server receipt after task completion, taskId: [{}]", task.getId());
             }
         }
     }
@@ -671,20 +671,20 @@ public class RocketMQUtil {
 
     public static String toJsonString(Object o) {
         if (null == o) {
-            log.debug("toJsonString: input object is null, returning null");
+            log.debug("RocketMQUtil toJsonString input object is null, returning null");
             return null;
         }
         try {
             return OBJECT_MAPPER.writeValueAsString(o);
         } catch (JsonProcessingException ex) {
-            log.warn("Failed to serialize object to JSON: {}", o.getClass().getSimpleName(), ex);
+            log.warn("RocketMQUtil failed to serialize object to JSON: {}", o.getClass().getSimpleName(), ex);
             return null;
         }
     }
 
     public static String serialText(RocketMQRequest rocketMQRequest) {
         if (null == rocketMQRequest || StringUtils.isEmpty(rocketMQRequest.getRequestBody()) || StringUtils.isEmpty(rocketMQRequest.getWorkAgentResponseTopic()) || StringUtils.isEmpty(rocketMQRequest.getLiteTopic()) || StringUtils.isEmpty(rocketMQRequest.getDestAgentTopic())) {
-            log.error("serialText param error rocketMQRequest: {}", JSON.toJSONString(rocketMQRequest));
+            log.error("RocketMQUtil serialText param error rocketMQRequest: {}", JSON.toJSONString(rocketMQRequest));
             return null;
         }
         return JSON.toJSONString(rocketMQRequest);

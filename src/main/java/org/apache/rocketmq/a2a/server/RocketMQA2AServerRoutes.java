@@ -73,11 +73,13 @@ import io.vertx.ext.web.RoutingContext;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.apache.rocketmq.a2a.common.model.RocketMQResponse.Builder;
 import org.apache.rocketmq.client.apis.ClientException;
 import org.apache.rocketmq.client.apis.consumer.ConsumeResult;
 import org.apache.rocketmq.client.apis.consumer.LitePushConsumer;
 import org.apache.rocketmq.client.apis.consumer.MessageListener;
 import org.apache.rocketmq.client.apis.consumer.PushConsumer;
+import org.apache.rocketmq.client.apis.message.MessageView;
 import org.apache.rocketmq.client.apis.producer.Producer;
 import org.apache.rocketmq.client.apis.producer.SendReceipt;
 import org.apache.rocketmq.shaded.com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -225,72 +227,115 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
                     JsonNode method = node != null ? node.get(METHOD) : null;
                     streaming = method != null && (SendStreamingMessageRequest.METHOD.equals(method.asText()) || TaskResubscriptionRequest.METHOD.equals(method.asText()));
                     if (streaming) {
-                        StreamingJSONRPCRequest<?> streamingJSONRPCRequest = OBJECT_MAPPER.treeToValue(node, StreamingJSONRPCRequest.class);
-                        streamingResponse = processStreamingRequest(streamingJSONRPCRequest, null);
+                        streamingResponse = processStreamingRequest(OBJECT_MAPPER.treeToValue(node, StreamingJSONRPCRequest.class), null);
+                        completableFuture = new CompletableFuture<>();
                     } else {
-                        NonStreamingJSONRPCRequest<?> nonStreamingJSONRPCRequest = OBJECT_MAPPER.treeToValue(node, NonStreamingJSONRPCRequest.class);
-                        nonStreamingResponse = processNonStreamingRequest(nonStreamingJSONRPCRequest, null);
+                        nonStreamingResponse = processNonStreamingRequest(OBJECT_MAPPER.treeToValue(node, NonStreamingJSONRPCRequest.class), null);
                     }
                 } catch (JsonProcessingException e) {
                     error = handleError(e);
                 } catch (Throwable t) {
                     error = new JSONRPCErrorResponse(new InternalError(t.getMessage()));
                 } finally {
-                    RocketMQResponse response = null;
-                    if (error != null) {
-                        response = new RocketMQResponse();
-                        response.setEnd(true);
-                        response.setStream(false);
-                        response.setServerLiteTopic(serverLiteTopic);
-                        response.setServerWorkAgentResponseTopic(WORK_AGENT_RESPONSE_TOPIC);
-                        response.setResponseBody(JSON.toJSONString(error));
-                        response.setMessageId(messageView.getMessageId().toString());
-                    } else if (streaming) {
-                        final Multi<? extends JSONRPCResponse<?>> finalStreamingResponse = streamingResponse;
-                        log.info("RocketMQA2AServerRoutes streaming finalStreamingResponse: {}", JSON.toJSONString(finalStreamingResponse));
-                        completableFuture = new CompletableFuture<>();
-                        CompletableFuture<Boolean> finalCompletableFuture = completableFuture;
-                        // Submit an SSE data-sending task to the thread pool, passing in a CompletableFuture to receive notification upon task completion
-                        this.executor.execute(() -> {
-                            this.multiSseSupport.subscribeObjectRocketMQ(finalStreamingResponse.map(i -> (Object)i), null, request.getWorkAgentResponseTopic(), request.getLiteTopic(), messageView.getMessageId().toString(), finalCompletableFuture);
-                        });
-                    // Handle non-streaming requests
-                    } else {
-                        response = new RocketMQResponse();
-                        response.setEnd(true);
-                        response.setStream(false);
-                        response.setServerLiteTopic(serverLiteTopic);
-                        response.setServerWorkAgentResponseTopic(WORK_AGENT_RESPONSE_TOPIC);
-                        response.setMessageId(messageView.getMessageId().toString());
-                        // Set the data in the non-streaming response object
-                        response.setResponseBody(toJsonString(nonStreamingResponse));
-                    }
-                    if (null != response) {
-                        // Send the response result by invoking the Producer
-                        SendReceipt send = this.producer.send(buildMessageForResponse(request.getWorkAgentResponseTopic(), request.getLiteTopic(), response));
-                        log.info("RocketMQA2AServerRoutes send nonStreamingResponse success, msgId: {}, time: {}, " + "response: {}", send.getMessageId(), System.currentTimeMillis(), JSON.toJSONString(response));
-                    }
+                    dealResponse(request, error, messageView, streaming, nonStreamingResponse, streamingResponse, completableFuture);
                 }
             } catch (Exception e) {
-                log.error("RocketMQA2AServerRoutes error,", e);
+                log.error("RocketMQA2AServerRoutes error", e);
                 return ConsumeResult.FAILURE;
             }
-            if (null != completableFuture) {
-                try {
-                    if (Boolean.TRUE.equals(completableFuture.get(15, TimeUnit.MINUTES))) {
-                        log.debug("RocketMQA2AServerRoutes deal msg success");
-                        return ConsumeResult.SUCCESS;
-                    } else {
-                        log.error("RocketMQA2AServerRoutes deal msg failed");
-                        return ConsumeResult.FAILURE;
-                    }
-                } catch (Exception e) {
-                    log.error("RocketMQA2AServerRoutes error", e);
-                    return ConsumeResult.FAILURE;
-                }
-            }
-            return ConsumeResult.SUCCESS;
+            return dealCompletableFuture(completableFuture);
         };
+    }
+
+    /**
+     * Handles the final response for an A2A request: either an error, a non-streaming result,
+     * or a streaming result. For non-streaming cases, sends a direct RocketMQ response.
+     * For streaming, submits an SSE emission task to the executor.
+     *
+     * @param request the original request context.
+     * @param error the error response if present.
+     * @param messageView the received message metadata.
+     * @param streaming whether this is a streaming operation.
+     * @param nonStreamingResponse the sync result (if not streaming).
+     * @param streamingResponse the async stream (if streaming).
+     * @param completableFuture completion signal for the streaming task.
+     * @throws ClientException if sending the response fails.
+     */
+    private void dealResponse(RocketMQRequest request, JSONRPCErrorResponse error, MessageView messageView, boolean streaming, JSONRPCResponse<?> nonStreamingResponse, Multi<? extends JSONRPCResponse<?>> streamingResponse, CompletableFuture completableFuture)
+        throws ClientException {
+        RocketMQResponse response = null;
+        if (error != null) {
+            response = buildErrorResponse(error, messageView);
+        } else if (!streaming) {
+            response = buildSuccessResponse(nonStreamingResponse, messageView);
+        } else {
+            final Multi<? extends JSONRPCResponse<?>> finalStreamingResponse = streamingResponse;
+            log.info("RocketMQA2AServerRoutes streaming finalStreamingResponse: {}", JSON.toJSONString(finalStreamingResponse));
+            // Submit an SSE data-sending task to the thread pool, passing in a CompletableFuture to receive notification upon task completion
+            this.executor.execute(() -> {
+                this.multiSseSupport.subscribeObjectRocketMQ(finalStreamingResponse.map(i -> (Object)i), null, request.getWorkAgentResponseTopic(), request.getLiteTopic(), messageView.getMessageId().toString(), completableFuture);
+            });
+        }
+        if (null != response) {
+            // Send the response result by invoking the Producer
+            SendReceipt send = this.producer.send(buildMessageForResponse(request.getWorkAgentResponseTopic(), request.getLiteTopic(), response));
+            log.info("RocketMQA2AServerRoutes send nonStreamingResponse success, msgId: [{}], time: [{}], response: [{}]", send.getMessageId(), System.currentTimeMillis(), JSON.toJSONString(response));
+        }
+    }
+
+    /**
+     * Constructs a RocketMQ response for failed JSON-RPC calls.
+     *
+     * @param error the JSON-RPC error details to include in the response body.
+     * @param messageView the incoming message context used to extract message ID and trace context.
+     * @return a fully built {@link RocketMQResponse} representing an error result.
+     */
+    private RocketMQResponse buildErrorResponse(JSONRPCErrorResponse error, MessageView messageView) {
+        return buildBaseResponse(messageView).end(true).stream(false).responseBody(toJsonString(JSON.toJSONString(error))).build();
+    }
+
+    /**
+     * Constructs a success response for non-streaming JSON-RPC operations.
+     *
+     * @param nonStreamingResponse the successful JSON-RPC response object to serialize.
+     * @param messageView the original message context used for tracking and routing.
+     * @return a fully built {@link RocketMQResponse} representing a successful result.
+     */
+    private RocketMQResponse buildSuccessResponse(JSONRPCResponse<?> nonStreamingResponse, MessageView messageView) {
+        return buildBaseResponse(messageView).end(true).stream(false).responseBody(toJsonString(nonStreamingResponse)).build();
+    }
+
+    /**
+     * Creates a pre-populated builder with common fields from the message context.
+     *
+     * @param messageView the received message view containing metadata from the original request
+     * @return a configured {@link RocketMQResponse.Builder} ready for additional settings
+     */
+    private RocketMQResponse.Builder buildBaseResponse(MessageView messageView) {
+        Builder builder = RocketMQResponse.builder();
+        builder.messageId(messageView.getMessageId().toString())
+            .serverLiteTopic(serverLiteTopic)
+            .serverWorkAgentResponseTopic(WORK_AGENT_RESPONSE_TOPIC);
+        return builder;
+    }
+
+    /**
+     * Waits for the completion of a CompletableFuture with timeout,
+     * and maps the result to a {@link ConsumeResult} for message consumption acknowledgment.
+     *
+     * @param completableFuture the future to wait on.
+     */
+    private ConsumeResult dealCompletableFuture(CompletableFuture<Boolean> completableFuture) {
+        if (null == completableFuture) {
+            return ConsumeResult.SUCCESS;
+        }
+        try {
+            Boolean result = completableFuture.get(15, TimeUnit.MINUTES);
+            return Boolean.TRUE.equals(result) ? ConsumeResult.SUCCESS : ConsumeResult.FAILURE;
+        } catch (Exception e) {
+            log.error("RocketMQA2AServerRoutes dealCompletableFuture error", e);
+            return ConsumeResult.FAILURE;
+        }
     }
 
     /**

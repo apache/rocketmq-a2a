@@ -135,7 +135,7 @@ public class RocketMQTransportConfig extends ClientTransportConfig<RocketMQTrans
      * @param httpClient HttpClient
      * @param liteTopic Typically, a liteTopic that is bound to {@link #workAgentResponseTopic}.
      * LiteTopic is a lightweight session identifier, similar to a SessionId, dynamically created at runtime for data storage and isolation.
-     * @param useDefaultRecoverMode Whether to use the default recovery mode.
+     * @param useDefaultRecoverMode whether to use the default recovery mode.
      */
     public RocketMQTransportConfig(String accessKey, String secretKey, String endpoint, String namespace, String workAgentResponseTopic, String workAgentResponseGroupID, String agentTopic, A2AHttpClient httpClient, String liteTopic, boolean useDefaultRecoverMode) {
         this.accessKey = accessKey;

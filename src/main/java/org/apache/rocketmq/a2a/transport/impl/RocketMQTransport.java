@@ -114,6 +114,12 @@ public class RocketMQTransport implements ClientTransport {
     private final String workAgentResponseTopic;
 
     /**
+     * Typically, a liteTopic that is bound to {@link #workAgentResponseTopic}.
+     * LiteTopic is a lightweight session identifier, similar to a SessionId, dynamically created at runtime for data storage and isolation.
+     */
+    private String liteTopic;
+
+    /**
      * A list of interceptors applied to outgoing requests before transmission.
      */
     private final List<ClientCallInterceptor> interceptors;
@@ -133,12 +139,6 @@ public class RocketMQTransport implements ClientTransport {
      * Indicates whether the default message recovery mode should be enabled for streaming responses.
      */
     private boolean useDefaultRecoverMode = false;
-
-    /**
-     * Typically, a liteTopic that is bound to {@link #workAgentResponseTopic}.
-     * LiteTopic is a lightweight session identifier, similar to a SessionId, dynamically created at runtime for data storage and isolation.
-     */
-    private String liteTopic;
 
     /**
      * The HTTP client used for resolving the agent's {@link AgentCard} via its metadata endpoint.
@@ -178,7 +178,7 @@ public class RocketMQTransport implements ClientTransport {
             throw new IllegalArgumentException("RocketMQTransport failed to parse RocketMQResourceInfo from AgentCard");
         }
         if (null != rocketMQTransportConfig.getNamespace() && !rocketMQTransportConfig.getNamespace().equals(rocketAgentCardInfo.getNamespace())) {
-            throw new RuntimeException("RocketMQTransport rocketAgentCardInfo namespace do not match, please check the config info");
+            throw new IllegalArgumentException("RocketMQTransport namespace don't match, please check the config info");
         }
         this.agentTopic = rocketAgentCardInfo.getTopic();
         this.namespace = StringUtils.isEmpty(rocketAgentCardInfo.getNamespace()) ? "" : rocketAgentCardInfo.getNamespace();
@@ -194,8 +194,8 @@ public class RocketMQTransport implements ClientTransport {
     /**
      * Sends a non-streaming JSON-RPC request to the remote agent and waits for the response.
      *
-     * @param request  the message send parameters.
-     * @param context  optional client call context.
+     * @param request the message send parameters.
+     * @param context optional client call context.
      * @return the result of the operation, or {@code null} if an error occurred.
      * @throws A2AClientException if the request fails due to transport or protocol issues.
      */
@@ -206,8 +206,7 @@ public class RocketMQTransport implements ClientTransport {
         SendMessageRequest sendMessageRequest = new SendMessageRequest.Builder().jsonrpc(JSONRPCMessage.JSONRPC_VERSION).method(SendMessageRequest.METHOD).params(request).build();
         PayloadAndHeaders payloadAndHeaders = applyInterceptors(SendMessageRequest.METHOD, sendMessageRequest, this.agentCard, context);
         try {
-            String liteTopic = resolveLiteTopic(request.message().getContextId());
-            String responseMessageId = sendRocketMQRequest(payloadAndHeaders, this.agentTopic, liteTopic, this.workAgentResponseTopic, this.producer, null);
+            String responseMessageId = sendRocketMQRequest(payloadAndHeaders, this.agentTopic, resolveLiteTopic(request.message().getContextId()), this.workAgentResponseTopic, this.producer, null);
             SendMessageResponse response = unmarshalResponse(getResult(responseMessageId, this.namespace, SEND_MESSAGE_RESPONSE_REFERENCE), SEND_MESSAGE_RESPONSE_REFERENCE);
             return response.getResult();
         } catch (Exception e) {
@@ -234,15 +233,12 @@ public class RocketMQTransport implements ClientTransport {
         try {
             SendStreamingMessageRequest sendStreamingMessageRequest = new SendStreamingMessageRequest.Builder().jsonrpc(JSONRPCMessage.JSONRPC_VERSION).method(SendStreamingMessageRequest.METHOD).params(request).build();
             PayloadAndHeaders payloadAndHeaders = applyInterceptors(SendStreamingMessageRequest.METHOD, sendStreamingMessageRequest, this.agentCard, context);
-            SSEEventListener sseEventListener = new SSEEventListener(eventConsumer, errorConsumer);
-            String liteTopic = resolveLiteTopic(request.message().getContextId());
-            String responseMessageId = sendRocketMQRequest(payloadAndHeaders, this.agentTopic, liteTopic,
-                this.workAgentResponseTopic, this.producer, null);
+            String responseMessageId = sendRocketMQRequest(payloadAndHeaders, this.agentTopic, resolveLiteTopic(request.message().getContextId()), this.workAgentResponseTopic, this.producer, null);
             if (StringUtils.isEmpty(responseMessageId)) {
                 log.error("RocketMQTransport sendMessageStreaming error, responseMessageId is empty");
                 return;
             }
-            MESSAGE_STREAM_RESPONSE_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>()).put(responseMessageId, sseEventListener);
+            MESSAGE_STREAM_RESPONSE_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>()).put(responseMessageId, new SSEEventListener(eventConsumer, errorConsumer));
             log.debug("RocketMQTransport sendMessageStreaming success, responseMessageId: [{}]", responseMessageId);
         } catch (Exception e) {
             throw new A2AClientException("RocketMQTransport failed to send streaming message request", e);
@@ -268,28 +264,60 @@ public class RocketMQTransport implements ClientTransport {
         try {
             SSEEventListener sseEventListener = new SSEEventListener(eventConsumer, errorConsumer);
             if (null != request.metadata()) {
-                String responseMsgId = (String)request.metadata().get(RocketMQA2AConstant.MESSAGE_RESPONSE_ID);
-                if (!StringUtils.isEmpty(responseMsgId)) {
-                    MESSAGE_STREAM_RESPONSE_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>()).put(responseMsgId, sseEventListener);
-                }
-                String subLiteTopic = (String)request.metadata().get(RocketMQA2AConstant.SUB_LITE_TOPIC);
-                if (null != litePushConsumer && !StringUtils.isEmpty(subLiteTopic)) {
-                    litePushConsumer.subscribeLite(subLiteTopic);
-                    log.info("RocketMQTransport.resubscribe litePushConsumer subscribeLite subLiteTopic: [{}]", subLiteTopic);
-                    LITE_TOPIC_USE_DEFAULT_RECOVER_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>()).put(subLiteTopic, this.useDefaultRecoverMode);
-                }
-                String unsubLiteTopic = (String)request.metadata().get(RocketMQA2AConstant.UNSUB_LITE_TOPIC);
-                if (null != litePushConsumer && !StringUtils.isEmpty(unsubLiteTopic)) {
-                    litePushConsumer.unsubscribeLite(unsubLiteTopic);
-                    log.info("RocketMQTransport.resubscribe litePushConsumer unsubscribeLite unsubLiteTopic: [{}]", unsubLiteTopic);
-                    LITE_TOPIC_USE_DEFAULT_RECOVER_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>()).remove(unsubLiteTopic);
-                }
+                registerSSEListener(request, sseEventListener);
+                addSubscribe(request);
+                unSubscribe(request);
             }
             if (this.useDefaultRecoverMode) {
                 RECOVER_MESSAGE_STREAM_RESPONSE_MAP.computeIfAbsent(namespace, k -> new HashMap<>()).put(RocketMQA2AConstant.DEFAULT_STREAM_RECOVER, sseEventListener);
             }
         } catch (Exception e) {
             throw new RuntimeException("RocketMQTransport failed to resubscribe", e);
+        }
+    }
+
+    /**
+     * Registers an SSE event listener for a specific message ID to enable message routing.
+     * The listener is stored under the current namespace and message ID for later retrieval.
+     *
+     * @param request the task request containing metadata
+     * @param sseEventListener the listener to register for real-time streaming
+     */
+    private void registerSSEListener(TaskIdParams request, SSEEventListener sseEventListener) {
+        String responseMsgId = (String)request.metadata().get(RocketMQA2AConstant.MESSAGE_RESPONSE_ID);
+        if (!StringUtils.isEmpty(responseMsgId)) {
+            MESSAGE_STREAM_RESPONSE_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>()).put(responseMsgId, sseEventListener);
+        }
+    }
+
+    /**
+     * Subscribes the consumer to a specified LiteTopic for receiving asynchronous responses.
+     * Also marks whether this topic supports recovery mode for reconnection scenarios.
+     *
+     * @param request the task request containing the topic name to subscribe.
+     * @throws ClientException if the subscription fails.
+     */
+    private void addSubscribe(TaskIdParams request) throws ClientException {
+        String subLiteTopic = (String)request.metadata().get(RocketMQA2AConstant.SUB_LITE_TOPIC);
+        if (null != litePushConsumer && !StringUtils.isEmpty(subLiteTopic)) {
+            litePushConsumer.subscribeLite(subLiteTopic);
+            log.info("RocketMQTransport.resubscribe litePushConsumer subscribeLite LiteTopic: [{}]", subLiteTopic);
+            LITE_TOPIC_USE_DEFAULT_RECOVER_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>()).put(subLiteTopic, this.useDefaultRecoverMode);
+        }
+    }
+    /**
+     * Unsubscribes from a specified LiteTopic to stop receiving messages.
+     * Also removes the recovery mode flag for this topic.
+     *
+     * @param request the task request containing the topic name to unsubscribe.
+     * @throws ClientException if the unsubscription fails.
+     */
+    private void unSubscribe(TaskIdParams request) throws ClientException {
+        String unsubLiteTopic = (String)request.metadata().get(RocketMQA2AConstant.UNSUB_LITE_TOPIC);
+        if (null != litePushConsumer && !StringUtils.isEmpty(unsubLiteTopic)) {
+            litePushConsumer.unsubscribeLite(unsubLiteTopic);
+            log.info("RocketMQTransport.resubscribe litePushConsumer unsubscribeLite LiteTopic: [{}]", unsubLiteTopic);
+            LITE_TOPIC_USE_DEFAULT_RECOVER_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>()).remove(unsubLiteTopic);
         }
     }
 
