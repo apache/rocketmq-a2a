@@ -161,18 +161,10 @@ public class RocketMQResponse {
         this.serverLiteTopic = serverLiteTopic;
     }
 
-    /**
-     * Returns a new {@link Builder} instance for constructing a {@link RocketMQResponse}.
-     *
-     * @return a new builder
-     */
     public static Builder builder() {
         return new Builder();
     }
 
-    /**
-     * Fluent builder for creating {@link RocketMQResponse} instances.
-     */
     public static class Builder {
         private final RocketMQResponse response = new RocketMQResponse();
 
@@ -216,11 +208,6 @@ public class RocketMQResponse {
             return this;
         }
 
-        /**
-         * Builds and returns the final {@link RocketMQResponse} instance.
-         *
-         * @return the constructed response object
-         */
         public RocketMQResponse build() {
             return response;
         }

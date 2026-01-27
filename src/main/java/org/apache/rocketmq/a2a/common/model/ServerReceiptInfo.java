@@ -45,4 +45,33 @@ public class ServerReceiptInfo {
     public String getServerLiteTopic() {
         return serverLiteTopic;
     }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        private String serverWorkAgentResponseTopic;
+        private String serverLiteTopic;
+
+        public Builder serverWorkAgentResponseTopic(String serverWorkAgentResponseTopic) {
+            this.serverWorkAgentResponseTopic = serverWorkAgentResponseTopic;
+            return this;
+        }
+
+        public Builder serverLiteTopic(String serverLiteTopic) {
+            this.serverLiteTopic = serverLiteTopic;
+            return this;
+        }
+
+        public ServerReceiptInfo build() {
+            if (serverWorkAgentResponseTopic == null || serverWorkAgentResponseTopic.trim().isEmpty()) {
+                throw new IllegalArgumentException("serverWorkAgentResponseTopic must not be null or empty");
+            }
+            if (serverLiteTopic == null || serverLiteTopic.trim().isEmpty()) {
+                throw new IllegalArgumentException("serverLiteTopic must not be null or empty");
+            }
+            return new ServerReceiptInfo(serverWorkAgentResponseTopic, serverLiteTopic);
+        }
+    }
 }

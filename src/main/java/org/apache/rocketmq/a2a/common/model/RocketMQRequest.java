@@ -130,4 +130,54 @@ public class RocketMQRequest {
     public void setWorkAgentResponseTopic(String workAgentResponseTopic) {
         this.workAgentResponseTopic = workAgentResponseTopic;
     }
+
+    /**
+     * Returns a new {@link Builder} instance for constructing a {@link RocketMQRequest}.
+     *
+     * @return a new builder
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    /**
+     * Fluent builder for creating {@link RocketMQRequest} instances.
+     */
+    public static class Builder {
+        private final RocketMQRequest request = new RocketMQRequest();
+
+        public Builder requestBody(String requestBody) {
+            request.setRequestBody(requestBody);
+            return this;
+        }
+
+        public Builder destAgentTopic(String destAgentTopic) {
+            request.setDestAgentTopic(destAgentTopic);
+            return this;
+        }
+
+        public Builder workAgentResponseTopic(String workAgentResponseTopic) {
+            request.setWorkAgentResponseTopic(workAgentResponseTopic);
+            return this;
+        }
+
+        public Builder liteTopic(String liteTopic) {
+            request.setLiteTopic(liteTopic);
+            return this;
+        }
+
+        public Builder requestHeader(Map<String, String> requestHeader) {
+            request.setRequestHeader(requestHeader);
+            return this;
+        }
+
+        public Builder addHeader(String key, String value) {
+            request.addHeader(key, value);
+            return this;
+        }
+
+        public RocketMQRequest build() {
+            return request;
+        }
+    }
 }

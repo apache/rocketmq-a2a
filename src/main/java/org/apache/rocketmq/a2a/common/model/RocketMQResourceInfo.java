@@ -54,6 +54,57 @@ public class RocketMQResourceInfo {
      */
     public RocketMQResourceInfo() {}
 
+    public String getEndpoint() {
+        return endpoint;
+    }
+
+    public void setEndpoint(String endpoint) {
+        this.endpoint = endpoint;
+    }
+
+    public String getTopic() {
+        return topic;
+    }
+
+    public void setTopic(String topic) {
+        this.topic = topic;
+    }
+
+    public String getNamespace() {
+        return namespace;
+    }
+
+    public void setNamespace(String namespace) {
+        this.namespace = namespace;
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        private final RocketMQResourceInfo info = new RocketMQResourceInfo();
+
+        public Builder namespace(String namespace) {
+            info.setNamespace(namespace);
+            return this;
+        }
+
+        public Builder endpoint(String endpoint) {
+            info.setEndpoint(endpoint);
+            return this;
+        }
+
+        public Builder topic(String topic) {
+            info.setTopic(topic);
+            return this;
+        }
+
+        public RocketMQResourceInfo build() {
+            return info;
+        }
+    }
+
     /**
      * Parses RocketMQ-related information from an AgentCard.
      *
@@ -64,7 +115,7 @@ public class RocketMQResourceInfo {
      * </ol>
      *
      * @param agentCard the AgentCard containing transport endpoints.
-     * @return RocketMQResourceInfo, or {@code null} if parsing fails or no RocketMQ interface found
+     * @return RocketMQResourceInfo, or {@code null} if parsing fails or no RocketMQ interface found.
      */
     public static RocketMQResourceInfo parseAgentCardAddition(AgentCard agentCard) {
         if (null == agentCard || StringUtils.isEmpty(agentCard.preferredTransport()) || StringUtils.isEmpty(agentCard.url()) || CollectionUtils.isEmpty(agentCard.additionalInterfaces())) {
@@ -123,28 +174,5 @@ public class RocketMQResourceInfo {
         return rocketMQResourceInfo;
     }
 
-    public String getEndpoint() {
-        return endpoint;
-    }
-
-    public void setEndpoint(String endpoint) {
-        this.endpoint = endpoint;
-    }
-
-    public String getTopic() {
-        return topic;
-    }
-
-    public void setTopic(String topic) {
-        this.topic = topic;
-    }
-
-    public String getNamespace() {
-        return namespace;
-    }
-
-    public void setNamespace(String namespace) {
-        this.namespace = namespace;
-    }
 
 }
