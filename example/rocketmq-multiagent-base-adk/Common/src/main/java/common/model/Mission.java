@@ -29,7 +29,7 @@ public class Mission {
     private String agent;
 
     /**
-     * The question to be processed by the agent
+     * The question to be processed by the agent.
      */
     private String messageInfo;
 

@@ -39,8 +39,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.genai.types.Content;
 import com.google.genai.types.Part;
 import common.model.Mission;
-import common.qwen.QWModel;
-import common.qwen.QWModelRegistry;
+import common.qwen.QwenModel;
+import common.qwen.QwenModelRegistry;
 import io.a2a.A2A;
 import io.a2a.client.Client;
 import io.a2a.client.ClientEvent;
@@ -199,10 +199,10 @@ public class SupervisorAgentMain {
             log.error("Missing parameters in initAgent, please provide both weatherAgent and travelAgent names.");
             throw new IllegalArgumentException("SupervisorAgentMain Missing required agent names. Please specify both weatherAgent and travelAgent.");
         }
-        QWModel qwModel = QWModelRegistry.getModel(API_KEY);
+        QwenModel qwenModel = QwenModelRegistry.getModel(API_KEY);
         return LlmAgent.builder()
             .name(APP_NAME)
-            .model(qwModel)
+            .model(qwenModel)
             .description("你是一位专业的行程规划专家")
             .instruction("# 角色\n"
                 + "你是一位专业的行程规划专家，擅长任务分解与协调安排。你的主要职责是帮助用户制定详细的旅行计划，确保他们的旅行体验既愉快又高效。在处理用户的行程安排相关问题时，你需要首先收集必要的信息，如目的地、时间等，并根据这些信息进行进一步的查询和规划。\n"
