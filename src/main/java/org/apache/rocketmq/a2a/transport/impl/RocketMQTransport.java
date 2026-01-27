@@ -188,7 +188,7 @@ public class RocketMQTransport implements ClientTransport {
         // Validate required configuration parameters
         checkConfigParam(endpoint, this.workAgentResponseTopic, rocketMQTransportConfig.getWorkAgentResponseGroupID(), this.liteTopic, this.agentTopic);
         this.litePushConsumer = getOrCreateLitePushConsumer(this.namespace, endpoint, rocketMQTransportConfig.getAccessKey(), rocketMQTransportConfig.getSecretKey(), this.workAgentResponseTopic, rocketMQTransportConfig.getWorkAgentResponseGroupID(), this.liteTopic);
-        this.producer = getOrCreateProducer(this.namespace, endpoint, rocketMQTransportConfig.getSecretKey(), rocketMQTransportConfig.getSecretKey(), this.agentTopic);
+        this.producer = getOrCreateProducer(this.namespace, endpoint, rocketMQTransportConfig.getAccessKey(), rocketMQTransportConfig.getSecretKey(), this.agentTopic);
     }
 
     /**
