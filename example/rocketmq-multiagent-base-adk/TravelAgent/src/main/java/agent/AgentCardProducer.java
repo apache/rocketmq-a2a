@@ -25,7 +25,6 @@ import io.a2a.spec.AgentSkill;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import org.apache.commons.lang3.StringUtils;
-
 import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.ROCKETMQ_PROTOCOL;
 
 /**
@@ -51,12 +50,16 @@ import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.ROCKET
  */
 @ApplicationScoped
 public class AgentCardProducer {
-    // Required configuration keys
+    /**
+     * Required configuration keys
+     */
     private static final String PROP_ENDPOINT = "rocketMQEndpoint";
     private static final String PROP_NAMESPACE = "rocketMQNamespace";
     private static final String PROP_TOPIC = "bizTopic";
 
-    // Read from system properties
+    /**
+     * Read from system properties
+     */
     private static final String ROCKETMQ_ENDPOINT = System.getProperty(PROP_ENDPOINT, "");
     private static final String ROCKETMQ_NAMESPACE = System.getProperty(PROP_NAMESPACE, "");
     private static final String BIZ_TOPIC = System.getProperty(PROP_TOPIC, "");
@@ -95,9 +98,15 @@ public class AgentCardProducer {
                 .build();
     }
 
+    /**
+     * Constructs a formatted RocketMQ Lite HTTP endpoint URL for topic access.
+     * @return a valid RocketMQ Lite URL suitable for use with A2A SDK.
+     * @throws IllegalArgumentException if either {@link #ROCKETMQ_ENDPOINT} or {@link #BIZ_TOPIC} is null or blank,
+     * indicating missing critical configuration
+     */
     private static String buildRocketMQUrl() {
         if (StringUtils.isEmpty(ROCKETMQ_ENDPOINT) || StringUtils.isEmpty(BIZ_TOPIC)) {
-            throw new IllegalArgumentException("buildRocketMQUrl param error, please check rocketmq config");
+            throw new IllegalArgumentException("buildRocketMQUrl param error, please check RocketMQ config");
         }
         return String.format("http://%s/%s/%s", ROCKETMQ_ENDPOINT, ROCKETMQ_NAMESPACE, BIZ_TOPIC);
     }
