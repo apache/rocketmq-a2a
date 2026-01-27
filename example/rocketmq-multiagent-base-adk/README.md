@@ -7,14 +7,16 @@
 
 ### 1. 部署 Apache RocketMQ
 
-部署 [Apache RocketMQ](http://rocketmq.apache.org/) 的 LiteTopic 版本(关于开源版本，预计在12月底发布)，或购买支持 LiteTopic 的 RocketMQ 商业版实例，并创建以下资源：
+部署 [Apache RocketMQ](http://rocketmq.apache.org/) 的 LiteTopic 版本(关于开源版本，预计在2月发布)，或购买支持 LiteTopic 的 RocketMQ 商业版实例，并创建以下资源：
 
 - **1.1** 创建 LiteTopic：`WorkerAgentResponse`
-- **1.2** 为 `WorkerAgentResponse` 创建绑定的 Lite 消费者 ID：`CID_HOST_AGENT_LITE`
+- **1.2** 为 `WorkerAgentResponse` 创建绑定的 Lite 消费者ID：`CID_HOST_AGENT_LITE`
 - **1.3** 创建天气助手普通 Topic：`WeatherAgentTask`
 - **1.4** 创建天气助手普通消费者 ID：`WeatherAgentTaskConsumerGroup`
 - **1.5** 创建行程规划助手普通 Topic：`TravelAgentTask`
 - **1.6** 创建行程规划助手普通消费者 ID：`TravelAgentTaskConsumerGroup`
+- **1.7** 创建天气/行程助手 接收点对点请求的LiteTopic：`WorkerAgentResponseServer`
+- **1.8** 创建天气/行程助手 用于订阅收点对点请求的LiteTopic的 Lite消费者ID：`CID_HOST_AGENT_LITE_SERVER`
 
 ### 2. 部署大模型与 Agent 服务
 
@@ -171,7 +173,7 @@ cd WeatherAgent
 ```
 
 ```shell
-MAVEN_OPTS="-DrocketMQEndpoint= -DrocketMQNamespace= -DbizTopic=WeatherAgentTask -DbizConsumerGroup=WeatherAgentTaskConsumerGroup -DrocketMQAK= -DrocketMQSK= -DapiKey= -DappId= " mvn quarkus:dev
+MAVEN_OPTS="-DrocketMQEndpoint= -DrocketMQNamespace= -DbizTopic=WeatherAgentTask -DbizConsumerGroup=WeatherAgentTaskConsumerGroup -DworkAgentResponseTopic=WorkerAgentResponseServer -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE_SERVER -DrocketMQAK= -DrocketMQSK= -DapiKey= -DappId= " mvn quarkus:dev
 ```
 ![img.png](docs/images/img.png)
 
@@ -181,7 +183,7 @@ cd TravelAgent
 ```
 
 ```shell
- MAVEN_OPTS="-DrocketMQEndpoint= -DrocketMQNamespace= -DbizTopic=TravelAgentTask -DbizConsumerGroup=TravelAgentTaskConsumerGroup -DrocketMQAK= -DrocketMQSK= -DapiKey= -DappId= " mvn quarkus:dev
+ MAVEN_OPTS="-DrocketMQEndpoint= -DrocketMQNamespace= -DbizTopic=TravelAgentTask -DbizConsumerGroup=TravelAgentTaskConsumerGroup -DworkAgentResponseTopic=WorkerAgentResponseServer -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE_SERVER -DrocketMQAK= -DrocketMQSK= -DapiKey= -DappId= " mvn quarkus:dev
 ```
 ![img_1.png](docs/images/img_1.png)
 
