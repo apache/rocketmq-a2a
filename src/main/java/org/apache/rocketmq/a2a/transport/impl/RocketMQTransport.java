@@ -284,8 +284,8 @@ public class RocketMQTransport implements ClientTransport {
      * Registers an SSE event listener for a specific message ID to enable message routing.
      * The listener is stored under the current namespace and message ID for later retrieval.
      *
-     * @param request the task request containing metadata
-     * @param sseEventListener the listener to register for real-time streaming
+     * @param request the task request containing metadata.
+     * @param sseEventListener the listener to register for real-time streaming.
      */
     private void registerSSEListener(TaskIdParams request, SSEEventListener sseEventListener) {
         String responseMsgId = (String)request.metadata().get(RocketMQA2AConstant.MESSAGE_RESPONSE_ID);

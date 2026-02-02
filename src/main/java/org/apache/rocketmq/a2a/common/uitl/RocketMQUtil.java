@@ -479,7 +479,7 @@ public class RocketMQUtil {
     /**
      * Retrieves the appropriate {@link SSEEventListener} for handling a received message from RocketMQ.
      *
-     * @param sseEventListenerMap the map of active listeners keyed by message ID (request-specific)
+     * @param sseEventListenerMap the map of active listeners keyed by message ID (request-specific).
      * @param response the incoming {@link RocketMQResponse}.
      * @param namespace the RocketMQ namespace.
      * @param liteTopic the specific LiteTopic.
@@ -533,7 +533,7 @@ public class RocketMQUtil {
      * Processes a non-streaming (one-time) A2A response and completes the corresponding async future.
      *
      * @param response the received response message.
-     * @param namespace logical isolation unit (e.g., tenant/environment)
+     * @param namespace logical isolation unit (e.g., tenant/environment).
      * @return {@link ConsumeResult#SUCCESS} if handled or skipped safely.
      */
     private static ConsumeResult processNonStreamResult(RocketMQResponse response, String namespace) {

@@ -41,7 +41,6 @@ import org.slf4j.LoggerFactory;
  * This executor:
  * - Extracts user input from the request message.
  * - Manages task lifecycle (create, update, stream, complete, cancel).
- * - Streams responses from the external application (e.g., LLM) via {@link #appCallStream(String)}.
  * - Updates the task in real-time using {@link TaskUpdater}.
  *
  * <p>

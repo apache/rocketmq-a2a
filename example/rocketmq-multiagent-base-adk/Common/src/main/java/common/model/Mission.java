@@ -45,6 +45,13 @@ public class Mission {
 
     public Mission() {}
 
+    public Mission(String agent, String messageInfo, String taskId, String sessionId) {
+        this.agent = agent;
+        this.messageInfo = messageInfo;
+        this.taskId = taskId;
+        this.sessionId = sessionId;
+    }
+
     public String getAgent() {
         return agent;
     }
@@ -108,12 +115,7 @@ public class Mission {
         }
 
         public Mission build() {
-            Mission mission = new Mission();
-            mission.setAgent(agent);
-            mission.setMessageInfo(messageInfo);
-            mission.setTaskId(taskId);
-            mission.setSessionId(sessionId);
-            return mission;
+            return new Mission(agent, messageInfo, taskId, sessionId);
         }
     }
 }

@@ -433,9 +433,9 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
     /**
      * Creates a JSON-RPC error response based on the original request and error details.
      *
-     * @param request the original JSON-RPC request (used to extract the {@code id})
-     * @param error the specific JSON-RPC error to include in the response
-     * @return a {@link JSONRPCErrorResponse} instance
+     * @param request the original JSON-RPC request (used to extract the {@code id}).
+     * @param error the specific JSON-RPC error to include in the response.
+     * @return a {@link JSONRPCErrorResponse} instance.
      */
     private JSONRPCResponse<?> generateErrorResponse(JSONRPCRequest<?> request, JSONRPCError error) {
         return new JSONRPCErrorResponse(request.getId(), error);
