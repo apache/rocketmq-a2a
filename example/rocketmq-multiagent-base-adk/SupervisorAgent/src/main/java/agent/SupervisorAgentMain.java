@@ -137,7 +137,7 @@ public class SupervisorAgentMain {
     /**
      * Maps agent names (e.g., "WeatherAgent") to their corresponding A2A client instances.
      */
-    private static final Map<String, Client> AgentClientMap = new HashMap<>();
+    private static final Map<String, Client> agentClientMap = new HashMap<>();
 
     /**
      * Current session identifier for grouping related interactions.
@@ -202,7 +202,7 @@ public class SupervisorAgentMain {
      */
     public static BaseAgent initAgent(String weatherAgent, String travelAgent) {
         if (StringUtils.isEmpty(weatherAgent) || StringUtils.isEmpty(travelAgent)) {
-            log.error("Missing parameters in initAgent, please provide both weatherAgent and travelAgent names");
+            log.warn("Missing parameters in initAgent, please provide both weatherAgent and travelAgent names");
             throw new IllegalArgumentException("SupervisorAgentMain Missing required agent names. Please specify both weatherAgent and travelAgent");
         }
         QwenModel qwenModel = QwenModelRegistry.getModel(API_KEY);
@@ -270,7 +270,7 @@ public class SupervisorAgentMain {
                 log.info("用户输入: [{}]", userInput);
                 Flowable<Event> events = runner.runAsync(USER_ID, sessionId, Content.fromParts(Part.fromText(userInput)));
                 events.blockingForEach(event -> {
-                    dealEventContent(event.stringifyContent());
+                    processEventContent(event.stringifyContent());
                 });
             }
         }
@@ -281,9 +281,9 @@ public class SupervisorAgentMain {
      *
      * @param eventContent the response content returned by the LLM.
      */
-    private static void dealEventContent(String eventContent) {
+    private static void processEventContent(String eventContent) {
         if (StringUtils.isEmpty(eventContent)) {
-            log.warn("dealEventContent eventContent is empty");
+            log.warn("processEventContent eventContent is empty");
             return;
         }
         if (!eventContent.startsWith(LEFT_BRACE)) {
@@ -310,14 +310,14 @@ public class SupervisorAgentMain {
      */
     private static void forwardMissionToAgent(Mission mission) {
         if (null == mission || StringUtils.isEmpty(mission.getAgent()) || StringUtils.isEmpty(mission.getMessageInfo())) {
-            log.error("forwardMissionToAgent param error, mission: [{}]", JSON.toJSONString(mission));
+            log.warn("forwardMissionToAgent param error, mission: [{}]", JSON.toJSONString(mission));
             return;
         }
         try {
             String agentName = mission.getAgent().replaceAll(" ", "");
-            Client client = AgentClientMap.get(agentName);
-            client.sendMessage(A2A.toUserMessage(mission.getMessageInfo()));
+            Client client = agentClientMap.get(agentName);
             log.info("forwardMissionToAgent messageInfo: [{}]", mission.getMessageInfo());
+            client.sendMessage(A2A.toUserMessage(mission.getMessageInfo()));
         } catch (Exception e) {
             log.error("forwardMissionToAgent error occurred while forwarding mission to agent", e);
         }
@@ -331,7 +331,7 @@ public class SupervisorAgentMain {
      */
     private static void registerAgentClient(String agentName, String agentUrl) {
         if (StringUtils.isEmpty(agentName) || StringUtils.isEmpty(agentUrl)) {
-            log.error("Invalid parameters in registerAgentClient, agentName: [{}], agentUrl: [{}]", agentName, agentUrl);
+            log.warn("Invalid parameters in registerAgentClient, agentName: [{}], agentUrl: [{}]", agentName, agentUrl);
             return;
         }
         AgentCard finalAgentCard = new A2ACardResolver(agentUrl).getAgentCard();
@@ -348,7 +348,7 @@ public class SupervisorAgentMain {
             .streamingErrorHandler(error -> log.error("Streaming error occurred: [{}]", error.getMessage()))
             .withTransport(RocketMQTransport.class, rocketMQTransportConfig)
             .build();
-        AgentClientMap.put(agentName, client);
+        agentClientMap.put(agentName, client);
         log.info("Agent [{}] initialized successfully", agentName);
     }
 
@@ -362,7 +362,7 @@ public class SupervisorAgentMain {
             if (event instanceof TaskUpdateEvent taskUpdateEvent) {
                 Task task = taskUpdateEvent.getTask();
                 if (null == task) {
-                    log.error("EventConsumer task is null");
+                    log.warn("EventConsumer task is null");
                     return;
                 }
                 List<Artifact> artifacts = task.getArtifacts();
@@ -371,13 +371,13 @@ public class SupervisorAgentMain {
                 }
                 if (!CollectionUtils.isEmpty(artifacts)) {
                     TaskState state = task.getStatus().state();
-                    System.out.print(extractTextFromMessage(artifacts.get(artifacts.size() - 1)));
+                    System.out.print(extractTextFromArtifact(artifacts.get(artifacts.size() - 1)));
                     if (state == TaskState.COMPLETED) {
                         StringBuilder stringBuilder = new StringBuilder();
                         for (Artifact tempArtifact : artifacts) {
-                            stringBuilder.append(extractTextFromMessage(tempArtifact));
+                            stringBuilder.append(extractTextFromArtifact(tempArtifact));
                         }
-                        dealAgentResponse(stringBuilder.toString());
+                        processAgentResponse(stringBuilder.toString());
                     }
                 }
             }
@@ -391,7 +391,7 @@ public class SupervisorAgentMain {
      * @param artifact the content fragment (Artifact) to extract text from.
      * @return a concatenated string of all text parts, or an empty string if none exist.
      */
-    private static String extractTextFromMessage(Artifact artifact) {
+    private static String extractTextFromArtifact(Artifact artifact) {
         if (artifact == null || CollectionUtils.isEmpty(artifact.parts())) {return "";}
         return artifact.parts().stream()
             .filter(part -> part instanceof TextPart)
@@ -404,14 +404,14 @@ public class SupervisorAgentMain {
      *
      * @param result the content returned by the sub-agent.
      */
-    private static void dealAgentResponse(String result) {
+    private static void processAgentResponse(String result) {
         if (StringUtils.isEmpty(result)) {
             return;
         }
         Maybe<Session> sessionMaybe = sessionService.getSession(APP_NAME, USER_ID, sessionId, Optional.empty());
         Session session = sessionMaybe.blockingGet();
         if (null == session) {
-            log.warn("dealAgentResponse session is null");
+            log.warn("processAgentResponse session is null");
             return;
         }
         // Construct an event and append it to the session history

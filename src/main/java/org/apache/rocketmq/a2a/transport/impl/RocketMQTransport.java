@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import io.a2a.client.transport.spi.ClientTransport;
@@ -173,18 +174,18 @@ public class RocketMQTransport implements ClientTransport {
         // Generate a random lite topic if none is provided
         this.liteTopic = StringUtils.isEmpty(liteTopic) ? UUID.randomUUID().toString() : liteTopic;
         // Parse RocketMQ resource info from the agent card
-        RocketMQResourceInfo rocketAgentCardInfo = parseAgentCardAddition(this.agentCard);
-        if (null == rocketAgentCardInfo) {
+        RocketMQResourceInfo rocketMQAgentCardInfo = parseAgentCardAddition(this.agentCard);
+        if (null == rocketMQAgentCardInfo) {
             throw new IllegalArgumentException("RocketMQTransport failed to parse RocketMQResourceInfo from AgentCard");
         }
-        if (null != rocketMQTransportConfig.getNamespace() && !rocketMQTransportConfig.getNamespace().equals(rocketAgentCardInfo.getNamespace())) {
+        if (null != rocketMQTransportConfig.getNamespace() && !rocketMQTransportConfig.getNamespace().equals(rocketMQAgentCardInfo.getNamespace())) {
             throw new IllegalArgumentException("RocketMQTransport namespace don't match, please check the config info");
         }
-        this.agentTopic = rocketAgentCardInfo.getTopic();
-        this.namespace = StringUtils.isEmpty(rocketAgentCardInfo.getNamespace()) ? "" : rocketAgentCardInfo.getNamespace();
+        this.agentTopic = rocketMQAgentCardInfo.getTopic();
+        this.namespace = StringUtils.isEmpty(rocketMQAgentCardInfo.getNamespace()) ? "" : rocketMQAgentCardInfo.getNamespace();
         // Register recovery mode preference for this lite topic
-        LITE_TOPIC_USE_DEFAULT_RECOVER_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>()).put(this.liteTopic, useDefaultRecoverMode);
-        String endpoint = rocketAgentCardInfo.getEndpoint();
+        LITE_TOPIC_USE_DEFAULT_RECOVER_MAP.computeIfAbsent(this.namespace, k -> new ConcurrentHashMap<>()).put(this.liteTopic, useDefaultRecoverMode);
+        String endpoint = rocketMQAgentCardInfo.getEndpoint();
         // Validate required configuration parameters
         checkConfigParam(endpoint, this.workAgentResponseTopic, rocketMQTransportConfig.getWorkAgentResponseGroupID(), this.liteTopic, this.agentTopic);
         this.litePushConsumer = getOrCreateLitePushConsumer(this.namespace, endpoint, rocketMQTransportConfig.getAccessKey(), rocketMQTransportConfig.getSecretKey(), this.workAgentResponseTopic, rocketMQTransportConfig.getWorkAgentResponseGroupID(), this.liteTopic);
@@ -211,7 +212,7 @@ public class RocketMQTransport implements ClientTransport {
             return response.getResult();
         } catch (Exception e) {
             log.error("RocketMQTransport sendMessage error", e);
-            return null;
+            throw new A2AClientException("RocketMQTransport sendMessage error", e);
         }
     }
 
@@ -238,17 +239,20 @@ public class RocketMQTransport implements ClientTransport {
                 log.error("RocketMQTransport sendMessageStreaming error, responseMessageId is empty");
                 return;
             }
-            MESSAGE_STREAM_RESPONSE_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>()).put(responseMessageId, new SSEEventListener(eventConsumer, errorConsumer));
+            MESSAGE_STREAM_RESPONSE_MAP.computeIfAbsent(this.namespace, k -> new ConcurrentHashMap<>()).put(responseMessageId, new SSEEventListener(eventConsumer, errorConsumer));
             log.debug("RocketMQTransport sendMessageStreaming success, responseMessageId: [{}]", responseMessageId);
         } catch (Exception e) {
-            throw new A2AClientException("RocketMQTransport failed to send streaming message request", e);
+            log.error("RocketMQTransport sendMessageStreaming error", e);
+            throw new A2AClientException("RocketMQTransport sendMessageStreaming error", e);
         }
     }
 
     /**
      * Resubscribes to or unsubscribes from a streaming session based on metadata in the request.
      * <p>
-     * This method supports dynamic subscription management using context IDs and recovery modes.
+     * In this method, subscription behavior is controlled by setting key-value pairs in the TaskIdParams. metadata map:
+     * To resubscribe to a LiteTopic, use {@link RocketMQA2AConstant#SUB_LITE_TOPIC} as the key and the target LiteTopic as the value.
+     * To unsubscribe from a LiteTopic, use {@link RocketMQA2AConstant#UNSUB_LITE_TOPIC} as the key and the target LiteTopic as the value.
      *
      * @param request the task ID parameters containing subscription metadata.
      * @param eventConsumer the consumer for streaming events.
@@ -269,10 +273,11 @@ public class RocketMQTransport implements ClientTransport {
                 unSubscribe(request);
             }
             if (this.useDefaultRecoverMode) {
-                RECOVER_MESSAGE_STREAM_RESPONSE_MAP.computeIfAbsent(namespace, k -> new HashMap<>()).put(RocketMQA2AConstant.DEFAULT_STREAM_RECOVER, sseEventListener);
+                RECOVER_MESSAGE_STREAM_RESPONSE_MAP.computeIfAbsent(namespace, k -> new ConcurrentHashMap<>()).put(RocketMQA2AConstant.DEFAULT_STREAM_RECOVER, sseEventListener);
             }
         } catch (Exception e) {
-            throw new RuntimeException("RocketMQTransport failed to resubscribe", e);
+            log.error("RocketMQTransport resubscribe error", e);
+            throw new A2AClientException("RocketMQTransport resubscribe error", e);
         }
     }
 
@@ -286,7 +291,7 @@ public class RocketMQTransport implements ClientTransport {
     private void registerSSEListener(TaskIdParams request, SSEEventListener sseEventListener) {
         String responseMsgId = (String)request.metadata().get(RocketMQA2AConstant.MESSAGE_RESPONSE_ID);
         if (!StringUtils.isEmpty(responseMsgId)) {
-            MESSAGE_STREAM_RESPONSE_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>()).put(responseMsgId, sseEventListener);
+            MESSAGE_STREAM_RESPONSE_MAP.computeIfAbsent(this.namespace, k -> new ConcurrentHashMap<>()).put(responseMsgId, sseEventListener);
         }
     }
 
@@ -302,7 +307,7 @@ public class RocketMQTransport implements ClientTransport {
         if (null != litePushConsumer && !StringUtils.isEmpty(subLiteTopic)) {
             litePushConsumer.subscribeLite(subLiteTopic);
             log.info("RocketMQTransport.resubscribe litePushConsumer subscribeLite LiteTopic: [{}]", subLiteTopic);
-            LITE_TOPIC_USE_DEFAULT_RECOVER_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>()).put(subLiteTopic, this.useDefaultRecoverMode);
+            LITE_TOPIC_USE_DEFAULT_RECOVER_MAP.computeIfAbsent(this.namespace, k -> new ConcurrentHashMap<>()).put(subLiteTopic, this.useDefaultRecoverMode);
         }
     }
     /**
@@ -317,7 +322,7 @@ public class RocketMQTransport implements ClientTransport {
         if (null != litePushConsumer && !StringUtils.isEmpty(unsubLiteTopic)) {
             litePushConsumer.unsubscribeLite(unsubLiteTopic);
             log.info("RocketMQTransport.resubscribe litePushConsumer unsubscribeLite LiteTopic: [{}]", unsubLiteTopic);
-            LITE_TOPIC_USE_DEFAULT_RECOVER_MAP.computeIfAbsent(this.namespace, k -> new HashMap<>()).remove(unsubLiteTopic);
+            LITE_TOPIC_USE_DEFAULT_RECOVER_MAP.computeIfAbsent(this.namespace, k -> new ConcurrentHashMap<>()).remove(unsubLiteTopic);
         }
     }
 
@@ -340,7 +345,7 @@ public class RocketMQTransport implements ClientTransport {
             return response.getResult();
         } catch (Exception e) {
             log.error("RocketMQTransport getTask error", e);
-            return null;
+            throw new A2AClientException("RocketMQTransport getTask error", e);
         }
     }
 
@@ -363,7 +368,7 @@ public class RocketMQTransport implements ClientTransport {
             return response.getResult();
         } catch (Exception e) {
             log.error("RocketMQTransport cancelTask error", e);
-            return null;
+            throw new A2AClientException("RocketMQTransport cancelTask error", e);
         }
     }
 
@@ -386,7 +391,7 @@ public class RocketMQTransport implements ClientTransport {
             return response.getResult();
         } catch (Exception e) {
             log.error("RocketMQTransport setTaskPushNotificationConfiguration error", e);
-            return null;
+            throw new A2AClientException("RocketMQTransport setTaskPushNotificationConfiguration error", e);
         }
     }
 
@@ -409,7 +414,7 @@ public class RocketMQTransport implements ClientTransport {
             return response.getResult();
         } catch (Exception e) {
             log.error("RocketMQTransport getTaskPushNotificationConfiguration error", e);
-            return null;
+            throw new A2AClientException("RocketMQTransport getTaskPushNotificationConfiguration error", e);
         }
     }
 
@@ -432,7 +437,7 @@ public class RocketMQTransport implements ClientTransport {
             return response.getResult();
         } catch (Exception e) {
             log.error("RocketMQTransport listTaskPushNotificationConfigurations error", e);
-            return null;
+            throw new A2AClientException("RocketMQTransport listTaskPushNotificationConfigurations error", e);
         }
     }
 
@@ -454,6 +459,7 @@ public class RocketMQTransport implements ClientTransport {
             getResult(responseMessageId, this.namespace, DELETE_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE);
         } catch (Exception e) {
             log.error("RocketMQTransport deleteTaskPushNotificationConfigurations error", e);
+            throw new A2AClientException("RocketMQTransport deleteTaskPushNotificationConfigurations error", e);
         }
     }
 
@@ -466,10 +472,9 @@ public class RocketMQTransport implements ClientTransport {
      */
     @Override
     public AgentCard getAgentCard(ClientCallContext context) throws A2AClientException {
-        A2ACardResolver resolver;
         try {
             if (agentCard == null) {
-                resolver = new A2ACardResolver(httpClient, agentUrl, null, getHttpHeaders(context));
+                A2ACardResolver resolver = new A2ACardResolver(httpClient, agentUrl, null, getHttpHeaders(context));
                 agentCard = resolver.getAgentCard();
                 needsExtendedCard = agentCard.supportsAuthenticatedExtendedCard();
             }
@@ -483,9 +488,11 @@ public class RocketMQTransport implements ClientTransport {
                 GetAuthenticatedExtendedCardResponse response = unmarshalResponse(getResult(responseMessageId, this.namespace, GET_AUTHENTICATED_EXTENDED_CARD_RESPONSE_REFERENCE), GET_AUTHENTICATED_EXTENDED_CARD_RESPONSE_REFERENCE);
                 return response.getResult();
             } catch (Exception e) {
-                throw new RuntimeException("RocketMQTransport GetAuthenticatedExtendedCard error", e);
+                log.error("RocketMQTransport GetAuthenticatedExtendedCard error", e);
+                throw new A2AClientException("RocketMQTransport GetAuthenticatedExtendedCard error", e);
             }
         } catch (A2AClientError e) {
+            log.error("RocketMQTransport getAgentCard error", e);
             throw new A2AClientException("RocketMQTransport getAgentCard error", e);
         }
     }

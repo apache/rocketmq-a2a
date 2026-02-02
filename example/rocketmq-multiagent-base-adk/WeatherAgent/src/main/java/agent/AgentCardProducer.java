@@ -52,55 +52,49 @@ import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.ROCKET
 @ApplicationScoped
 public class AgentCardProducer {
     /**
-     * Required configuration keys.
-     */
-    private static final String PROP_ENDPOINT = "rocketMQEndpoint";
-    private static final String PROP_NAMESPACE = "rocketMQNamespace";
-    private static final String PROP_TOPIC = "bizTopic";
-
-    /**
      * Read from system properties.
      */
-    private static final String ROCKETMQ_ENDPOINT = System.getProperty(PROP_ENDPOINT, "");
-    private static final String ROCKETMQ_NAMESPACE = System.getProperty(PROP_NAMESPACE, "");
-    private static final String BIZ_TOPIC = System.getProperty(PROP_TOPIC, "");
+    private static final String ROCKETMQ_ENDPOINT = System.getProperty("rocketMQEndpoint", "");
+    private static final String ROCKETMQ_NAMESPACE = System.getProperty("rocketMQNamespace", "");
+    private static final String BIZ_TOPIC = System.getProperty("bizTopic", "");
 
     /**
      * Produces the public agent card used for service discovery and capability negotiation.
+     *
      * @return fully configured {@link AgentCard}.
      * @throws IllegalArgumentException if required config is missing.
      */
     @Produces
     @PublicAgentCard
     public AgentCard agentCard() {
-
         return new AgentCard.Builder()
+            .name("天气查询助手Agent")
+            .description("对未来一段时间内的天气情况进行查询")
+            .url(buildRocketMQUrl())
+            .version("1.0.0")
+            .documentationUrl("http://example.com/docs")
+            .capabilities(new AgentCapabilities.Builder()
+                .streaming(true)
+                .pushNotifications(true)
+                .stateTransitionHistory(true)
+                .build())
+            .defaultInputModes(Collections.singletonList("text"))
+            .defaultOutputModes(Collections.singletonList("text"))
+            .skills(Collections.singletonList(new AgentSkill.Builder()
+                .id("天气查询助手Agent")
                 .name("天气查询助手Agent")
                 .description("对未来一段时间内的天气情况进行查询")
-                .url(buildRocketMQUrl())
-                .version("1.0.0")
-                .documentationUrl("http://example.com/docs")
-                .capabilities(new AgentCapabilities.Builder()
-                        .streaming(true)
-                        .pushNotifications(true)
-                        .stateTransitionHistory(true)
-                        .build())
-                .defaultInputModes(Collections.singletonList("text"))
-                .defaultOutputModes(Collections.singletonList("text"))
-                .skills(Collections.singletonList(new AgentSkill.Builder()
-                                .id("天气查询助手Agent")
-                                .name("天气查询助手Agent")
-                                .description("对未来一段时间内的天气情况进行查询")
-                                .tags(Collections.singletonList("天气查询"))
-                                .examples(List.of("下周的天气怎么样"))
-                                .build()))
-                .preferredTransport(ROCKETMQ_PROTOCOL)
-                .protocolVersion("0.3.0")
-                .build();
+                .tags(Collections.singletonList("天气查询"))
+                .examples(List.of("下周的天气怎么样"))
+                .build()))
+            .preferredTransport(ROCKETMQ_PROTOCOL)
+            .protocolVersion("0.3.0")
+            .build();
     }
 
     /**
      * Constructs a formatted RocketMQ Lite HTTP endpoint URL for topic access.
+     *
      * @return a valid RocketMQ Lite URL suitable for use with A2A SDK.
      * @throws IllegalArgumentException if either {@link #ROCKETMQ_ENDPOINT} or {@link #BIZ_TOPIC} is null or blank,
      * indicating missing critical configuration

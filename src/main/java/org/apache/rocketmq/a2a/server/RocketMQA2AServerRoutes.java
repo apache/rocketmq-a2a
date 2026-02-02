@@ -237,13 +237,13 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
                 } catch (Throwable t) {
                     error = new JSONRPCErrorResponse(new InternalError(t.getMessage()));
                 } finally {
-                    dealResponse(request, error, messageView, streaming, nonStreamingResponse, streamingResponse, completableFuture);
+                    processResponse(request, error, messageView, streaming, nonStreamingResponse, streamingResponse, completableFuture);
                 }
             } catch (Exception e) {
                 log.error("RocketMQA2AServerRoutes error", e);
                 return ConsumeResult.FAILURE;
             }
-            return dealCompletableFuture(completableFuture);
+            return processCompletableFuture(completableFuture);
         };
     }
 
@@ -261,7 +261,7 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
      * @param completableFuture completion signal for the streaming task.
      * @throws ClientException if sending the response fails.
      */
-    private void dealResponse(RocketMQRequest request, JSONRPCErrorResponse error, MessageView messageView, boolean streaming, JSONRPCResponse<?> nonStreamingResponse, Multi<? extends JSONRPCResponse<?>> streamingResponse, CompletableFuture completableFuture)
+    private void processResponse(RocketMQRequest request, JSONRPCErrorResponse error, MessageView messageView, boolean streaming, JSONRPCResponse<?> nonStreamingResponse, Multi<? extends JSONRPCResponse<?>> streamingResponse, CompletableFuture completableFuture)
         throws ClientException {
         RocketMQResponse response = null;
         if (error != null) {
@@ -270,16 +270,16 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
             response = buildSuccessResponse(nonStreamingResponse, messageView);
         } else {
             final Multi<? extends JSONRPCResponse<?>> finalStreamingResponse = streamingResponse;
-            log.info("RocketMQA2AServerRoutes streaming finalStreamingResponse: {}", JSON.toJSONString(finalStreamingResponse));
+            log.info("RocketMQA2AServerRoutes streaming finalStreamingResponse: [{}]", JSON.toJSONString(finalStreamingResponse));
             // Submit an SSE data-sending task to the thread pool, passing in a CompletableFuture to receive notification upon task completion
             this.executor.execute(() -> {
-                this.multiSseSupport.subscribeObjectRocketMQ(finalStreamingResponse.map(i -> (Object)i), null, request.getWorkAgentResponseTopic(), request.getLiteTopic(), messageView.getMessageId().toString(), completableFuture);
+                this.multiSseSupport.sendSseStreamToRocketMQ(finalStreamingResponse.map(i -> (Object)i), null, request.getWorkAgentResponseTopic(), request.getLiteTopic(), messageView.getMessageId().toString(), completableFuture);
             });
         }
         if (null != response) {
             // Send the response result by invoking the Producer
             SendReceipt send = this.producer.send(buildMessageForResponse(request.getWorkAgentResponseTopic(), request.getLiteTopic(), response));
-            log.info("RocketMQA2AServerRoutes send nonStreamingResponse success, msgId: [{}], time: [{}], response: [{}]", send.getMessageId(), System.currentTimeMillis(), JSON.toJSONString(response));
+            log.debug("RocketMQA2AServerRoutes send nonStreamingResponse success, msgId: [{}], response: [{}]", send.getMessageId(), JSON.toJSONString(response));
         }
     }
 
@@ -325,7 +325,7 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
      *
      * @param completableFuture the future to wait on.
      */
-    private ConsumeResult dealCompletableFuture(CompletableFuture<Boolean> completableFuture) {
+    private ConsumeResult processCompletableFuture(CompletableFuture<Boolean> completableFuture) {
         if (null == completableFuture) {
             return ConsumeResult.SUCCESS;
         }
@@ -333,7 +333,7 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
             Boolean result = completableFuture.get(15, TimeUnit.MINUTES);
             return Boolean.TRUE.equals(result) ? ConsumeResult.SUCCESS : ConsumeResult.FAILURE;
         } catch (Exception e) {
-            log.error("RocketMQA2AServerRoutes dealCompletableFuture error", e);
+            log.error("RocketMQA2AServerRoutes processCompletableFuture error", e);
             return ConsumeResult.FAILURE;
         }
     }
@@ -434,7 +434,7 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
      * Creates a JSON-RPC error response based on the original request and error details.
      *
      * @param request the original JSON-RPC request (used to extract the {@code id})
-     * @param error   the specific JSON-RPC error to include in the response
+     * @param error the specific JSON-RPC error to include in the response
      * @return a {@link JSONRPCErrorResponse} instance
      */
     private JSONRPCResponse<?> generateErrorResponse(JSONRPCRequest<?> request, JSONRPCError error) {
@@ -457,15 +457,15 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
         /**
          * Publishes an SSE data stream to RocketMQ.
          *
-         * @param multi                  Asynchronous data stream
+         * @param bufferMulti            Asynchronous data stream
          * @param rc                     Routing context
          * @param workAgentResponseTopic A LiteTopic subscribed by the client receiving streaming responses
          * @param liteTopic              todo
          * @param msgId                  The msgId used by the client to map requests and response results
          * @param completableFuture      Used to asynchronously receive whether the SSE data transmission is completed
          */
-        public void writeRocketmq(Multi<Buffer> multi, RoutingContext rc, String workAgentResponseTopic, String liteTopic, String msgId, CompletableFuture<Boolean> completableFuture) {
-            multi.subscribe().withSubscriber(new Flow.Subscriber<Buffer>() {
+        public void writeRocketmq(Multi<Buffer> bufferMulti, RoutingContext rc, String workAgentResponseTopic, String liteTopic, String msgId, CompletableFuture<Boolean> completableFuture) {
+            bufferMulti.subscribe().withSubscriber(new Flow.Subscriber<Buffer>() {
                 Flow.Subscription upstream;
 
                 @Override
@@ -481,9 +481,9 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
                         // Construct a RocketMQResponse object for the incremental data item from the upstream output
                         RocketMQResponse response = RocketMQResponse.builder().responseBody(item.toString()).messageId(msgId).stream(true).end(false).build();
                         SendReceipt send = producer.send(buildMessageForResponse(workAgentResponseTopic, liteTopic, response));
-                        log.debug("MultiSseSupport send response success, msgId: [{}], time: [{}], response: [{}]", send.getMessageId(), System.currentTimeMillis(), JSON.toJSONString(response));
+                        log.debug("MultiSseSupport send response success, msgId: [{}], response: [{}]", send.getMessageId(), JSON.toJSONString(response));
                     } catch (Exception e) {
-                        log.error("MultiSseSupport send stream error, {}", e.getMessage());
+                        log.error("MultiSseSupport send stream error", e);
                     }
                     // Request next item
                     this.upstream.request(1);
@@ -502,9 +502,9 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
                     try {
                         // Send the corresponding response result via RocketMQ Producer
                         SendReceipt send = producer.send(buildMessageForResponse(workAgentResponseTopic, liteTopic, response));
-                        log.debug("MultiSseSupport send response success, msgId: {}, time: {}, response: {}", send.getMessageId(), System.currentTimeMillis(), JSON.toJSONString(response));
+                        log.debug("MultiSseSupport send response success, msgId: [{}], response: [{}]", send.getMessageId(), JSON.toJSONString(response));
                     } catch (ClientException e) {
-                        log.error("MultiSseSupport error send complete, msgId: {}", e.getMessage());
+                        log.error("MultiSseSupport error send complete", e);
                     }
                     completableFuture.complete(true);
                 }
@@ -521,17 +521,16 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
          * @param msgId the original message ID for request-response correlation.
          * @param completableFuture completes with true on success, false on error.
          */
-        public void subscribeObjectRocketMQ(Multi<Object> multi, RoutingContext rc, String workAgentResponseTopic,
+        public void sendSseStreamToRocketMQ(Multi<Object> multi, RoutingContext rc, String workAgentResponseTopic,
             String liteTopic, String msgId, CompletableFuture<Boolean> completableFuture) {
             AtomicLong count = new AtomicLong();
 
             // Transform Multi<Object> to  Multi<Buffer>
-            Multi<Buffer> map = multi.map(new Function<Object, Buffer>() {
+            Multi<Buffer> bufferMulti = multi.map(new Function<Object, Buffer>() {
                 @Override
                 public Buffer apply(Object o) {
                     //If the object is an SSE object, process the data to comply with the SSE data transmission specification
-                    if (o instanceof ServerSentEvent) {
-                        ServerSentEvent<?> ev = (ServerSentEvent<?>)o;
+                    if (o instanceof ServerSentEvent<?> ev) {
                         long id = ev.id() != -1 ? ev.id() : count.getAndIncrement();
                         String e = ev.event() == null ? "" : "event: " + ev.event() + "\n";
                         return Buffer.buffer(e + "data: " + toJsonString(ev.data()) + "\nid: " + id + "\n\n");
@@ -540,7 +539,7 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
                 }
             });
             // Subscribe to SSE object data and send the data via RocketMQ
-            writeRocketmq(map, rc, workAgentResponseTopic, liteTopic, msgId, completableFuture);
+            writeRocketmq(bufferMulti, rc, workAgentResponseTopic, liteTopic, msgId, completableFuture);
         }
     }
 

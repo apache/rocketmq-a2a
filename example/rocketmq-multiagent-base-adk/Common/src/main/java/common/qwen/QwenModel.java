@@ -120,7 +120,7 @@ public class QwenModel extends BaseLlm {
     @Override
     public Flowable<LlmResponse> generateContent(LlmRequest llmRequest, boolean stream) {
         if (null == llmRequest) {
-            log.error("QwenModel generateContent llmRequest is null");
+            log.warn("QwenModel generateContent llmRequest is null");
             throw new IllegalArgumentException("QwenModel generateContent llmRequest is null");
         }
         try {
@@ -140,12 +140,12 @@ public class QwenModel extends BaseLlm {
             // Call the model
             GenerationResult generationResult = callWithMessage(systemMsg, userMsgList);
             if (null == generationResult) {
-                log.error("QwenModel generationResult is null");
+                log.warn("QwenModel generationResult is null");
                 return Flowable.error(new RuntimeException("QwenModel generateContent callWithMessage is error"));
             }
             LlmResponse llmResponse = convertToLlmResponse(generationResult);
             if (llmResponse == null) {
-                log.error("QwenModel llmResponse is null");
+                log.warn("QwenModel llmResponse is null");
                 return Flowable.error(new RuntimeException("QwenModel generateContent convertToLlmResponse error"));
             }
             return Flowable.just(llmResponse);
@@ -165,7 +165,7 @@ public class QwenModel extends BaseLlm {
     @Override
     public BaseLlmConnection connect(LlmRequest llmRequest) {
         if (null == llmRequest) {
-            log.error("QwenModel connect param error, llmRequest is null");
+            log.warn("QwenModel connect param error, llmRequest is null");
             throw new IllegalArgumentException("QwenModel connect param error, llmRequest is null");
         }
         return new BaseLlmConnection() {

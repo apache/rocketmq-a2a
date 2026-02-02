@@ -56,7 +56,7 @@ public class A2AChatController {
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> streamChat(@RequestParam String question, @RequestParam String userId, @RequestParam String sessionId) {
         if (StringUtils.isEmpty(question) || StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId)) {
-            log.error("streamChat param error, question: [{}], userId: [{}], sessionId: [{}]", question, userId, sessionId);
+            log.warn("streamChat param error, question: [{}], userId: [{}], sessionId: [{}]", question, userId, sessionId);
             return Flux.error(new IllegalArgumentException("streamChat param error"));
         }
         log.debug("starting stream chat, userId: [{}], sessionId: [{}], question: [{}]", userId, sessionId, question);
@@ -80,7 +80,7 @@ public class A2AChatController {
     @GetMapping("/closeStream")
     public ResponseEntity<String> closeStreamChat(@RequestParam String userId, @RequestParam String sessionId) {
         if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId)) {
-            log.error("closeStreamChat param error, userId: [{}], sessionId: [{}]", userId, sessionId);
+            log.warn("closeStreamChat param error, userId: [{}], sessionId: [{}]", userId, sessionId);
             return ResponseEntity.status(400).body("param is error");
         }
         try {
@@ -106,7 +106,7 @@ public class A2AChatController {
     @GetMapping(value = "/resubscribeStream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> resubscribeStreamChat(@RequestParam String userId, @RequestParam String sessionId) {
         if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId)) {
-            log.error("resubscribeStreamChat param error, userId: [{}], sessionId: [{}]", userId, sessionId);
+            log.warn("resubscribeStreamChat param error, userId: [{}], sessionId: [{}]", userId, sessionId);
             return Flux.error(new IllegalArgumentException("userId and sessionId must not be empty"));
         }
         try {

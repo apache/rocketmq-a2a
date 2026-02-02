@@ -119,7 +119,7 @@ public class AgentService {
      */
     private static final String API_KEY = System.getProperty("apiKey");
 
-    private final Map<String /* agentName */, Client /* agentClient */> AgentClientMap = new ConcurrentHashMap<>();
+    private final Map<String /* agentName */, Client /* agentClient */> agentClientMap = new ConcurrentHashMap<>();
     private final Map<String /* sessionId */, Session /* session */> sessionMap = new ConcurrentHashMap<>();
     private final Map<String /* taskId */, TaskInfo /* taskInfo */> taskMap = new ConcurrentHashMap<>();
     private final Map<String /* userId */, Map<String /* sessionId */, List<TaskInfo> /* taskInfo */>> userSessionTaskListMap = new ConcurrentHashMap<>();
@@ -180,16 +180,16 @@ public class AgentService {
      */
     public Flux<String> startStreamChat(String userId, String sessionId, String question) {
         if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId) || StringUtils.isEmpty(question)) {
-            log.error("startStreamChat param error, userId: [{}], sessionId: [{}], question: [{}]", userId, sessionId, question);
+            log.warn("startStreamChat param error, userId: [{}], sessionId: [{}], question: [{}]", userId, sessionId, question);
             return Flux.error(new IllegalArgumentException("userId, sessionId, and question must not be empty"));
         }
-        Session userSession = sessionMap.computeIfAbsent(sessionId, k -> runner.sessionService().createSession(APP_NAME, userId,null, sessionId).blockingGet());
+        Session userSession = sessionMap.computeIfAbsent(sessionId, k -> runner.sessionService().createSession(APP_NAME, userId, null, sessionId).blockingGet());
         Map<String, List<TaskInfo>> sessionTaskListMap = userSessionTaskListMap.computeIfAbsent(userId, k -> new HashMap<>());
         List<TaskInfo> taskList = sessionTaskListMap.computeIfAbsent(sessionId, k -> new ArrayList<>());
         Flowable<Event> events = runner.runAsync(userId, userSession.id(), Content.fromParts(Part.fromText(question)));
         Sinks.Many<String> sink = Sinks.many().multicast().onBackpressureBuffer();
         events.blockingForEach(event -> {
-            dealEventContent(event.stringifyContent(), sink, taskList, userId, sessionId);
+            processEventContent(event.stringifyContent(), sink, taskList, userId, sessionId);
         });
         return Flux.from(sink.asFlux());
     }
@@ -207,7 +207,7 @@ public class AgentService {
      */
     public void endStreamChat(String userId, String sessionId) {
         if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId)) {
-            log.error("endStreamChat param error, invalid userId: [{}] or sessionId: [{}].", userId, sessionId);
+            log.warn("endStreamChat param error, invalid userId: [{}] or sessionId: [{}].", userId, sessionId);
             return;
         }
         // Retrieve the map of sessions for this user (create if absent)
@@ -226,7 +226,7 @@ public class AgentService {
         Map<String, Object> metadata = new HashMap<>();
         metadata.put(RocketMQA2AConstant.UNSUB_LITE_TOPIC, sessionId);
         // Get all connected agent clients
-        Collection<Client> clients = AgentClientMap.values();
+        Collection<Client> clients = agentClientMap.values();
         // Notify each client only if there are active clients
         if (CollectionUtils.isEmpty(clients)) {
             log.debug("endStreamChat success, clients is empty");
@@ -252,7 +252,7 @@ public class AgentService {
      */
     public Flux<String> resubscribeStream(String userId, String sessionId) {
         if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId)) {
-            log.error("resubscribeStream param error, userId: [{}], sessionId: [{}]", userId, sessionId);
+            log.warn("resubscribeStream param error, userId: [{}], sessionId: [{}]", userId, sessionId);
             return Flux.error(new IllegalArgumentException("userId, sessionId must not be empty"));
         }
         try {
@@ -271,7 +271,7 @@ public class AgentService {
                 }
             }
             // Notify all connected agent clients to resume publishing for this session
-            Collection<Client> clients = AgentClientMap.values();
+            Collection<Client> clients = agentClientMap.values();
             if (!CollectionUtils.isEmpty(clients)) {
                 Map<String, Object> metadata = new HashMap<>();
                 metadata.put(RocketMQA2AConstant.SUB_LITE_TOPIC, sessionId);
@@ -301,13 +301,13 @@ public class AgentService {
      * @param userId the id of the user associated with this session.
      * @param sessionId the id of the current session.
      */
-    private void dealEventContent(String content, Sinks.Many<String> sink, List<TaskInfo> taskList, String userId, String sessionId) {
+    private void processEventContent(String content, Sinks.Many<String> sink, List<TaskInfo> taskList, String userId, String sessionId) {
         if (StringUtils.isEmpty(content) || sink == null || StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId)) {
-            log.error("dealEventContent param error, content: [{}], sink: [{}], userId: [{}], sessionId: [{}]", content, sink, userId, sessionId);
+            log.warn("processEventContent param error, content: [{}], sink: [{}], userId: [{}], sessionId: [{}]", content, sink, userId, sessionId);
             return;
         }
         if (!content.startsWith(LEFT_BRACE)) {
-            emitMessage(sink, content,true);
+            emitMessage(sink, content, true);
             return;
         }
         try {
@@ -323,9 +323,9 @@ public class AgentService {
             }
             log.debug("转发请求到其他的Agent, 等待其响应，Agent: [{}], 问题: [{}]", mission.getAgent(), mission.getMessageInfo());
             emitMessage(sink, "******" + AGENT_NAME + "转发请求到其他的Agent, 等待其响应，Agent: " + mission.getAgent() + "，问题: " + mission.getMessageInfo(), false);
-            dealMissionByMessage(mission, taskId, sessionId);
+            handleMissionByMessage(mission, taskId, sessionId);
         } catch (Exception e) {
-            log.error("dealEventContent parse error", e);
+            log.error("processEventContent parse error", e);
         }
     }
 
@@ -336,22 +336,22 @@ public class AgentService {
      * @param taskId the unique identifier for this task.
      * @param sessionId the session ID associated with the conversation.
      */
-    private void dealMissionByMessage(Mission mission, String taskId, String sessionId) {
+    private void handleMissionByMessage(Mission mission, String taskId, String sessionId) {
         if (null == mission || StringUtils.isEmpty(mission.getAgent()) || StringUtils.isEmpty(mission.getMessageInfo()) || StringUtils.isEmpty(taskId) || StringUtils.isEmpty(sessionId)) {
-            log.error("dealMissionByMessage param error, mission: [{}], taskId: [{}], sessionId: [{}]", JSON.toJSONString(mission), taskId, sessionId);
+            log.warn("handleMissionByMessage param error, mission: [{}], taskId: [{}], sessionId: [{}]", JSON.toJSONString(mission), taskId, sessionId);
             return;
         }
         try {
             String agentName = mission.getAgent().replaceAll(" ", "");
-            Client client = AgentClientMap.get(agentName);
+            Client client = agentClientMap.get(agentName);
             if (null == client) {
-                log.error("dealMissionByMessage client is null");
+                log.warn("handleMissionByMessage client is null");
                 return;
             }
             client.sendMessage(A2A.createUserTextMessage(mission.getMessageInfo(), sessionId, taskId));
-            log.debug("dealMissionByMessage message: [{}]", mission.getMessageInfo());
+            log.debug("handleMissionByMessage message: [{}]", mission.getMessageInfo());
         } catch (Exception e) {
-            log.error("dealMissionByMessage error, mission: [{}], taskId: [{}], sessionId: [{}]", JSON.toJSONString(mission), taskId, sessionId, e);
+            log.error("handleMissionByMessage error, mission: [{}], taskId: [{}], sessionId: [{}]", JSON.toJSONString(mission), taskId, sessionId, e);
         }
     }
 
@@ -364,7 +364,7 @@ public class AgentService {
      */
     public BaseAgent initAgent(String weatherAgent, String travelAgent) {
         if (StringUtils.isEmpty(weatherAgent) || StringUtils.isEmpty(travelAgent)) {
-            log.error("initAgent param error, please provide both weatherAgent and travelAgent names");
+            log.warn("initAgent param error, please provide both weatherAgent and travelAgent names");
             return null;
         }
         QwenModel qwenModel = QwenModelRegistry.getModel(API_KEY);
@@ -417,7 +417,7 @@ public class AgentService {
      */
     private void initAgentCardInfo(String accessKey, String secretKey, String agentName, String agentUrl) {
         if (StringUtils.isEmpty(agentName) || StringUtils.isEmpty(agentUrl)) {
-            log.error("initAgentCardInfo param error, agentName: [{}], agentUrl: [{}]", agentName, agentUrl);
+            log.warn("initAgentCardInfo param error, agentName: [{}], agentUrl: [{}]", agentName, agentUrl);
             return;
         }
         AgentCard finalAgentCard = new A2ACardResolver(agentUrl).getAgentCard();
@@ -434,7 +434,7 @@ public class AgentService {
             .streamingErrorHandler(error -> log.error("Streaming error occurred: [{}]", error.getMessage()))
             .withTransport(RocketMQTransport.class, rocketMQTransportConfig)
             .build();
-        AgentClientMap.put(agentName, client);
+        agentClientMap.put(agentName, client);
         log.info("successfully initialized and registered agent client. agentName: [{}], url: [{}]", agentName, agentUrl);
     }
 
@@ -473,7 +473,7 @@ public class AgentService {
                         for (Artifact tempArtifact : artifacts) {
                             stringBuilder.append(extractTextFromMessage(tempArtifact));
                         }
-                        dealAgentResponse(stringBuilder.toString(), taskInfo.getUserId(), taskInfo.getSessionId(), taskInfo.getTaskId());
+                        processAgentResponse(stringBuilder.toString(), taskInfo.getUserId(), taskInfo.getSessionId(), taskInfo.getTaskId());
                     }
                 }
             }
@@ -513,9 +513,9 @@ public class AgentService {
      * @param sessionId the current session ID.
      * @param taskId the associated task ID for tracking.
      */
-    private void dealAgentResponse(String result, String userId, String sessionId, String taskId) {
+    private void processAgentResponse(String result, String userId, String sessionId, String taskId) {
         if (StringUtils.isEmpty(result) || StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId) || StringUtils.isEmpty(taskId)) {
-            log.error("dealAgentResponse param error, result: [{}], userId: [{}], sessionId: [{}], taskId: [{}]", result, userId, sessionId, taskId);
+            log.warn("processAgentResponse param error, result: [{}], userId: [{}], sessionId: [{}], taskId: [{}]", result, userId, sessionId, taskId);
             return;
         }
         Maybe<Session> sessionMaybe = sessionService.getSession(APP_NAME, userId, sessionId, Optional.empty());
@@ -542,7 +542,7 @@ public class AgentService {
         events.blockingForEach(eventSub -> {
             TaskInfo taskInfo = taskMap.get(taskId);
             if (null == taskInfo || null == taskInfo.getSink()) {
-                log.error("iterEvents taskInfo/sink is null");
+                log.warn("iterEvents taskInfo/sink is null");
                 return;
             }
             String content = eventSub.stringifyContent();
@@ -561,7 +561,7 @@ public class AgentService {
                 if (null != mission && !StringUtils.isEmpty(mission.getMessageInfo()) && !StringUtils.isEmpty(mission.getAgent())) {
                     log.debug("转发到其他的Agent, 等待其他Agent响应，Agent: [{}], 问题: [{}]", mission.getAgent(), mission.getMessageInfo());
                     emitMessage(sink, "\n \n ******" + AGENT_NAME + " 转发请求到其他的Agent, 等待其响应，Agent: " + mission.getAgent() + "， 问题: " + mission.getMessageInfo(), false);
-                    dealMissionByMessage(mission, taskId, sessionId);
+                    handleMissionByMessage(mission, taskId, sessionId);
                 }
             } catch (Exception e) {
                 log.error("iterEvents parse result error", e);
@@ -576,7 +576,7 @@ public class AgentService {
      */
     private void completeTask(TaskInfo taskInfo) {
         if (null == taskInfo || StringUtils.isEmpty(taskInfo.getTaskId())) {
-            log.error("completeTask taskInfo is null or taskId is empty");
+            log.warn("completeTask taskInfo is null or taskId is empty");
             return;
         }
         String taskId = taskInfo.getTaskId();

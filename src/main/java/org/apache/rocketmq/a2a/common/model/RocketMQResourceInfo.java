@@ -113,7 +113,7 @@ public class RocketMQResourceInfo {
      */
     public static RocketMQResourceInfo parseAgentCardAddition(AgentCard agentCard) {
         if (null == agentCard || StringUtils.isEmpty(agentCard.preferredTransport()) || StringUtils.isEmpty(agentCard.url()) || CollectionUtils.isEmpty(agentCard.additionalInterfaces())) {
-            log.error("RocketMQTransport parseAgentCardAddition param error, agentCard: [{}]", JSON.toJSONString(agentCard));
+            log.warn("RocketMQTransport parseAgentCardAddition param error, agentCard: [{}]", JSON.toJSONString(agentCard));
             return null;
         }
         RocketMQResourceInfo rocketMQResourceInfo = null;
@@ -122,7 +122,7 @@ public class RocketMQResourceInfo {
         if (RocketMQA2AConstant.ROCKETMQ_PROTOCOL.equals(preferredTransport)) {
             rocketMQResourceInfo = pareAgentCardUrl(agentCard.url());
             if (null != rocketMQResourceInfo && !StringUtils.isEmpty(rocketMQResourceInfo.getEndpoint()) && !StringUtils.isEmpty(rocketMQResourceInfo.getTopic())) {
-                log.info("RocketMQTransport get rocketMQResourceInfo from preferredTransport");
+                log.info("RocketMQTransport get rocketMQResourceInfo from preferredTransport, rocketMQResourceInfo: [{}]", JSON.toJSONString(rocketMQResourceInfo));
                 return rocketMQResourceInfo;
             }
         }
@@ -133,11 +133,10 @@ public class RocketMQResourceInfo {
             return null;
         }
         for (AgentInterface agentInterface : agentInterfaces) {
-            String transport = agentInterface.transport();
-            if (!StringUtils.isEmpty(transport) && RocketMQA2AConstant.ROCKETMQ_PROTOCOL.equals(transport)) {
+            if (RocketMQA2AConstant.ROCKETMQ_PROTOCOL.equals(agentInterface.transport())) {
                 rocketMQResourceInfo = pareAgentCardUrl(agentInterface.url());
                 if (null != rocketMQResourceInfo && !StringUtils.isEmpty(rocketMQResourceInfo.getEndpoint()) && !StringUtils.isEmpty(rocketMQResourceInfo.getTopic())) {
-                    log.info("RocketMQTransport get rocketMQResourceInfo from additionalInterfaces");
+                    log.info("RocketMQTransport get rocketMQResourceInfo from additionalInterfaces, rocketMQResourceInfo: [{}]", JSON.toJSONString(rocketMQResourceInfo));
                     return rocketMQResourceInfo;
                 }
             }
@@ -154,7 +153,7 @@ public class RocketMQResourceInfo {
      */
     public static RocketMQResourceInfo pareAgentCardUrl(String agentCardUrl) {
         if (StringUtils.isEmpty(agentCardUrl) || !agentCardUrl.startsWith(HTTPS_URL_PREFIX) && !agentCardUrl.startsWith(HTTP_URL_PREFIX)) {
-            log.error("RocketMQResourceInfo pareAgentCardUrl param error, agentCardUrl: [{}]", agentCardUrl);
+            log.warn("RocketMQResourceInfo pareAgentCardUrl param error, agentCardUrl: [{}]", agentCardUrl);
             return null;
         }
         if (agentCardUrl.startsWith(HTTPS_URL_PREFIX)) {
