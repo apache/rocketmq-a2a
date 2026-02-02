@@ -308,8 +308,8 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
     /**
      * Creates a pre-populated builder with common fields from the message context.
      *
-     * @param messageView the received message view containing metadata from the original request
-     * @return a configured {@link RocketMQResponse.Builder} ready for additional settings
+     * @param messageView the received message view containing metadata from the original request.
+     * @return a configured {@link RocketMQResponse.Builder} ready for additional settings.
      */
     private RocketMQResponse.Builder buildBaseResponse(MessageView messageView) {
         Builder builder = RocketMQResponse.builder();
@@ -330,8 +330,7 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
             return ConsumeResult.SUCCESS;
         }
         try {
-            Boolean result = completableFuture.get(15, TimeUnit.MINUTES);
-            return Boolean.TRUE.equals(result) ? ConsumeResult.SUCCESS : ConsumeResult.FAILURE;
+            return Boolean.TRUE.equals(completableFuture.get(15, TimeUnit.MINUTES)) ? ConsumeResult.SUCCESS : ConsumeResult.FAILURE;
         } catch (Exception e) {
             log.error("RocketMQA2AServerRoutes processCompletableFuture error", e);
             return ConsumeResult.FAILURE;
