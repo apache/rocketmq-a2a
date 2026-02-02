@@ -25,7 +25,7 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import io.a2a.client.transport.spi.ClientTransport;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.rocketmq.a2a.common.model.RocketMQResourceInfo;
+import org.apache.rocketmq.a2a.common.model.RocketMQResource;
 import org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant;
 import io.a2a.client.http.A2ACardResolver;
 import io.a2a.client.http.A2AHttpClient;
@@ -173,9 +173,9 @@ public class RocketMQTransport implements ClientTransport {
         // Generate a random lite topic if none is provided
         this.liteTopic = StringUtils.isEmpty(liteTopic) ? UUID.randomUUID().toString() : liteTopic;
         // Parse RocketMQ resource info from the agent card
-        RocketMQResourceInfo rocketMQAgentCardInfo = parseAgentCardAddition(this.agentCard);
+        RocketMQResource rocketMQAgentCardInfo = parseAgentCardAddition(this.agentCard);
         if (null == rocketMQAgentCardInfo) {
-            throw new IllegalArgumentException("RocketMQTransport failed to parse RocketMQResourceInfo from AgentCard");
+            throw new IllegalArgumentException("RocketMQTransport failed to parse RocketMQResource from AgentCard");
         }
         if (null != rocketMQTransportConfig.getNamespace() && !rocketMQTransportConfig.getNamespace().equals(rocketMQAgentCardInfo.getNamespace())) {
             throw new IllegalArgumentException("RocketMQTransport namespace don't match, please check the config info");

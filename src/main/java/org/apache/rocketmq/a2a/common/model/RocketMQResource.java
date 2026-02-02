@@ -20,7 +20,7 @@ package org.apache.rocketmq.a2a.common.model;
  * Encapsulates RocketMQ resource information, including endpoint, namespace, and topic.
  * Used for routing and connecting to specific RocketMQ clusters.
  */
-public class RocketMQResourceInfo {
+public class RocketMQResource {
     /**
      * The namespace of RocketMQ service.
      */
@@ -37,9 +37,9 @@ public class RocketMQResourceInfo {
     private String topic;
 
     /**
-     * Constructs a new RocketMQResourceInfo.
+     * Constructs a new RocketMQResource.
      */
-    public RocketMQResourceInfo() {}
+    public RocketMQResource() {}
 
     public String getEndpoint() {
         return endpoint;
@@ -70,7 +70,7 @@ public class RocketMQResourceInfo {
     }
 
     public static class Builder {
-        private final RocketMQResourceInfo info = new RocketMQResourceInfo();
+        private final RocketMQResource info = new RocketMQResource();
 
         public Builder namespace(String namespace) {
             info.setNamespace(namespace);
@@ -87,7 +87,7 @@ public class RocketMQResourceInfo {
             return this;
         }
 
-        public RocketMQResourceInfo build() {
+        public RocketMQResource build() {
             return info;
         }
     }

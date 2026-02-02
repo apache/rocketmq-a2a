@@ -19,7 +19,7 @@ package org.apache.rocketmq.a2a.common.model;
 /**
  * Server receipt information
  */
-public class ServerReceiptInfo {
+public class ServerReceipt {
     /**
      * The response topic designated for this specific client-server interaction,
      * used to achieve a "sticky" communication pattern where all replies from the server
@@ -33,7 +33,7 @@ public class ServerReceiptInfo {
      */
     private final String serverLiteTopic;
 
-    public ServerReceiptInfo(String serverWorkAgentResponseTopic, String serverLiteTopic) {
+    public ServerReceipt(String serverWorkAgentResponseTopic, String serverLiteTopic) {
         this.serverWorkAgentResponseTopic = serverWorkAgentResponseTopic;
         this.serverLiteTopic = serverLiteTopic;
     }
@@ -64,8 +64,8 @@ public class ServerReceiptInfo {
             return this;
         }
 
-        public ServerReceiptInfo build() {
-            return new ServerReceiptInfo(serverWorkAgentResponseTopic, serverLiteTopic);
+        public ServerReceipt build() {
+            return new ServerReceipt(serverWorkAgentResponseTopic, serverLiteTopic);
         }
     }
 }

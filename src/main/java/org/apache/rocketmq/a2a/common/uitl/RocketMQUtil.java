@@ -48,8 +48,8 @@ import io.a2a.spec.TaskState;
 import io.a2a.spec.TaskStatus;
 import io.a2a.util.Utils;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.rocketmq.a2a.common.model.RocketMQResourceInfo;
-import org.apache.rocketmq.a2a.common.model.ServerReceiptInfo;
+import org.apache.rocketmq.a2a.common.model.RocketMQResource;
+import org.apache.rocketmq.a2a.common.model.ServerReceipt;
 import org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant;
 import org.apache.rocketmq.a2a.common.future.A2AResponseFuture;
 import org.apache.rocketmq.a2a.common.model.RocketMQRequest;
@@ -102,7 +102,7 @@ public class RocketMQUtil {
     public static final ConcurrentMap<String /* namespace */, Map<String /* msgId */, SSEEventListener>> MESSAGE_STREAM_RESPONSE_MAP = new ConcurrentHashMap<>();
     public static final ConcurrentMap<String /* namespace */, Map<String /* liteTopic */, Boolean>> LITE_TOPIC_USE_DEFAULT_RECOVER_MAP = new ConcurrentHashMap<>();
     public static final ConcurrentMap<String /* namespace */, Map<String /* Key */, SSEEventListener>> RECOVER_MESSAGE_STREAM_RESPONSE_MAP = new ConcurrentHashMap<>();
-    public static final ConcurrentMap<String /* taskId */, ServerReceiptInfo /* ServerInfo */> TASK_SERVER_RECEIPT_MAP = new ConcurrentHashMap<>();
+    public static final ConcurrentMap<String /* taskId */, ServerReceipt /* ServerInfo */> TASK_SERVER_RECEIPT_MAP = new ConcurrentHashMap<>();
 
     /**
      * Validates required configuration parameters for initializing RocketMQTransport.
@@ -418,9 +418,11 @@ public class RocketMQUtil {
         Message message = null;
         // Check if sticky routing is enabled via TASK_SERVER_RECEIPT_MAP
         if (!StringUtils.isEmpty(taskId) && TASK_SERVER_RECEIPT_MAP.containsKey(taskId)) {
-            ServerReceiptInfo serverReceiptInfo = TASK_SERVER_RECEIPT_MAP.get(taskId);
-            message = PROVIDER.newMessageBuilder().setTopic(serverReceiptInfo.getServerWorkAgentResponseTopic()).setLiteTopic(serverReceiptInfo.getServerLiteTopic()).setBody(body).build();
-            log.debug("RocketMQUtil sendRocketMQRequest send message to serverLiteTopic taskId: [{}], serverReceiptInfo: [{}]", taskId, JSON.toJSONString(serverReceiptInfo));
+            ServerReceipt serverReceipt = TASK_SERVER_RECEIPT_MAP.get(taskId);
+            message = PROVIDER.newMessageBuilder().setTopic(serverReceipt.getServerWorkAgentResponseTopic()).setLiteTopic(
+                serverReceipt.getServerLiteTopic()).setBody(body).build();
+            log.debug("RocketMQUtil sendRocketMQRequest send message to serverLiteTopic taskId: [{}], serverReceipt: [{}]", taskId, JSON.toJSONString(
+                serverReceipt));
         } else {
             message = PROVIDER.newMessageBuilder().setTopic(agentTopic).setBody(body).build();
             log.debug("RocketMQUtil sendRocketMQRequest send message to serverNormalTopic agentTopic: [{}]", agentTopic);
@@ -581,7 +583,7 @@ public class RocketMQUtil {
         if (task == null || StringUtils.isEmpty(task.getId())) {
             return;
         }
-        ServerReceiptInfo info = ServerReceiptInfo.builder().serverWorkAgentResponseTopic(response.getServerWorkAgentResponseTopic()).serverLiteTopic(response.getServerLiteTopic()).build();
+        ServerReceipt info = ServerReceipt.builder().serverWorkAgentResponseTopic(response.getServerWorkAgentResponseTopic()).serverLiteTopic(response.getServerLiteTopic()).build();
         TASK_SERVER_RECEIPT_MAP.putIfAbsent(task.getId(), info);
         log.debug("RocketMQUtil cached server receipt for new task, taskId: [{}], workAgentResponseTopic: [{}], liteTopic: [{}]", task.getId(), info.getServerWorkAgentResponseTopic(), info.getServerLiteTopic());
     }
@@ -595,7 +597,7 @@ public class RocketMQUtil {
         if (task == null || StringUtils.isEmpty(task.getId())) {
             return;
         }
-        ServerReceiptInfo removed = TASK_SERVER_RECEIPT_MAP.remove(task.getId());
+        ServerReceipt removed = TASK_SERVER_RECEIPT_MAP.remove(task.getId());
         if (removed != null) {
             log.debug("RocketMQUtil removed server receipt after task cancellation, taskId: [{}]", task.getId());
         }
@@ -611,7 +613,7 @@ public class RocketMQUtil {
         }
         TaskStatus status = task.getStatus();
         if (status != null && status.state() == TaskState.COMPLETED) {
-            ServerReceiptInfo removed = TASK_SERVER_RECEIPT_MAP.remove(task.getId());
+            ServerReceipt removed = TASK_SERVER_RECEIPT_MAP.remove(task.getId());
             if (removed != null) {
                 log.debug("RocketMQUtil removed server receipt after task completion, taskId: [{}]", task.getId());
             }
@@ -688,21 +690,23 @@ public class RocketMQUtil {
      * Parses RocketMQ-related information from an AgentCard.
      *
      * @param agentCard the AgentCard containing transport endpoints.
-     * @return RocketMQResourceInfo, or {@code null} if parsing fails or no RocketMQ interface found.
+     * @return RocketMQResource, or {@code null} if parsing fails or no RocketMQ interface found.
      */
-    public static RocketMQResourceInfo parseAgentCardAddition(AgentCard agentCard) {
+    public static RocketMQResource parseAgentCardAddition(AgentCard agentCard) {
         if (null == agentCard || StringUtils.isEmpty(agentCard.preferredTransport()) || StringUtils.isEmpty(agentCard.url()) || CollectionUtils.isEmpty(agentCard.additionalInterfaces())) {
             log.warn("RocketMQTransport parseAgentCardAddition param error, agentCard: [{}]", JSON.toJSONString(agentCard));
             return null;
         }
-        RocketMQResourceInfo rocketMQResourceInfo = null;
+        RocketMQResource rocketMQResource = null;
         String preferredTransport = agentCard.preferredTransport();
         // If the preferredTransport is RocketMQ
         if (RocketMQA2AConstant.ROCKETMQ_PROTOCOL.equals(preferredTransport)) {
-            rocketMQResourceInfo = pareAgentCardUrl(agentCard.url());
-            if (null != rocketMQResourceInfo && !StringUtils.isEmpty(rocketMQResourceInfo.getEndpoint()) && !StringUtils.isEmpty(rocketMQResourceInfo.getTopic())) {
-                log.info("RocketMQTransport get rocketMQResourceInfo from preferredTransport, rocketMQResourceInfo: [{}]", JSON.toJSONString(rocketMQResourceInfo));
-                return rocketMQResourceInfo;
+            rocketMQResource = pareAgentCardUrl(agentCard.url());
+            if (null != rocketMQResource && !StringUtils.isEmpty(rocketMQResource.getEndpoint()) && !StringUtils.isEmpty(
+                rocketMQResource.getTopic())) {
+                log.info("RocketMQTransport get rocketMQResource from preferredTransport, rocketMQResource: [{}]", JSON.toJSONString(
+                    rocketMQResource));
+                return rocketMQResource;
             }
         }
         // If the preferredTransport is not RocketMQ, then try to get rocketmq info from additionalInterfaces
@@ -713,10 +717,12 @@ public class RocketMQUtil {
         }
         for (AgentInterface agentInterface : agentInterfaces) {
             if (RocketMQA2AConstant.ROCKETMQ_PROTOCOL.equals(agentInterface.transport())) {
-                rocketMQResourceInfo = pareAgentCardUrl(agentInterface.url());
-                if (null != rocketMQResourceInfo && !StringUtils.isEmpty(rocketMQResourceInfo.getEndpoint()) && !StringUtils.isEmpty(rocketMQResourceInfo.getTopic())) {
-                    log.info("RocketMQTransport get rocketMQResourceInfo from additionalInterfaces, rocketMQResourceInfo: [{}]", JSON.toJSONString(rocketMQResourceInfo));
-                    return rocketMQResourceInfo;
+                rocketMQResource = pareAgentCardUrl(agentInterface.url());
+                if (null != rocketMQResource && !StringUtils.isEmpty(rocketMQResource.getEndpoint()) && !StringUtils.isEmpty(
+                    rocketMQResource.getTopic())) {
+                    log.info("RocketMQTransport get rocketMQResource from additionalInterfaces, rocketMQResource: [{}]", JSON.toJSONString(
+                        rocketMQResource));
+                    return rocketMQResource;
                 }
             }
         }
@@ -728,11 +734,11 @@ public class RocketMQUtil {
      * {@code http://endpoint/namespace/topic} or {@code https://endpoint/namespace/topic}.
      *
      * @param agentCardUrl the full URL string.
-     * @return a new RocketMQResourceInfo instance, or {@code null} if parsing fails.
+     * @return a new RocketMQResource instance, or {@code null} if parsing fails.
      */
-    public static RocketMQResourceInfo pareAgentCardUrl(String agentCardUrl) {
+    public static RocketMQResource pareAgentCardUrl(String agentCardUrl) {
         if (StringUtils.isEmpty(agentCardUrl) || !agentCardUrl.startsWith(HTTPS_URL_PREFIX) && !agentCardUrl.startsWith(HTTP_URL_PREFIX)) {
-            log.warn("RocketMQResourceInfo pareAgentCardUrl param error, agentCardUrl: [{}]", agentCardUrl);
+            log.warn("RocketMQResource pareAgentCardUrl param error, agentCardUrl: [{}]", agentCardUrl);
             return null;
         }
         if (agentCardUrl.startsWith(HTTPS_URL_PREFIX)) {
@@ -744,7 +750,7 @@ public class RocketMQUtil {
         if (split.length != 3) {
             return null;
         }
-        return RocketMQResourceInfo.builder().endpoint(split[0].trim()).namespace(split[1].trim()).topic(split[2].trim()).build();
+        return RocketMQResource.builder().endpoint(split[0].trim()).namespace(split[1].trim()).topic(split[2].trim()).build();
     }
 
     /**
