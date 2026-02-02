@@ -2,13 +2,11 @@ package common.util;
 
 import java.util.List;
 import java.util.UUID;
-
 import com.alibaba.dashscope.app.Application;
 import com.alibaba.dashscope.app.ApplicationParam;
 import com.alibaba.dashscope.app.ApplicationResult;
 import com.alibaba.dashscope.exception.InputRequiredException;
 import com.alibaba.dashscope.exception.NoApiKeyException;
-
 import io.a2a.spec.Message;
 import io.a2a.spec.Part;
 import io.a2a.spec.Task;

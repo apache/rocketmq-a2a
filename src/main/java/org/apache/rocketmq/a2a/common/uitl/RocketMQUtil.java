@@ -36,6 +36,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import io.a2a.client.transport.jsonrpc.sse.SSEEventListener;
 import io.a2a.client.transport.spi.interceptors.PayloadAndHeaders;
 import io.a2a.spec.A2AClientException;
+import io.a2a.spec.AgentCard;
+import io.a2a.spec.AgentInterface;
 import io.a2a.spec.CancelTaskResponse;
 import io.a2a.spec.GetTaskResponse;
 import io.a2a.spec.JSONRPCError;
@@ -45,6 +47,8 @@ import io.a2a.spec.Task;
 import io.a2a.spec.TaskState;
 import io.a2a.spec.TaskStatus;
 import io.a2a.util.Utils;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.rocketmq.a2a.common.model.RocketMQResourceInfo;
 import org.apache.rocketmq.a2a.common.model.ServerReceiptInfo;
 import org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant;
 import org.apache.rocketmq.a2a.common.future.A2AResponseFuture;
@@ -71,6 +75,9 @@ import org.slf4j.LoggerFactory;
 import static io.a2a.util.Utils.OBJECT_MAPPER;
 import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.CANCEL_TASK_RESPONSE_REFERENCE;
 import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.GET_TASK_RESPONSE_REFERENCE;
+import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.HTTPS_URL_PREFIX;
+import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.HTTP_URL_PREFIX;
+import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.RESOURCE_SPLIT;
 import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.SEND_MESSAGE_RESPONSE_REFERENCE;
 
 /**
@@ -88,8 +95,7 @@ import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.SEND_M
  */
 public class RocketMQUtil {
     private static final Logger log = LoggerFactory.getLogger(RocketMQUtil.class);
-    private static final ClientServiceProvider provider = ClientServiceProvider.loadService();
-
+    private static final ClientServiceProvider PROVIDER = ClientServiceProvider.loadService();
     public static final ConcurrentMap<String /* namespace */, Map<String /* WorkerAgentResponseTopic */, LitePushConsumer>> ROCKETMQ_CONSUMER_MAP = new ConcurrentHashMap<>();
     public static final ConcurrentMap<String /* namespace */, Map<String /* agentTopic */, Producer>> ROCKETMQ_PRODUCER_MAP = new ConcurrentHashMap<>();
     public static final ConcurrentMap<String /* namespace */, Map<String /* msgId */, A2AResponseFuture>> MESSAGE_RESPONSE_MAP = new ConcurrentHashMap<>();
@@ -107,7 +113,7 @@ public class RocketMQUtil {
      * @param endpoint the network address of the RocketMQ service, used by clients to connect to a specific RocketMQ cluster.
      * @param workAgentResponseTopic the lightweight topic used to receive asynchronous replies.
      * @param workAgentResponseGroupID the consumer group ID (CID) for subscribing to the response topic {@code workAgentResponseTopic}.
-     * @param liteTopic LiteTopic is a lightweight session identifier, similar to a SessionId, dynamically created at runtime for data storage and isolation.
+     * @param liteTopic LiteTopic is a session identifier, similar to a SessionId, dynamically created at runtime for data storage and isolation.
      * @param agentTopic the normal business topic bound to the target agent.
      */
     public static void checkConfigParam(String endpoint, String workAgentResponseTopic, String workAgentResponseGroupID, String liteTopic, String agentTopic) {
@@ -126,9 +132,7 @@ public class RocketMQUtil {
             }
         }
         if (!missing.isEmpty()) {
-            throw new IllegalArgumentException(
-                "Missing mandatory RocketMQ config parameters: " + missing
-            );
+            throw new IllegalArgumentException("Missing mandatory RocketMQ config parameters: " + missing);
         }
     }
 
@@ -185,7 +189,7 @@ public class RocketMQUtil {
             .setCredentialProvider(sessionCredentialsProvider)
             .setRequestTimeout(Duration.ofSeconds(15))
             .build();
-        final ProducerBuilder builder = provider.newProducerBuilder()
+        final ProducerBuilder builder = PROVIDER.newProducerBuilder()
             .setClientConfiguration(clientConfiguration)
             .setTopics(topics);
         return builder.build();
@@ -204,7 +208,7 @@ public class RocketMQUtil {
      * @param workAgentResponseTopic the lightweight topic used to receive asynchronous replies.
      * @param workAgentResponseGroupID the consumer group ID (CID) for subscribing to the response topic {@code workAgentResponseTopic}.
      * @param liteTopic Typically, a liteTopic that is bound to {@code #workAgentResponseTopic}.
-     *                  LiteTopic is a lightweight session identifier, similar to a SessionId, dynamically created at runtime for data storage and isolation.
+     * LiteTopic is a session identifier, similar to a SessionId, dynamically created at runtime for data storage and isolation.
      * @return a LitePushConsumer instance.
      */
     public static LitePushConsumer getOrCreateLitePushConsumer(String namespace, String endpoint, String accessKey, String secretKey, String workAgentResponseTopic, String workAgentResponseGroupID, String liteTopic) {
@@ -222,7 +226,7 @@ public class RocketMQUtil {
                 throw new IllegalStateException(e);
             }
         });
-        //litePushConsumer sub the liteTopic
+        // litePushConsumer sub the liteTopic
         if (null != litePushConsumer) {
             try {
                 litePushConsumer.subscribeLite(liteTopic);
@@ -259,7 +263,7 @@ public class RocketMQUtil {
             .setNamespace(namespace)
             .setCredentialProvider(sessionCredentialsProvider)
             .build();
-        return provider.newLitePushConsumerBuilder()
+        return PROVIDER.newLitePushConsumerBuilder()
             .setClientConfiguration(clientConfiguration)
             .setConsumerGroup(workAgentResponseGroupID)
             .bindTopic(workAgentResponseTopic)
@@ -293,7 +297,7 @@ public class RocketMQUtil {
             .setCredentialProvider(sessionCredentialsProvider)
             .build();
         String tag = "*";
-        return provider.newPushConsumerBuilder()
+        return PROVIDER.newPushConsumerBuilder()
             .setClientConfiguration(clientConfiguration)
             .setConsumerGroup(bizGroup)
             .setSubscriptionExpressions(Collections.singletonMap(bizTopic, new FilterExpression(tag, FilterExpressionType.TAG)))
@@ -306,8 +310,8 @@ public class RocketMQUtil {
      * <p>The listener:
      * <ul>
      *   <li>Extracts the payload and deserializes it into a {@link RocketMQResponse}</li>
-     *   <li>Routes non-streaming results to {@link #dealNonStreamResult}</li>
-     *   <li>Handles streaming chunks via {@link #dealStreamResult}</li>
+     *   <li>Routes non-streaming results to {@link #processNonStreamResult}</li>
+     *   <li>Handles streaming chunks via {@link #processStreamResult}</li>
      * </ul>
      *
      * <p>If the message cannot be parsed or has no messageId, it is skipped safely.</p>
@@ -318,7 +322,7 @@ public class RocketMQUtil {
     private static MessageListener buildA2AClientMessageListener(String namespace) {
         return messageView -> {
             try {
-                //parse and obtain the liteTopic
+                // parse and obtain the liteTopic
                 Optional<String> liteTopicOpt = messageView.getLiteTopic();
                 String liteTopic = liteTopicOpt.get();
                 if (StringUtils.isEmpty(liteTopic)) {
@@ -335,10 +339,10 @@ public class RocketMQUtil {
                 }
                 //Process non-streaming results
                 if (!response.isStream()) {
-                    return dealNonStreamResult(response, namespace);
+                    return processNonStreamResult(response, namespace);
                 }
                 //Process streaming results
-                return dealStreamResult(response, namespace, liteTopic);
+                return processStreamResult(response, namespace, liteTopic);
             } catch (Exception e) {
                 log.error("RocketMQUtil A2AClientMessageListener consumer error, msgId: [{}]", messageView.getMessageId(), e);
                 return ConsumeResult.SUCCESS;
@@ -363,7 +367,7 @@ public class RocketMQUtil {
             throw new IllegalArgumentException("buildMessageForResponse param error");
         }
         String missionJsonStr = JSON.toJSONString(response);
-        return provider.newMessageBuilder()
+        return PROVIDER.newMessageBuilder()
             .setTopic(topic)
             .setBody(missionJsonStr.getBytes(StandardCharsets.UTF_8))
             .setLiteTopic(liteTopic)
@@ -380,7 +384,7 @@ public class RocketMQUtil {
      * @param payloadAndHeaders the request payload and metadata (e.g., auth headers)
      * @param agentTopic the default destination topic bound to the target agent.
      * @param liteTopic Typically, a liteTopic that is bound to {@code #workAgentResponseTopic}.
-     *                  LiteTopic is a lightweight session identifier, similar to a SessionId, dynamically created at runtime for data storage and isolation.
+     * LiteTopic is a session identifier, similar to a SessionId, dynamically created at runtime for data storage and isolation.
      * @param workAgentResponseTopic the lightweight topic used to receive asynchronous replies.
      * @param producer the RocketMQ producer used to send the message.
      * @param taskId optional task ID for enabling server affinity (sticky routing).
@@ -415,10 +419,10 @@ public class RocketMQUtil {
         // Check if sticky routing is enabled via TASK_SERVER_RECEIPT_MAP
         if (!StringUtils.isEmpty(taskId) && TASK_SERVER_RECEIPT_MAP.containsKey(taskId)) {
             ServerReceiptInfo serverReceiptInfo = TASK_SERVER_RECEIPT_MAP.get(taskId);
-            message = provider.newMessageBuilder().setTopic(serverReceiptInfo.getServerWorkAgentResponseTopic()).setLiteTopic(serverReceiptInfo.getServerLiteTopic()).setBody(body).build();
+            message = PROVIDER.newMessageBuilder().setTopic(serverReceiptInfo.getServerWorkAgentResponseTopic()).setLiteTopic(serverReceiptInfo.getServerLiteTopic()).setBody(body).build();
             log.debug("RocketMQUtil sendRocketMQRequest send message to serverLiteTopic taskId: [{}], serverReceiptInfo: [{}]", taskId, JSON.toJSONString(serverReceiptInfo));
         } else {
-            message = provider.newMessageBuilder().setTopic(agentTopic).setBody(body).build();
+            message = PROVIDER.newMessageBuilder().setTopic(agentTopic).setBody(body).build();
             log.debug("RocketMQUtil sendRocketMQRequest send message to serverNormalTopic agentTopic: [{}]", agentTopic);
         }
         try {
@@ -443,20 +447,20 @@ public class RocketMQUtil {
      **
      * @param response the incoming A2A streaming response.
      * @param namespace logical isolation unit.
-     * @param liteTopic Typically, LiteTopic is a lightweight session identifier, similar to a SessionId,
-     *                  dynamically created at runtime for data storage and isolation.
+     * @param liteTopic Typically, LiteTopic is a session identifier, similar to a SessionId,
+     * dynamically created at runtime for data storage and isolation.
      * @return {@link ConsumeResult#SUCCESS} if processed (even if skipped), {@link ConsumeResult#FAILURE} on error.
      */
 
-    private static ConsumeResult dealStreamResult(RocketMQResponse response, String namespace, String liteTopic) {
+    private static ConsumeResult processStreamResult(RocketMQResponse response, String namespace, String liteTopic) {
         if (StringUtils.isEmpty(liteTopic) || null == response || StringUtils.isEmpty(response.getMessageId()) || !response.isEnd() && StringUtils.isEmpty(response.getResponseBody())) {
-            log.warn("RocketMQUtil dealStreamResult param is error, response: [{}], liteTopic: [{}]", JSON.toJSONString(response), liteTopic);
+            log.warn("RocketMQUtil processStreamResult param is error, response: [{}], liteTopic: [{}]", JSON.toJSONString(response), liteTopic);
             return ConsumeResult.SUCCESS;
         }
         // Get the SSE event listener map for this namespace
         Map<String, SSEEventListener> sseEventListenerMap = MESSAGE_STREAM_RESPONSE_MAP.get(namespace);
         if (null == sseEventListenerMap) {
-            log.debug("RocketMQUtil No SSE listener map found for namespace: [{}]", namespace);
+            log.debug("RocketMQUtil processStreamResult No SSE listener map found for namespace: [{}]", namespace);
             return ConsumeResult.SUCCESS;
         }
         SSEEventListener sseEventListener = getSSEEventListener(sseEventListenerMap, response, namespace, liteTopic);
@@ -468,7 +472,7 @@ public class RocketMQUtil {
         // Clean up listener if this is the final message
         if (response.isEnd()) {
             sseEventListenerMap.remove(response.getMessageId());
-            log.debug("RocketMQUtil remove SSE event listener for completed stream, msgId: [{}]", response.getMessageId());
+            log.debug("RocketMQUtil processStreamResult remove SSE event listener for completed stream, msgId: [{}]", response.getMessageId());
         }
         return ConsumeResult.SUCCESS;
     }
@@ -532,7 +536,7 @@ public class RocketMQUtil {
      * @param namespace logical isolation unit (e.g., tenant/environment)
      * @return {@link ConsumeResult#SUCCESS} if handled or skipped safely.
      */
-    private static ConsumeResult dealNonStreamResult(RocketMQResponse response, String namespace) {
+    private static ConsumeResult processNonStreamResult(RocketMQResponse response, String namespace) {
         if (response == null || StringUtils.isEmpty(response.getMessageId()) || StringUtils.isEmpty(response.getResponseBody())) {
             log.warn("RocketMQUtil Invalid non-streaming response: missing messageId or responseBody, response: [{}]", JSON.toJSONString(response));
             return ConsumeResult.SUCCESS;
@@ -674,10 +678,87 @@ public class RocketMQUtil {
         }
         try {
             return OBJECT_MAPPER.writeValueAsString(o);
-        } catch (JsonProcessingException ex) {
-            log.warn("RocketMQUtil failed to serialize object to JSON: {}", o.getClass().getSimpleName(), ex);
+        } catch (JsonProcessingException e) {
+            log.error("RocketMQUtil failed to serialize object to JSON", e);
             return null;
         }
     }
 
+    /**
+     * Parses RocketMQ-related information from an AgentCard.
+     *
+     * @param agentCard the AgentCard containing transport endpoints.
+     * @return RocketMQResourceInfo, or {@code null} if parsing fails or no RocketMQ interface found.
+     */
+    public static RocketMQResourceInfo parseAgentCardAddition(AgentCard agentCard) {
+        if (null == agentCard || StringUtils.isEmpty(agentCard.preferredTransport()) || StringUtils.isEmpty(agentCard.url()) || CollectionUtils.isEmpty(agentCard.additionalInterfaces())) {
+            log.warn("RocketMQTransport parseAgentCardAddition param error, agentCard: [{}]", JSON.toJSONString(agentCard));
+            return null;
+        }
+        RocketMQResourceInfo rocketMQResourceInfo = null;
+        String preferredTransport = agentCard.preferredTransport();
+        // If the preferredTransport is RocketMQ
+        if (RocketMQA2AConstant.ROCKETMQ_PROTOCOL.equals(preferredTransport)) {
+            rocketMQResourceInfo = pareAgentCardUrl(agentCard.url());
+            if (null != rocketMQResourceInfo && !StringUtils.isEmpty(rocketMQResourceInfo.getEndpoint()) && !StringUtils.isEmpty(rocketMQResourceInfo.getTopic())) {
+                log.info("RocketMQTransport get rocketMQResourceInfo from preferredTransport, rocketMQResourceInfo: [{}]", JSON.toJSONString(rocketMQResourceInfo));
+                return rocketMQResourceInfo;
+            }
+        }
+        // If the preferredTransport is not RocketMQ, then try to get rocketmq info from additionalInterfaces
+        List<AgentInterface> agentInterfaces = agentCard.additionalInterfaces();
+        if (CollectionUtils.isEmpty(agentInterfaces)) {
+            log.warn("parseAgentCardAddition agentInterfaces is empty");
+            return null;
+        }
+        for (AgentInterface agentInterface : agentInterfaces) {
+            if (RocketMQA2AConstant.ROCKETMQ_PROTOCOL.equals(agentInterface.transport())) {
+                rocketMQResourceInfo = pareAgentCardUrl(agentInterface.url());
+                if (null != rocketMQResourceInfo && !StringUtils.isEmpty(rocketMQResourceInfo.getEndpoint()) && !StringUtils.isEmpty(rocketMQResourceInfo.getTopic())) {
+                    log.info("RocketMQTransport get rocketMQResourceInfo from additionalInterfaces, rocketMQResourceInfo: [{}]", JSON.toJSONString(rocketMQResourceInfo));
+                    return rocketMQResourceInfo;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Parses RocketMQ resource info from a URL in format:
+     * {@code http://endpoint/namespace/topic} or {@code https://endpoint/namespace/topic}.
+     *
+     * @param agentCardUrl the full URL string.
+     * @return a new RocketMQResourceInfo instance, or {@code null} if parsing fails.
+     */
+    public static RocketMQResourceInfo pareAgentCardUrl(String agentCardUrl) {
+        if (StringUtils.isEmpty(agentCardUrl) || !agentCardUrl.startsWith(HTTPS_URL_PREFIX) && !agentCardUrl.startsWith(HTTP_URL_PREFIX)) {
+            log.warn("RocketMQResourceInfo pareAgentCardUrl param error, agentCardUrl: [{}]", agentCardUrl);
+            return null;
+        }
+        if (agentCardUrl.startsWith(HTTPS_URL_PREFIX)) {
+            agentCardUrl = agentCardUrl.substring(HTTPS_URL_PREFIX.length());
+        } else if (agentCardUrl.startsWith(HTTP_URL_PREFIX)) {
+            agentCardUrl = agentCardUrl.substring(HTTP_URL_PREFIX.length());
+        }
+        String[] split = agentCardUrl.split(RESOURCE_SPLIT);
+        if (split.length != 3) {
+            return null;
+        }
+        return RocketMQResourceInfo.builder().endpoint(split[0].trim()).namespace(split[1].trim()).topic(split[2].trim()).build();
+    }
+
+    /**
+     * Constructs a formatted RocketMQ Lite HTTP endpoint URL for topic access.
+     *
+     * @return a valid RocketMQ Lite URL suitable for use with A2A SDK.
+     * @throws IllegalArgumentException if either {@code #endpoint} or {@code #bizTopic} is null or blank,
+     * indicating missing critical configuration
+     */
+    public static String formatRocketMQServiceUrl(String endpoint, String namespace, String bizTopic) {
+        if (StringUtils.isEmpty(endpoint) || StringUtils.isEmpty(bizTopic)) {
+            log.warn("buildRocketMQUrl invalid params, endpoint: [{}], bizTopic: [{}]", endpoint, bizTopic);
+            throw new IllegalArgumentException("buildRocketMQUrl invalid params, please check RocketMQ config");
+        }
+        return String.format("http://%s/%s/%s", endpoint, namespace, bizTopic);
+    }
 }

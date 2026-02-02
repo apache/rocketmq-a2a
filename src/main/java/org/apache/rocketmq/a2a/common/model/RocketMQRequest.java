@@ -29,7 +29,7 @@ import java.util.Map;
  *   <li>The serialized {@link #requestBody} (typically JSON)</li>
  *   <li>Routing information: destination topic ({@link #destAgentTopic})</li>
  *   <li>Reply routing: response lightweight topic ({@link #workAgentResponseTopic})
- *   and LiteTopic ({@link #liteTopic}, LiteTopic is a lightweight session identifier,
+ *   and LiteTopic ({@link #liteTopic}, LiteTopic is a session identifier,
  *   similar to a SessionId, dynamically created at runtime for data storage and isolation.)</li>
  * </ul>
  *
@@ -60,7 +60,7 @@ public class RocketMQRequest {
     /**
      * The dedicated topic for receiving reply messages from the target agent.
      * Typically, a liteTopic that is bound to {@link #workAgentResponseTopic}.
-     * LiteTopic is a lightweight session identifier, similar to a SessionId, dynamically created at runtime for data storage and isolation.
+     * LiteTopic is a session identifier, similar to a SessionId, dynamically created at runtime for data storage and isolation.
      */
     private String liteTopic;
 
@@ -113,18 +113,10 @@ public class RocketMQRequest {
         this.workAgentResponseTopic = workAgentResponseTopic;
     }
 
-    /**
-     * Returns a new {@link Builder} instance for constructing a {@link RocketMQRequest}.
-     *
-     * @return a new builder
-     */
     public static Builder builder() {
         return new Builder();
     }
 
-    /**
-     * Fluent builder for creating {@link RocketMQRequest} instances.
-     */
     public static class Builder {
         private final RocketMQRequest request = new RocketMQRequest();
 

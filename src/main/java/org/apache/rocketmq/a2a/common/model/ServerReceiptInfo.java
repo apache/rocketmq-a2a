@@ -29,7 +29,7 @@ public class ServerReceiptInfo {
 
     /**
      * Typically, a serverLiteTopic that is bound to {@code #serverWorkAgentResponseTopic}.
-     * LiteTopic is a lightweight session identifier, similar to a SessionId, dynamically created at runtime for data storage and isolation.
+     * LiteTopic is a session identifier, similar to a SessionId, dynamically created at runtime for data storage and isolation.
      */
     private final String serverLiteTopic;
 
@@ -65,12 +65,6 @@ public class ServerReceiptInfo {
         }
 
         public ServerReceiptInfo build() {
-            if (serverWorkAgentResponseTopic == null || serverWorkAgentResponseTopic.trim().isEmpty()) {
-                throw new IllegalArgumentException("serverWorkAgentResponseTopic must not be null or empty");
-            }
-            if (serverLiteTopic == null || serverLiteTopic.trim().isEmpty()) {
-                throw new IllegalArgumentException("serverLiteTopic must not be null or empty");
-            }
             return new ServerReceiptInfo(serverWorkAgentResponseTopic, serverLiteTopic);
         }
     }

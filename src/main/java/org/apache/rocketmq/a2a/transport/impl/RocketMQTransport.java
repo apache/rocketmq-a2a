@@ -17,7 +17,6 @@
 package org.apache.rocketmq.a2a.transport.impl;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -80,7 +79,6 @@ import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.GET_TA
 import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.LIST_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE;
 import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.SEND_MESSAGE_RESPONSE_REFERENCE;
 import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.SET_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE;
-import static org.apache.rocketmq.a2a.common.model.RocketMQResourceInfo.parseAgentCardAddition;
 import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.LITE_TOPIC_USE_DEFAULT_RECOVER_MAP;
 import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.MESSAGE_STREAM_RESPONSE_MAP;
 import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.RECOVER_MESSAGE_STREAM_RESPONSE_MAP;
@@ -88,6 +86,7 @@ import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.checkConfigParam;
 import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.getResult;
 import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.getOrCreateLitePushConsumer;
 import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.getOrCreateProducer;
+import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.parseAgentCardAddition;
 import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.sendRocketMQRequest;
 import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.unmarshalResponse;
 
@@ -116,7 +115,7 @@ public class RocketMQTransport implements ClientTransport {
 
     /**
      * Typically, a liteTopic that is bound to {@link #workAgentResponseTopic}.
-     * LiteTopic is a lightweight session identifier, similar to a SessionId, dynamically created at runtime for data storage and isolation.
+     * LiteTopic is a session identifier, similar to a SessionId, dynamically created at runtime for data storage and isolation.
      */
     private String liteTopic;
 

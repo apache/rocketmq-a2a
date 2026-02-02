@@ -457,12 +457,12 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
         /**
          * Publishes an SSE data stream to RocketMQ.
          *
-         * @param bufferMulti            Asynchronous data stream
-         * @param rc                     Routing context
-         * @param workAgentResponseTopic A LiteTopic subscribed by the client receiving streaming responses
-         * @param liteTopic              todo
-         * @param msgId                  The msgId used by the client to map requests and response results
-         * @param completableFuture      Used to asynchronously receive whether the SSE data transmission is completed
+         * @param bufferMulti Asynchronous data stream.
+         * @param rc Routing context.
+         * @param workAgentResponseTopic A lightweight topic subscribed by the client receiving streaming responses.
+         * @param liteTopic LiteTopic is a session identifier, similar to a SessionId, dynamically created at runtime for data storage and isolation.
+         * @param msgId The msgId used by the client to map requests and response results.
+         * @param completableFuture Used to asynchronously receive whether the SSE data transmission is completed.
          */
         public void writeRocketmq(Multi<Buffer> bufferMulti, RoutingContext rc, String workAgentResponseTopic, String liteTopic, String msgId, CompletableFuture<Boolean> completableFuture) {
             bufferMulti.subscribe().withSubscriber(new Flow.Subscriber<Buffer>() {
