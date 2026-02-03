@@ -167,9 +167,9 @@ mvn clean package -Dmaven.test.skip=true -Dcheckstyle.skip=true
 | workAgentResponseGroupID | LiteConsumer CID | 是    |
 
 
-#### 3.运行WeatherAgent
+#### 3.运行weather-agent
 ```shell
-cd WeatherAgent
+cd weather-agent
 ```
 
 ```shell
@@ -177,9 +177,9 @@ MAVEN_OPTS="-DrocketMQEndpoint= -DrocketMQNamespace= -DbizTopic=WeatherAgentTask
 ```
 ![img.png](docs/images/img.png)
 
-#### 4.运行TravelAgent
+#### 4.运行travel-agent
 ```shell
-cd TravelAgent
+cd travel-agent
 ```
 
 ```shell
@@ -187,19 +187,19 @@ cd TravelAgent
 ```
 ![img_1.png](docs/images/img_1.png)
 
-#### 5.运行SupervisorAgent
+#### 5.运行supervisor-agent
 ```shell
-cd SupervisorAgent/target
+cd supervisor-agent/target
 ```
 ```shell
 java -DrocketMQNamespace= -DworkAgentResponseTopic=WorkerAgentResponse -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE -DapiKey= -DrocketMQAK= -DrocketMQSK= -jar SupervisorAgent-2.1.1-SNAPSHOT-jar-with-dependencies.jar 
 ```
 ![img_5.png](docs/images/img_5.png)
 
-6.运行SupervisorAgent-Web
+6.运行supervisor-agent-web
 
 ```shell
-cd SupervisorAgent-Web/target
+cd supervisor-agent-web/target
 ```
 
 ```shell
