@@ -56,8 +56,8 @@ public class A2AChatController {
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> streamChat(@RequestParam String question, @RequestParam String userId, @RequestParam String sessionId) {
         if (StringUtils.isEmpty(question) || StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId)) {
-            log.warn("streamChat param error, question: [{}], userId: [{}], sessionId: [{}]", question, userId, sessionId);
-            return Flux.error(new IllegalArgumentException("streamChat param error"));
+            log.warn("streamChat param is invalid, question: [{}], userId: [{}], sessionId: [{}]", question, userId, sessionId);
+            return Flux.error(new IllegalArgumentException("streamChat param is invalid"));
         }
         log.debug("starting stream chat, userId: [{}], sessionId: [{}], question: [{}]", userId, sessionId, question);
         try {
@@ -80,12 +80,12 @@ public class A2AChatController {
     @GetMapping("/closeStream")
     public ResponseEntity<String> closeStreamChat(@RequestParam String userId, @RequestParam String sessionId) {
         if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId)) {
-            log.warn("closeStreamChat param error, userId: [{}], sessionId: [{}]", userId, sessionId);
+            log.warn("closeStreamChat param is invalid, userId: [{}], sessionId: [{}]", userId, sessionId);
             return ResponseEntity.status(400).body("param is error");
         }
         try {
             agentService.endStreamChat(userId, sessionId);
-            log.debug("closeStreamChat success, userId: [{}], sessionId: [{}]", userId, sessionId);
+            log.debug("closeStreamChat successfully, userId: [{}], sessionId: [{}]", userId, sessionId);
             return ResponseEntity.ok("stream closed successfully");
         } catch (Exception e) {
             log.error("failed to close stream, userId: [{}], sessionId: [{}]", userId, sessionId, e);
@@ -106,12 +106,12 @@ public class A2AChatController {
     @GetMapping(value = "/resubscribeStream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> resubscribeStreamChat(@RequestParam String userId, @RequestParam String sessionId) {
         if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId)) {
-            log.warn("resubscribeStreamChat param error, userId: [{}], sessionId: [{}]", userId, sessionId);
+            log.warn("resubscribeStreamChat param is invalid, userId: [{}], sessionId: [{}]", userId, sessionId);
             return Flux.error(new IllegalArgumentException("userId and sessionId must not be empty"));
         }
         try {
             Flux<String> flux = agentService.resubscribeStream(userId, sessionId);
-            log.debug("resubscribeStreamChat success, userId: [{}], sessionId: [{}]", userId, sessionId);
+            log.debug("resubscribeStreamChat successfully, userId: [{}], sessionId: [{}]", userId, sessionId);
             return flux;
         } catch (Exception e) {
             log.error("failed to resubscribe to stream, userId: [{}], sessionId: [{}]", userId, sessionId, e);

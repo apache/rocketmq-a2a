@@ -17,7 +17,8 @@
 package org.apache.rocketmq.a2a.common.model;
 
 /**
- * Server receipt information
+ * ServerReceipt represents the server's receipt information for client-server interactions.
+ * It encapsulates details such as the response topic and lite topic used for communication.
  */
 public class ServerReceipt {
     /**
@@ -33,37 +34,78 @@ public class ServerReceipt {
      */
     private final String serverLiteTopic;
 
+    /**
+     * Constructs a ServerReceipt instance with the specified response topic and lite topic.
+     *
+     * @param serverWorkAgentResponseTopic the response topic for server communication.
+     * @param serverLiteTopic the lite topic associated with the response topic.
+     */
     public ServerReceipt(String serverWorkAgentResponseTopic, String serverLiteTopic) {
         this.serverWorkAgentResponseTopic = serverWorkAgentResponseTopic;
         this.serverLiteTopic = serverLiteTopic;
     }
 
+    /**
+     * Returns the server work agent response topic.
+     *
+     * @return the response topic used for server communication.
+     */
     public String getServerWorkAgentResponseTopic() {
         return serverWorkAgentResponseTopic;
     }
 
+    /**
+     * Returns the server lite topic.
+     *
+     * @return the lite topic associated with the response topic.
+     */
     public String getServerLiteTopic() {
         return serverLiteTopic;
     }
 
+    /**
+     * Creates a new Builder instance for constructing ServerReceipt objects.
+     *
+     * @return a new Builder instance.
+     */
     public static Builder builder() {
         return new Builder();
     }
 
+    /**
+     * Builder class for constructing ServerReceipt instances in a fluent manner.
+     */
     public static class Builder {
         private String serverWorkAgentResponseTopic;
         private String serverLiteTopic;
 
+        /**
+         * Sets the server work agent response topic for the ServerReceipt being built.
+         *
+         * @param serverWorkAgentResponseTopic the response topic for server communication.
+         * @return this Builder instance for method chaining.
+         */
         public Builder serverWorkAgentResponseTopic(String serverWorkAgentResponseTopic) {
             this.serverWorkAgentResponseTopic = serverWorkAgentResponseTopic;
             return this;
         }
 
+        /**
+         * Sets the server lite topic for the ServerReceipt being built.
+         *
+         * @param serverLiteTopic the lite topic associated with the response topic.
+         * @return this Builder instance for method chaining.
+         */
         public Builder serverLiteTopic(String serverLiteTopic) {
             this.serverLiteTopic = serverLiteTopic;
             return this;
         }
 
+        /**
+         * Builds and returns a new ServerReceipt instance with the configured properties.
+         *
+         * @return a new ServerReceipt instance.
+         */
         public ServerReceipt build() {
             return new ServerReceipt(serverWorkAgentResponseTopic, serverLiteTopic);
         }

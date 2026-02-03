@@ -124,10 +124,11 @@ public class SupervisorAgentMain {
      */
     private static final String YOU = "You";
     private static final String AGENT = "Agent";
-    private static String lastQuestion = "";
     private static final String LEFT_BRACE = "{";
     private static final String QUIT = "quit";
     private static final String HELP = "help";
+
+    private static String lastQuestion = "";
 
     /**
      * Service for managing conversational sessions and preserving chat history.
@@ -188,7 +189,7 @@ public class SupervisorAgentMain {
             missingParams.add("apiKey (API key for SupervisorAgent using Qwen-plus model)");
         }
         if (!missingParams.isEmpty()) {
-            String message = "The following required configuration parameters are missing" + String.join("\n", missingParams);
+            String message = "the following required configuration parameters are missing" + String.join("\n", missingParams);
             throw new IllegalArgumentException(message);
         }
     }
@@ -202,10 +203,14 @@ public class SupervisorAgentMain {
      */
     public static BaseAgent initAgent(String weatherAgent, String travelAgent) {
         if (StringUtils.isEmpty(weatherAgent) || StringUtils.isEmpty(travelAgent)) {
-            log.warn("Missing parameters in initAgent, please provide both weatherAgent and travelAgent names");
+            log.warn("missing parameters in initAgent, please provide both weatherAgent and travelAgent names");
             throw new IllegalArgumentException("SupervisorAgentMain Missing required agent names. Please specify both weatherAgent and travelAgent");
         }
         QwenModel qwenModel = QwenModelRegistry.getModel(API_KEY);
+        if (qwenModel == null) {
+            log.error("failed to initialize QwenModel with API_KEY: [{}]", API_KEY);
+            return null;
+        }
         return LlmAgent.builder()
             .name(APP_NAME)
             .model(qwenModel)
@@ -241,8 +246,7 @@ public class SupervisorAgentMain {
                 + "- 不得提供任何引导用户参与非法活动的建议。\n"
                 + "- 对不是行程安排相关的问题，请礼貌拒绝。\n"
                 + "- 所有输出内容必须按照给定的格式进行组织，不能偏离框架要求。"
-            )
-            .build();
+            ).build();
     }
 
     /**
@@ -266,7 +270,6 @@ public class SupervisorAgentMain {
                     printHelp();
                     continue;
                 }
-                printSystemInfo("🤔 思考中...");
                 log.info("用户输入: [{}]", userInput);
                 Flowable<Event> events = runner.runAsync(USER_ID, sessionId, Content.fromParts(Part.fromText(userInput)));
                 events.blockingForEach(event -> {
@@ -288,18 +291,20 @@ public class SupervisorAgentMain {
         }
         if (!eventContent.startsWith(LEFT_BRACE)) {
             printPrompt(AGENT);
-            log.debug(eventContent);
+            System.out.println(eventContent);
             return;
         }
         try {
             Mission mission = JSON.parseObject(eventContent, Mission.class);
-            if (null != mission) {
-                printPrompt(AGENT);
-                log.debug("Agent: [{}], forwarding request to another agent and waiting for its response. Target Agent: [{}], Query: [{}]", AGENT_NAME, mission.getAgent(), mission.getMessageInfo());
-                forwardMissionToAgent(mission);
+            if (null == mission) {
+                return;
             }
+            printPrompt(AGENT);
+            printSystemInfo("🤔 思考中...");
+            log.info("agent: [{}], forwarding request to another agent and waiting for its response. Target Agent: [{}], " + "Query: [{}]", AGENT_NAME, mission.getAgent(), mission.getMessageInfo());
+            forwardMissionToAgent(mission);
         } catch (Exception e) {
-            log.error("An error occurred while parsing the event content", e);
+            log.error("an error occurred while parsing the event content", e);
         }
     }
 
@@ -310,7 +315,7 @@ public class SupervisorAgentMain {
      */
     private static void forwardMissionToAgent(Mission mission) {
         if (null == mission || StringUtils.isEmpty(mission.getAgent()) || StringUtils.isEmpty(mission.getMessageInfo())) {
-            log.warn("forwardMissionToAgent param error, mission: [{}]", JSON.toJSONString(mission));
+            log.warn("forwardMissionToAgent param is invalid, mission: [{}]", JSON.toJSONString(mission));
             return;
         }
         try {
@@ -331,11 +336,11 @@ public class SupervisorAgentMain {
      */
     private static void registerAgentClient(String agentName, String agentUrl) {
         if (StringUtils.isEmpty(agentName) || StringUtils.isEmpty(agentUrl)) {
-            log.warn("Invalid parameters in registerAgentClient, agentName: [{}], agentUrl: [{}]", agentName, agentUrl);
+            log.warn("invalid parameters in registerAgentClient, agentName: [{}], agentUrl: [{}]", agentName, agentUrl);
             return;
         }
         AgentCard finalAgentCard = new A2ACardResolver(agentUrl).getAgentCard();
-        log.info("Successfully fetched public agent card: [{}]", finalAgentCard.description());
+        log.info("successfully fetched public agent card: [{}]", finalAgentCard.description());
         // Build event consumers
         RocketMQTransportConfig rocketMQTransportConfig = RocketMQTransportConfig.builder()
             .namespace(ROCKETMQ_NAMESPACE)
@@ -349,7 +354,7 @@ public class SupervisorAgentMain {
             .withTransport(RocketMQTransport.class, rocketMQTransportConfig)
             .build();
         agentClientMap.put(agentName, client);
-        log.info("Agent [{}] initialized successfully", agentName);
+        log.info("agent [{}] initialized successfully", agentName);
     }
 
     /**
@@ -362,24 +367,26 @@ public class SupervisorAgentMain {
             if (event instanceof TaskUpdateEvent taskUpdateEvent) {
                 Task task = taskUpdateEvent.getTask();
                 if (null == task) {
-                    log.warn("EventConsumer task is null");
+                    log.warn("eventConsumer task is null");
                     return;
                 }
                 List<Artifact> artifacts = task.getArtifacts();
-                if (null != artifacts && artifacts.size() == 1) {
+                if (CollectionUtils.isEmpty(artifacts)) {
+                    return;
+                }
+                if (artifacts.size() == 1) {
                     printPrompt(AGENT);
                 }
-                if (!CollectionUtils.isEmpty(artifacts)) {
-                    TaskState state = task.getStatus().state();
+                TaskState state = task.getStatus().state();
+                if (state != TaskState.COMPLETED) {
                     System.out.print(extractTextFromArtifact(artifacts.get(artifacts.size() - 1)));
-                    if (state == TaskState.COMPLETED) {
-                        StringBuilder stringBuilder = new StringBuilder();
-                        for (Artifact tempArtifact : artifacts) {
-                            stringBuilder.append(extractTextFromArtifact(tempArtifact));
-                        }
-                        processAgentResponse(stringBuilder.toString());
-                    }
+                    return;
                 }
+                StringBuilder stringBuilder = new StringBuilder();
+                for (Artifact tempArtifact : artifacts) {
+                    stringBuilder.append(extractTextFromArtifact(tempArtifact));
+                }
+                processAgentResponse(stringBuilder.toString());
             }
         });
         return consumers;
@@ -440,18 +447,18 @@ public class SupervisorAgentMain {
             }
             lastQuestion = content;
             if (StringUtils.isEmpty(content) || !content.startsWith(LEFT_BRACE)) {
-                log.debug("Agent response: [{}]", content);
+                log.debug("agent response: [{}]", content);
                 return;
             }
             try {
                 Mission mission = JSON.parseObject(content, Mission.class);
-                if (null != mission && !StringUtils.isEmpty(mission.getMessageInfo()) && !StringUtils.isEmpty(mission.getAgent())) {
+                if (null != mission && StringUtils.isNotEmpty(mission.getMessageInfo()) && StringUtils.isNotEmpty(mission.getAgent())) {
                     printPrompt(AGENT);
-                    log.debug("Forwarding to another agent and waiting for its response. Target Agent: [{}], Query: [{}]", mission.getAgent(), mission.getMessageInfo());
+                    log.debug("forwarding to another agent and waiting for its response. Target Agent: [{}], Query: [{}]", mission.getAgent(), mission.getMessageInfo());
                     forwardMissionToAgent(mission);
                 }
             } catch (Exception e) {
-                log.error("An error occurred while parsing the response content", e);
+                log.error("an error occurred while parsing the response content", e);
             }
         });
     }
@@ -483,7 +490,6 @@ public class SupervisorAgentMain {
      */
     private static void printSystemInfo(String message) {
         System.out.println("\u001B[34m[SYSTEM] " + message + "\u001B[0m");
-        log.info(message);
     }
 
     /**
@@ -495,7 +501,6 @@ public class SupervisorAgentMain {
      */
     private static void printSystemSuccess(String message) {
         System.out.println("\u001B[32m[SUCCESS] " + message + "\u001B[0m");
-        log.info(message);
     }
 
     /**

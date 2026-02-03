@@ -41,52 +41,113 @@ public class RocketMQResource {
      */
     public RocketMQResource() {}
 
+    /**
+     * Gets the endpoint of the RocketMQ service.
+     *
+     * @return the endpoint as a String.
+     */
     public String getEndpoint() {
         return endpoint;
     }
 
+    /**
+     * Sets the endpoint of the RocketMQ service.
+     *
+     * @param endpoint the endpoint to set.
+     */
     public void setEndpoint(String endpoint) {
         this.endpoint = endpoint;
     }
 
+    /**
+     * Gets the topic of the RocketMQ service.
+     *
+     * @return the topic as a String.
+     */
     public String getTopic() {
         return topic;
     }
 
+    /**
+     * Sets the topic of the RocketMQ service.
+     *
+     * @param topic the topic to set.
+     */
     public void setTopic(String topic) {
         this.topic = topic;
     }
 
+    /**
+     * Gets the namespace of the RocketMQ service.
+     *
+     * @return the namespace as a String.
+     */
     public String getNamespace() {
         return namespace;
     }
 
+    /**
+     * Sets the namespace of the RocketMQ service.
+     *
+     * @param namespace the namespace to set.
+     */
     public void setNamespace(String namespace) {
         this.namespace = namespace;
     }
 
+    /**
+     * Creates a new Builder instance for constructing RocketMQResource objects.
+     *
+     * @return a new Builder instance.
+     */
     public static Builder builder() {
         return new Builder();
     }
 
+    /**
+     * Builder class for constructing RocketMQResource instances.
+     */
     public static class Builder {
         private final RocketMQResource info = new RocketMQResource();
 
+        /**
+         * Sets the namespace for the RocketMQResource being built.
+         *
+         * @param namespace the namespace to set.
+         * @return the current Builder instance.
+         */
         public Builder namespace(String namespace) {
             info.setNamespace(namespace);
             return this;
         }
 
+        /**
+         * Sets the endpoint for the RocketMQResource being built.
+         *
+         * @param endpoint the endpoint to set.
+         * @return the current Builder instance.
+         */
         public Builder endpoint(String endpoint) {
             info.setEndpoint(endpoint);
             return this;
         }
 
+        /**
+         * Sets the topic for the RocketMQResource being built.
+         *
+         * @param topic the topic to set.
+         * @return the current Builder instance.
+         */
         public Builder topic(String topic) {
             info.setTopic(topic);
             return this;
         }
 
+        /**
+         * Returns a new RocketMQResource instance with the configured properties.
+         *
+         * @return a new RocketMQResource instance.
+         */
         public RocketMQResource build() {
             return info;
         }

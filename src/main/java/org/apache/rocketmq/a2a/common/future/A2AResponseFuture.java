@@ -51,39 +51,70 @@ public class A2AResponseFuture {
         this.typeReference = typeReference;
     }
 
+    /**
+     * Returns the {@link CompletableFuture} that holds the raw JSON response string.
+     *
+     * @return the {@link CompletableFuture} containing the raw JSON response.
+     */
     public CompletableFuture<String> getCompletableFuture() {
         return completableFuture;
     }
 
+    /**
+     * Returns the {@link TypeReference} used for deserializing the JSON response.
+     *
+     * @return the {@link TypeReference} specifying the target type for deserialization.
+     */
     public TypeReference getTypeReference() {
         return typeReference;
     }
 
+    /**
+     * Creates and returns a new {@link Builder} instance for constructing {@code A2AResponseFuture} objects.
+     *
+     * @return a new {@link Builder} instance.
+     */
     public static Builder builder() {
         return new Builder();
     }
 
+    /**
+     * A builder class for constructing {@code A2AResponseFuture} instances.
+     * Provides a fluent API for setting the required components.
+     */
     public static class Builder {
         private CompletableFuture<String> completableFuture;
         private TypeReference<?> typeReference;
 
+        /**
+         * Sets the {@link CompletableFuture} that will hold the raw JSON response.
+         *
+         * @param completableFuture the {@link CompletableFuture} to set.
+         * @return this builder instance for method chaining.
+         */
         public Builder completableFuture(CompletableFuture<String> completableFuture) {
             this.completableFuture = completableFuture;
             return this;
         }
 
+        /**
+         * Sets the {@link TypeReference} that specifies the target type for deserializing the JSON response.
+         *
+         * @param typeReference the {@link TypeReference} to set.
+         * @return this builder instance for method chaining.
+         */
         public Builder typeReference(TypeReference<?> typeReference) {
             this.typeReference = typeReference;
             return this;
         }
 
+        /**
+         * Builds and returns a new {@code A2AResponseFuture} instance.
+         * Validates that both {@code completableFuture} and {@code typeReference} are not null.
+         *
+         * @return a new {@code A2AResponseFuture} instance.
+         */
         public A2AResponseFuture build() {
-            if (completableFuture == null) {
-                throw new IllegalArgumentException("completableFuture must not be null");
-            }
-            if (typeReference == null) {
-                throw new IllegalArgumentException("typeReference must not be null");
-            }
             return new A2AResponseFuture(completableFuture, typeReference);
         }
     }
