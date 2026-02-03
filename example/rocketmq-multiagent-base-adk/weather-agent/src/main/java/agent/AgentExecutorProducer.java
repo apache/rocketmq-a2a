@@ -18,7 +18,7 @@ package agent;
 import java.util.List;
 import java.util.Map;
 import com.alibaba.dashscope.app.ApplicationResult;
-import common.util.LLMUtil;
+import common.util.AgentInteraction;
 import io.a2a.server.agentexecution.AgentExecutor;
 import io.a2a.server.agentexecution.RequestContext;
 import io.a2a.server.events.EventQueue;
@@ -71,16 +71,16 @@ public class AgentExecutorProducer {
              */
             @Override
             public void execute(RequestContext context, EventQueue eventQueue) throws JSONRPCError {
-                String userMessage = LLMUtil.extractTextFromMessage(context.getMessage());
+                String userMessage = AgentInteraction.extractTextFromMessage(context.getMessage());
                 log.info("received user message for execution. userMessage: [{}]", userMessage);
                 Task task = context.getTask();
                 if (task == null) {
-                    task = LLMUtil.createTask(context.getMessage());
+                    task = AgentInteraction.createTask(context.getMessage());
                     eventQueue.enqueueEvent(task);
                 }
                 TaskUpdater taskUpdater = new TaskUpdater(context, eventQueue);
                 try {
-                    Flowable<ApplicationResult> applicationResultFlowable = LLMUtil.appCallStream(userMessage, API_KEY, APP_ID);
+                    Flowable<ApplicationResult> applicationResultFlowable = AgentInteraction.appCallStream(userMessage, API_KEY, APP_ID);
                     String lastOutput = "";
                     for (ApplicationResult msg : applicationResultFlowable.blockingIterable()) {
                         String currentText = msg.getOutput().getText();

@@ -16,7 +16,18 @@ import io.a2a.spec.TextPart;
 import io.reactivex.Flowable;
 import org.apache.commons.lang3.StringUtils;
 
-public class LLMUtil {
+/**
+ * Utility class for managing core interactions between agents in an A2A (Agent-to-Agent) system.
+ * <p>
+ * This class provides static methods to:
+ * <ul>
+ *   <li>Extract text content from incoming messages</li>
+ *   <li>Create tasks with unique identifiers and initial state</li>
+ *   <li>Initiate streaming calls to LLM-powered applications</li>
+ * </ul>
+ * It serves as a central helper for initiating and structuring agent conversations.
+ */
+public class AgentInteraction {
 
     /**
      * Extracts plain text content from a message by concatenating all {@link TextPart} instances.
@@ -71,5 +82,4 @@ public class LLMUtil {
         String contextId = !StringUtils.isEmpty(request.getContextId()) ? request.getContextId() : UUID.randomUUID().toString();
         return new Task(id, contextId, new TaskStatus(TaskState.SUBMITTED), null, List.of(request), null);
     }
-
 }
