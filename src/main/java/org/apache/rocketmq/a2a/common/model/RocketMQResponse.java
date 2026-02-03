@@ -80,119 +80,263 @@ public class RocketMQResponse {
      */
     private String serverLiteTopic;
 
+    /**
+     * Default constructor for creating an instance of {@code RocketMQResponse}.
+     */
     public RocketMQResponse() {}
 
+    /**
+     * Gets the response body content.
+     *
+     * @return the response body as a string
+     */
     public String getResponseBody() {
         return responseBody;
     }
 
+    /**
+     * Sets the response body content.
+     *
+     * @param responseBody the response body to set
+     */
     public void setResponseBody(String responseBody) {
         this.responseBody = responseBody;
     }
 
+    /**
+     * Gets the message ID associated with this response.
+     *
+     * @return the message ID as a string.
+     */
     public String getMessageId() {
         return messageId;
     }
 
+    /**
+     * Sets the message ID for this response.
+     *
+     * @param messageId the message ID to set
+     */
     public void setMessageId(String messageId) {
         this.messageId = messageId;
     }
 
+    /**
+     * Checks if this response is part of a streaming sequence.
+     *
+     * @return {@code true} if it's a streaming response, {@code false} otherwise
+     */
     public boolean isStream() {
         return isStream;
     }
 
+    /**
+     * Sets whether this response is part of a streaming sequence.
+     *
+     * @param stream {@code true} to indicate streaming, {@code false} otherwise
+     */
     public void setStream(boolean stream) {
         isStream = stream;
     }
 
+    /**
+     * Checks if this is the final message in a streaming sequence.
+     *
+     * @return {@code true} if it's the final message, {@code false} otherwise
+     */
     public boolean isEnd() {
         return isEnd;
     }
 
+    /**
+     * Sets whether this is the final message in a streaming sequence.
+     *
+     * @param end {@code true} to indicate the end of the stream, {@code false} otherwise
+     */
     public void setEnd(boolean end) {
         isEnd = end;
     }
 
+    /**
+     * Gets the context ID for this response.
+     *
+     * @return the context ID as a string.
+     */
     public String getContextId() {
         return contextId;
     }
 
+    /**
+     * Sets the context ID for this response.
+     *
+     * @param contextId the context ID to set
+     */
     public void setContextId(String contextId) {
         this.contextId = contextId;
     }
 
+    /**
+     * Gets the task ID associated with this response.
+     *
+     * @return the task ID as a string.
+     */
     public String getTaskId() {
         return taskId;
     }
 
+    /**
+     * Sets the task ID for this response.
+     *
+     * @param taskId the task ID to set
+     */
     public void setTaskId(String taskId) {
         this.taskId = taskId;
     }
 
+    /**
+     * Gets the server work agent response topic.
+     *
+     * @return the server work agent response topic as a string.
+     */
     public String getServerWorkAgentResponseTopic() {
         return serverWorkAgentResponseTopic;
     }
 
+    /**
+     * Sets the server work agent response topic.
+     *
+     * @param serverWorkAgentResponseTopic the topic to set
+     */
     public void setServerWorkAgentResponseTopic(String serverWorkAgentResponseTopic) {
         this.serverWorkAgentResponseTopic = serverWorkAgentResponseTopic;
     }
 
+    /**
+     * Gets the server lite topic.
+     *
+     * @return the server lite topic as a string.
+     */
     public String getServerLiteTopic() {
         return serverLiteTopic;
     }
 
+    /**
+     * Sets the server lite topic.
+     *
+     * @param serverLiteTopic the lite topic to set.
+     */
     public void setServerLiteTopic(String serverLiteTopic) {
         this.serverLiteTopic = serverLiteTopic;
     }
 
+    /**
+     * Creates a new builder instance for constructing {@code RocketMQResponse} objects.
+     *
+     * @return a new {@code Builder} instance.
+     */
     public static Builder builder() {
         return new Builder();
     }
 
+    /**
+     * Builder class for constructing {@code RocketMQResponse} instances.
+     */
     public static class Builder {
         private final RocketMQResponse response = new RocketMQResponse();
 
+        /**
+         * Sets the response body.
+         *
+         * @param responseBody the response body to set.
+         * @return the current builder instance.
+         */
         public Builder responseBody(String responseBody) {
             response.setResponseBody(responseBody);
             return this;
         }
 
+        /**
+         * Sets the message ID.
+         *
+         * @param messageId the message ID to set.
+         * @return the current builder instance.
+         */
         public Builder messageId(String messageId) {
             response.setMessageId(messageId);
             return this;
         }
 
+        /**
+         * Sets whether this is a streaming response.
+         *
+         * @param stream {@code true} for streaming, {@code false} otherwise.
+         * @return the current builder instance.
+         */
         public Builder stream(boolean stream) {
             response.setStream(stream);
             return this;
         }
 
+        /**
+         * Sets whether this is the final message in a stream.
+         *
+         * @param end {@code true} to mark the end of the stream, {@code false} otherwise.
+         * @return the current builder instance.
+         */
         public Builder end(boolean end) {
             response.setEnd(end);
             return this;
         }
 
+        /**
+         * Sets the context ID.
+         *
+         * @param contextId the context ID to set.
+         * @return the current builder instance.
+         */
         public Builder contextId(String contextId) {
             response.setContextId(contextId);
             return this;
         }
 
+        /**
+         * Sets the task ID.
+         *
+         * @param taskId the task ID to set.
+         * @return the current builder instance.
+         */
         public Builder taskId(String taskId) {
             response.setTaskId(taskId);
             return this;
         }
 
+        /**
+         * Sets the server work agent response topic.
+         *
+         * @param serverWorkAgentResponseTopic the topic to set.
+         * @return the current builder instance.
+         */
         public Builder serverWorkAgentResponseTopic(String serverWorkAgentResponseTopic) {
             response.setServerWorkAgentResponseTopic(serverWorkAgentResponseTopic);
             return this;
         }
 
+        /**
+         * Sets the server lite topic.
+         *
+         * @param serverLiteTopic the lite topic to set.
+         * @return the current builder instance.
+         */
         public Builder serverLiteTopic(String serverLiteTopic) {
             response.setServerLiteTopic(serverLiteTopic);
             return this;
         }
 
+        /**
+         * Builds and returns the constructed {@code RocketMQResponse} object.
+         *
+         * @return the built {@code RocketMQResponse} instance.
+         */
         public RocketMQResponse build() {
             return response;
         }
