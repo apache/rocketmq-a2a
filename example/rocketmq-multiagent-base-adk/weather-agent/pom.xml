@@ -31,16 +31,14 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <common.version>2.1.1-SNAPSHOT</common.version>
+        <quarkus.version>3.24.5</quarkus.version>
     </properties>
     <dependencies>
         <dependency>
             <groupId>org.example</groupId>
             <artifactId>common</artifactId>
-            <version>2.1.1-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>com.openai</groupId>
-            <artifactId>openai-java</artifactId>
+            <version>${common.version}</version>
         </dependency>
         <dependency>
             <groupId>com.google.adk</groupId>
@@ -64,19 +62,9 @@
             <artifactId>fastjson</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.openai</groupId>
-            <artifactId>openai-java</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.example</groupId>
-            <artifactId>common</artifactId>
-            <version>2.1.1-SNAPSHOT</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-bom</artifactId>
-            <version>3.24.5</version>
+            <version>${quarkus.version}</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
@@ -87,28 +75,24 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-resteasy-jackson</artifactId>
-            <version>3.24.5</version>
+            <version>${quarkus.version}</version>
         </dependency>
         <dependency>
             <groupId>jakarta.enterprise</groupId>
             <artifactId>jakarta.enterprise.cdi-api</artifactId>
-            <version>4.1.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>jakarta.ws.rs</groupId>
             <artifactId>jakarta.ws.rs-api</artifactId>
-            <version>3.1.0</version>
         </dependency>
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>fastjson</artifactId>
-            <version>1.2.83_noneautotype</version>
         </dependency>
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>dashscope-sdk-java</artifactId>
-            <version>2.21.6</version>
         </dependency>
     </dependencies>
     <build>

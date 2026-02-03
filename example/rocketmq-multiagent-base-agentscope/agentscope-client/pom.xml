@@ -36,6 +36,7 @@
         <agentscope.version>1.0.3</agentscope.version>
         <agentscope-extensions.version>${revision}</agentscope-extensions.version>
         <logback.version>1.5.20</logback.version>
+        <rocketmq-a2a.version>1.0.8</rocketmq-a2a.version>
     </properties>
 
     <dependencies>
@@ -57,7 +58,7 @@
         <dependency>
             <groupId>org.apache.rocketmq</groupId>
             <artifactId>rocketmq-a2a</artifactId>
-            <version>1.0.8</version>
+            <version>${rocketmq-a2a.version}</version>
         </dependency>
     </dependencies>
 </project>

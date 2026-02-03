@@ -31,12 +31,9 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <coommon.version>2.1.1-SNAPSHOT</coommon.version>
     </properties>
     <dependencies>
-        <dependency>
-            <groupId>com.openai</groupId>
-            <artifactId>openai-java</artifactId>
-        </dependency>
         <dependency>
             <groupId>com.google.adk</groupId>
             <artifactId>google-adk</artifactId>
@@ -49,10 +46,6 @@
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>dashscope-sdk-java</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.openai</groupId>
-            <artifactId>openai-java</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.rocketmq</groupId>
@@ -69,8 +62,7 @@
         <dependency>
             <groupId>org.example</groupId>
             <artifactId>common</artifactId>
-            <version>2.1.1-SNAPSHOT</version>
-            <scope>compile</scope>
+            <version>${coommon.version}</version>
         </dependency>
     </dependencies>
     <build>

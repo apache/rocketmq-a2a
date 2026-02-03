@@ -42,6 +42,9 @@
         <rocketmq-client-version>5.1.0</rocketmq-client-version>
         <fastjson-version>1.2.83_noneautotype</fastjson-version>
         <slfj-version>2.0.13</slfj-version>
+        <adk.verison>0.3.0</adk.verison>
+        <common.version>2.1.1-SNAPSHOT</common.version>
+        <rocketmq-a2a.version>1.0.8</rocketmq-a2a.version>
     </properties>
 
     <dependencies>
@@ -108,18 +111,18 @@
         <dependency>
             <groupId>com.google.adk</groupId>
             <artifactId>google-adk</artifactId>
-            <version>0.3.0</version>
+            <version>${adk.verison}</version>
         </dependency>
         <dependency>
             <groupId>org.example</groupId>
             <artifactId>common</artifactId>
-            <version>2.1.1-SNAPSHOT</version>
+            <version>${common.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.rocketmq</groupId>
             <artifactId>rocketmq-a2a</artifactId>
-            <version>1.0.8</version>
+            <version>${rocketmq-a2a.version}</version>
         </dependency>
     </dependencies>
 

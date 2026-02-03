@@ -34,10 +34,6 @@
     </properties>
     <dependencies>
         <dependency>
-            <groupId>com.openai</groupId>
-            <artifactId>openai-java</artifactId>
-        </dependency>
-        <dependency>
             <groupId>com.google.adk</groupId>
             <artifactId>google-adk</artifactId>
         </dependency>
@@ -49,10 +45,6 @@
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>dashscope-sdk-java</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.openai</groupId>
-            <artifactId>openai-java</artifactId>
         </dependency>
     </dependencies>
 </project>
