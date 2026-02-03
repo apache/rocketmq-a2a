@@ -33,13 +33,18 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <common.version>2.1.1-SNAPSHOT</common.version>
         <quarkus.version>3.24.5</quarkus.version>
+        <coommon.version>2.1.1-SNAPSHOT</coommon.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>org.example</groupId>
             <artifactId>common</artifactId>
-            <version>2.1.1-SNAPSHOT</version>
+            <version>${common.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-a2a</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.rocketmq</groupId>
@@ -54,20 +59,11 @@
             <artifactId>fastjson</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.example</groupId>
-            <artifactId>common</artifactId>
-            <version>${common.version}</version>
-        </dependency>
-        <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-bom</artifactId>
             <version>${quarkus.version}</version>
             <type>pom</type>
             <scope>import</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.rocketmq</groupId>
-            <artifactId>rocketmq-a2a</artifactId>
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>

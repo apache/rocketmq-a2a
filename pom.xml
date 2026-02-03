@@ -96,16 +96,6 @@
     </properties>
     <dependencies>
         <dependency>
-            <groupId>io.github.a2asdk</groupId>
-            <artifactId>a2a-java-sdk-client</artifactId>
-            <version>${a2a-java-sdk-version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.github.a2asdk</groupId>
-            <artifactId>a2a-java-sdk-reference-jsonrpc</artifactId>
-            <version>${a2a-java-sdk-version}</version>
-        </dependency>
-        <dependency>
             <groupId>org.apache.rocketmq</groupId>
             <artifactId>rocketmq-client-java</artifactId>
             <version>${rocketmq-client-version}</version>
@@ -114,6 +104,26 @@
             <groupId>com.alibaba</groupId>
             <artifactId>fastjson</artifactId>
             <version>${fastjson-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-collections4</artifactId>
+            <version>${common-util-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slfj-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.a2asdk</groupId>
+            <artifactId>a2a-java-sdk-client</artifactId>
+            <version>${a2a-java-sdk-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.a2asdk</groupId>
+            <artifactId>a2a-java-sdk-reference-jsonrpc</artifactId>
+            <version>${a2a-java-sdk-version}</version>
         </dependency>
         <dependency>
             <groupId>jakarta.enterprise</groupId>
@@ -136,16 +146,6 @@
             <artifactId>jakarta.ws.rs-api</artifactId>
             <version>${jakarta.ws.rs-api.version}</version>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>${slfj-version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-collections4</artifactId>
-            <version>${common-util-version}</version>
         </dependency>
     </dependencies>
 

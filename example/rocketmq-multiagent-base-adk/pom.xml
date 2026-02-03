@@ -47,6 +47,26 @@
     </properties>
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-client-java</artifactId>
+                <version>${rocketmq-client.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-a2a</artifactId>
+                <version>${rocketmq-a2a.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>dashscope-sdk-java</artifactId>
+                <version>${dashscope.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>fastjson</artifactId>
+                <version>${fastjson.version}</version>
+            </dependency>
             <!-- The ADK Core dependency -->
             <dependency>
                 <groupId>com.google.adk</groupId>
@@ -60,21 +80,6 @@
                 <version>${adk.verison}</version>
             </dependency>
             <dependency>
-                <groupId>com.alibaba</groupId>
-                <artifactId>dashscope-sdk-java</artifactId>
-                <version>${dashscope.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-client-java</artifactId>
-                <version>${rocketmq-client.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.alibaba</groupId>
-                <artifactId>fastjson</artifactId>
-                <version>${fastjson.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>io.quarkus</groupId>
                 <artifactId>quarkus-bom</artifactId>
                 <version>${quarkus.version}</version>
@@ -85,11 +90,6 @@
                 <groupId>io.quarkus</groupId>
                 <artifactId>quarkus-resteasy-jackson</artifactId>
                 <version>${quarkus.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-a2a</artifactId>
-                <version>${rocketmq-a2a.version}</version>
             </dependency>
             <dependency>
                 <groupId>jakarta.enterprise</groupId>

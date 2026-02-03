@@ -49,6 +49,21 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-a2a</artifactId>
+            <version>${rocketmq-a2a.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-client-java</artifactId>
+            <version>${rocketmq-client-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>fastjson</artifactId>
+            <version>${fastjson-version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
@@ -67,19 +82,20 @@
             <version>${a2a-java-sdk-version}</version>
         </dependency>
         <dependency>
-            <groupId>io.github.a2asdk</groupId>
-            <artifactId>a2a-java-sdk-client</artifactId>
-            <version>${a2a-java-sdk-version}</version>
+            <groupId>com.google.adk</groupId>
+            <artifactId>google-adk</artifactId>
+            <version>${adk.verison}</version>
         </dependency>
         <dependency>
-            <groupId>org.apache.rocketmq</groupId>
-            <artifactId>rocketmq-client-java</artifactId>
-            <version>${rocketmq-client-version}</version>
+            <groupId>org.example</groupId>
+            <artifactId>common</artifactId>
+            <version>${common.version}</version>
+            <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>com.alibaba</groupId>
-            <artifactId>fastjson</artifactId>
-            <version>${fastjson-version}</version>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slfj-version}</version>
         </dependency>
         <dependency>
             <groupId>jakarta.enterprise</groupId>
@@ -103,29 +119,7 @@
             <version>${jakarta.ws.rs-api.version}</version>
             <scope>provided</scope>
         </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>${slfj-version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.google.adk</groupId>
-            <artifactId>google-adk</artifactId>
-            <version>${adk.verison}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.example</groupId>
-            <artifactId>common</artifactId>
-            <version>${common.version}</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.rocketmq</groupId>
-            <artifactId>rocketmq-a2a</artifactId>
-            <version>${rocketmq-a2a.version}</version>
-        </dependency>
     </dependencies>
-
     <build>
         <plugins>
             <plugin>
@@ -141,5 +135,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>

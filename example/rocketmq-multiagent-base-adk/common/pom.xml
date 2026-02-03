@@ -24,9 +24,7 @@
         <artifactId>rocketmq-multiagent-base-adk</artifactId>
         <version>2.1.1-SNAPSHOT</version>
     </parent>
-
     <artifactId>common</artifactId>
-
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
@@ -37,7 +35,6 @@
             <groupId>com.google.adk</groupId>
             <artifactId>google-adk</artifactId>
         </dependency>
-        <!-- The ADK Dev Web UI to debug your agent (Optional) -->
         <dependency>
             <groupId>com.google.adk</groupId>
             <artifactId>google-adk-dev</artifactId>
