@@ -11,7 +11,7 @@ This directory contains example demonstrating the Agent-to-Agent (A2A) protocol 
 
 ### Deploy Apache RocketMQ
 
-Deploy the LiteTopic version of [Apache RocketMQ](http://rocketmq.apache.org/) (the open-source version is expected to be released by the end of December), or purchase a commercial RocketMQ instance that supports LiteTopic, and create the following resources:
+Deploy the LiteTopic version of [Apache RocketMQ](http://rocketmq.apache.org/) (the open-source version is expected to be released by the end of February), or purchase a commercial RocketMQ instance that supports LiteTopic, and create the following resources:
 - **1.1** Create a LiteTopic: `WorkerAgentResponse`
 - **1.2** Create a bound Lite consumer group ID for WorkerAgentResponse: `CID_HOST_AGENT_LITE`
 

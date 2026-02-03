@@ -21,7 +21,7 @@ A minimal, end-to-end example showing how to build and deploy an intelligent age
 
 ### 1. Deploy Apache RocketMQ
 
-Deploy the LiteTopic version of [Apache RocketMQ](http://rocketmq.apache.org/) (the open-source version is expected to be released by the end of December), or purchase a commercial RocketMQ instance that supports LiteTopic, and create the following resources:
+Deploy the LiteTopic version of [Apache RocketMQ](http://rocketmq.apache.org/) (the open-source version is expected to be released by the end of February), or purchase a commercial RocketMQ instance that supports LiteTopic, and create the following resources:
 - **1.1** Create a standard topic for the AI assistant: `AgentTask`
 - **1.2** Create a standard consumer group ID for the AI assistant: `AgentTaskConsumerGroup`
 
