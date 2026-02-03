@@ -5,7 +5,7 @@ This directory contains example demonstrating the Agent-to-Agent (A2A) protocol 
 ## Prerequisites
 
 - Java 17+
-- Maven 3.6+
+- Maven 3.9+
 
 ## Basic preliminary preparations
 
