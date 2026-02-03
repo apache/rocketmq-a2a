@@ -20,7 +20,6 @@ package io.agenscope;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import com.alibaba.nacos.api.exception.NacosException;
 import io.a2a.client.http.JdkA2AHttpClient;
 import io.agentscope.core.a2a.agent.A2aAgent;
 import io.agentscope.core.a2a.agent.A2aAgentConfig;
@@ -33,20 +32,49 @@ import org.apache.rocketmq.a2a.transport.RocketMQTransport;
 import org.apache.rocketmq.a2a.transport.RocketMQTransportConfig;
 import reactor.core.publisher.Flux;
 
+/**
+ * A command-line example demonstrating how to interact with an A2A agent via RocketMQ.
+ * Supports streaming responses and runs as an interactive chat interface.
+ */
 public class A2aAgentCallerExample {
-    private static final String USER_INPUT_PREFIX = "\u001B[34mYou>\u001B[0m ";
-    private static final String AGENT_RESPONSE_PREFIX = "\u001B[32mAgent>\u001B[0m ";
+    /**
+     * ANSI color codes for terminal output
+     */
+    private static final String USER_INPUT_PREFIX = "\u001B[34mYou>\u001B[0m ";  // Blue prefix for user input
+    private static final String AGENT_RESPONSE_PREFIX = "\u001B[32mAgent>\u001B[0m "; // Green prefix for agent response
+
+    /**
+     * The access key for authenticating with the RocketMQ service.
+     */
     private static final String ACCESS_KEY = System.getProperty("rocketMQAK");
+
+    /**
+     * The secret key for authenticating with the RocketMQ service.
+     */
     private static final String SECRET_KEY = System.getProperty("rocketMQSK");
+    /**
+     * The dedicated topic for receiving reply messages from the target agent(Typically, a lightweight Topic).
+     */
     private static final String WORK_AGENT_RESPONSE_TOPIC = System.getProperty("workAgentResponseTopic");
+    /**
+     * The consumer group ID used when subscribing to the {@link #WORK_AGENT_RESPONSE_TOPIC}.
+     */
     private static final String WORK_AGENT_RESPONSE_GROUP_ID = System.getProperty("workAgentResponseGroupID");
+    /**
+     * The namespace used for logical isolation of RocketMQ resources.
+     */
     private static final String ROCKETMQ_NAMESPACE = System.getProperty("rocketMQNamespace");
+
+    /**
+     * Logical name of this agent instance.
+     */
     private static final String AGENT_NAME = "agentscope-a2a-rocketmq-example-agent";
 
-    // Can change this to false disable streaming.
-    static boolean streaming = true;
-
-    public static void main(String[] args) throws NacosException {
+    /**
+     * Main entry point.
+     * Sets up the agent with RocketMQ-based transport and starts the interactive loop.
+     */
+    public static void main(String[] args) {
         RocketMQTransportConfig rocketMQTransportConfig = new RocketMQTransportConfig();
         rocketMQTransportConfig.setAccessKey(ACCESS_KEY);
         rocketMQTransportConfig.setSecretKey(SECRET_KEY);
@@ -81,7 +109,7 @@ public class A2aAgentCallerExample {
     private static Flux<String> processInput(A2aAgent agent, String input) {
         Msg msg = Msg.builder().role(MsgRole.USER).content(TextBlock.builder().text(input).build()).build();
         return agent.stream(msg).map(event -> {
-            if (streaming && event.isLast()) {
+            if (event.isLast()) {
                 // The last message is whole artifact message result, which has been solved and print in before event handle.
                 // Weather need to handle the last message, depends on the use case.
                 return "";
