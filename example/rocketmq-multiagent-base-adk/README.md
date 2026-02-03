@@ -9,14 +9,14 @@
 
 部署 [Apache RocketMQ](http://rocketmq.apache.org/) 的 LiteTopic 版本(关于开源版本，预计在2月发布)，或购买支持 LiteTopic 的 RocketMQ 商业版实例，并创建以下资源：
 
-- **1.1** 创建 LiteTopic：`WorkerAgentResponse`
-- **1.2** 为 `WorkerAgentResponse` 创建绑定的 Lite消费者ID：`CID_HOST_AGENT_LITE`
-- **1.3** 创建天气助手普通 Topic：`WeatherAgentTask`
-- **1.4** 创建天气助手普通消费者 ID：`WeatherAgentTaskConsumerGroup`
-- **1.5** 创建行程规划助手普通 Topic：`TravelAgentTask`
-- **1.6** 创建行程规划助手普通消费者 ID：`TravelAgentTaskConsumerGroup`
-- **1.7** 创建天气/行程助手 接收点对点请求的LiteTopic：`WorkerAgentResponseServer`
-- **1.8** 创建天气/行程助手 用于订阅收点对点请求的LiteTopic的 Lite消费者ID：`CID_HOST_AGENT_LITE_SERVER`
+- **1.1** 创建接收响应请求的轻量级Topic：`WorkerAgentResponse`(supervisor-agent用于接收响应结果)
+- **1.2** 创建 与`WorkerAgentResponse` 绑定的轻量级消费者ID：`CID_HOST_AGENT_LITE`(supervisor-agent中用于订阅`WorkerAgentResponse`)
+- **1.3** 创建天气助手普通 Topic：`WeatherAgentTask`(weather-agent用于接收任务请求)
+- **1.4** 创建天气助手普通消费者 ID：`WeatherAgentTaskConsumerGroup`(weather-agent中用于订阅`WeatherAgentTask`)
+- **1.5** 创建行程规划助手普通 Topic：`TravelAgentTask`(travel-agent用于接收任务请求)
+- **1.6** 创建行程规划助手普通消费者 ID：`TravelAgentTaskConsumerGroup`(travel-agent中用于订阅`TravelAgentTask`)
+- **1.7** 创建天气/行程助手 接收点对点请求的轻量级LiteTopic：`WorkerAgentResponseServer`(weather-agent/travel-agent用于接收点对点请求)
+- **1.8** 创建 与`WorkerAgentResponseServer` 绑定的轻量级消费者ID：`CID_HOST_AGENT_LITE_SERVER`(weather-agent/travel-agent中用于订阅`WorkerAgentResponseServer`)
 
 ### 2. 部署大模型与 Agent 服务
 
