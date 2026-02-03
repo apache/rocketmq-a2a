@@ -9,10 +9,10 @@
 
 部署 [Apache RocketMQ](http://rocketmq.apache.org/) 的 LiteTopic 版本(关于开源版本，预计在2月发布)，或购买支持 LiteTopic 的 RocketMQ 商业版实例，并创建以下资源：
 
-- **1.1** 创建 接收响应请求的 LiteTopic：`WorkerAgentResponse`(agentscope-client用于接收响应结果)
-- **1.2** 创建 与`WorkerAgentResponse` 绑定的Lite消费者ID：`CID_HOST_AGENT_LITE`(agentscope-client用于接收响应结果)
+- **1.1** 创建 接收响应请求的轻量级Topic：`WorkerAgentResponse`(agentscope-client用于接收响应结果)
+- **1.2** 创建 与`WorkerAgentResponse` 绑定的轻量级消费者ID：`CID_HOST_AGENT_LITE`(agentscope-client中用于订阅`WorkerAgentResponse`)
 - **1.3** 创建 普通Topic：`LLM_TOPIC`(agentscope-server用于接收请求)
-- **1.4** 创建 普通消费者ID：`LLM_CID`(agentscope-server用于接收请求)
+- **1.4** 创建 普通消费者ID：`LLM_CID`(agentscope-server中用于订阅`LLM_TOPIC`)
 
 ### 2. 获取大模型服务
 
@@ -53,7 +53,7 @@ mvn clean package -Dmaven.test.skip=true -Dcheckstyle.skip=true
 cd agentscope-server
 ```
 ```shell
-mvn exec:java -Dexec.mainClass=io.agentscope.AgentScopeDeployRocketMQExample -DrocketMQEndpoint= -DrocketMQNamespace= -DbizTopic=AgentTask -DbizConsumerGroup=AgentTaskConsumerGroup -DrocketMQAK= -DrocketMQSK= -DapiKey=
+mvn exec:java -Dexec.mainClass=io.agentscope.AgentScopeDeployRocketMQExample -DrocketMQEndpoint= -DrocketMQNamespace= -DbizTopic=LLM_TOPIC -DbizConsumerGroup=LLM_CID -DrocketMQAK= -DrocketMQSK= -DapiKey=
 ```
 #### 4.运行agentscope-client
 
