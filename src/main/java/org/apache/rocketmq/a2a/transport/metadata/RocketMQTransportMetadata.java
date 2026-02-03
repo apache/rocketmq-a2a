@@ -22,7 +22,7 @@ import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.ROCKET
 /**
  * Metadata implementation for the RocketMQTransport.
  * <p>
- * This class provides protocol identification by returning the {@link #ROCKETMQ_PROTOCOL}
+ * This class provides protocol identification by returning the ROCKETMQ_PROTOCOL
  * constant as the transport protocol name, enabling the A2A framework to recognize
  * and route messages through the RocketMQ transport layer.
  * <p>
