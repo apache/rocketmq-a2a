@@ -21,85 +21,91 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.example</groupId>
-    <artifactId>RocketMQMultiAgent</artifactId>
+    <artifactId>rocketmq-multiagent-base-adk</artifactId>
     <version>2.1.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <modules>
-        <module>SupervisorAgent</module>
-        <module>WeatherAgent</module>
-        <module>Common</module>
-        <module>TravelAgent</module>
-        <module>SupervisorAgent-Web</module>
+        <module>supervisor-agent</module>
+        <module>weather-agent</module>
+        <module>common</module>
+        <module>travel-agent</module>
+        <module>supervisor-agent-web</module>
     </modules>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <rocketmq-client.version>5.2.0</rocketmq-client.version>
+        <rocketmq-a2a.version>1.0.9</rocketmq-a2a.version>
+        <dashscope.version>2.21.6</dashscope.version>
+        <fastjson.version>1.2.83_noneautotype</fastjson.version>
+        <a2a-sdk.version>0.3.3.Final</a2a-sdk.version>
+        <adk.verison>0.3.0</adk.verison>
+        <quarkus.version>3.24.5</quarkus.version>
+        <jakarta.version>4.1.0</jakarta.version>
+        <jakarta-ws.version>3.1.0</jakarta-ws.version>
     </properties>
     <dependencyManagement>
         <dependencies>
-            <!-- The ADK Core dependency -->
-            <dependency>
-                <groupId>com.google.adk</groupId>
-                <artifactId>google-adk</artifactId>
-                <version>0.3.0</version>
-            </dependency>
-            <!-- The ADK Dev Web UI to debug your agent (Optional) -->
-            <dependency>
-                <groupId>com.google.adk</groupId>
-                <artifactId>google-adk-dev</artifactId>
-                <version>0.3.0</version>
-            </dependency>
-            <dependency>
-                <groupId>com.alibaba</groupId>
-                <artifactId>dashscope-sdk-java</artifactId>
-                <version>2.21.6</version>
-            </dependency>
-            <dependency>
-                <groupId>com.openai</groupId>
-                <artifactId>openai-java</artifactId>
-                <version>4.1.0</version>
-            </dependency>
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-client-java</artifactId>
-                <version>5.1.0</version>
-            </dependency>
-            <dependency>
-                <groupId>com.alibaba</groupId>
-                <artifactId>fastjson</artifactId>
-                <version>1.2.83_noneautotype</version>
-            </dependency>
-            <dependency>
-                <groupId>io.quarkus</groupId>
-                <artifactId>quarkus-bom</artifactId>
-                <version>3.24.5</version>
-                <type>pom</type>
-                <scope>import</scope>
+                <version>${rocketmq-client.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-a2a</artifactId>
-                <version>1.0.8</version>
+                <version>${rocketmq-a2a.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>dashscope-sdk-java</artifactId>
+                <version>${dashscope.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>fastjson</artifactId>
+                <version>${fastjson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.a2asdk</groupId>
+                <artifactId>a2a-java-sdk-spec</artifactId>
+                <version>${a2a-sdk.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.adk</groupId>
+                <artifactId>google-adk</artifactId>
+                <version>${adk.verison}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.adk</groupId>
+                <artifactId>google-adk-dev</artifactId>
+                <version>${adk.verison}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.quarkus</groupId>
+                <artifactId>quarkus-bom</artifactId>
+                <version>${quarkus.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>io.quarkus</groupId>
                 <artifactId>quarkus-resteasy-jackson</artifactId>
-                <version>3.24.5</version>
+                <version>${quarkus.version}</version>
             </dependency>
             <dependency>
                 <groupId>jakarta.enterprise</groupId>
                 <artifactId>jakarta.enterprise.cdi-api</artifactId>
-                <version>4.1.0</version>
+                <version>${jakarta.version}</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>jakarta.ws.rs</groupId>
                 <artifactId>jakarta.ws.rs-api</artifactId>
-                <version>3.1.0</version>
+                <version>${jakarta-ws.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
-
 </project>

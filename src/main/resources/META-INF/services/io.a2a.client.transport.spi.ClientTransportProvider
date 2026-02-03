@@ -1,2 +1,2 @@
 io.a2a.client.transport.jsonrpc.JSONRPCTransportProvider
-org.apache.rocketmq.a2a.transport.RocketMQTransportProvider
+org.apache.rocketmq.a2a.transport.provider.RocketMQTransportProvider

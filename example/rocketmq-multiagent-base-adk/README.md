@@ -7,14 +7,16 @@
 
 ### 1. 部署 Apache RocketMQ
 
-部署 [Apache RocketMQ](http://rocketmq.apache.org/) 的 LiteTopic 版本(关于开源版本，预计在12月底发布)，或购买支持 LiteTopic 的 RocketMQ 商业版实例，并创建以下资源：
+部署 [Apache RocketMQ](http://rocketmq.apache.org/) 的 LiteTopic 版本(关于开源版本，预计在2月发布)，或购买支持 LiteTopic 的 RocketMQ 商业版实例，并创建以下资源：
 
-- **1.1** 创建 LiteTopic：`WorkerAgentResponse`
-- **1.2** 为 `WorkerAgentResponse` 创建绑定的 Lite 消费者 ID：`CID_HOST_AGENT_LITE`
-- **1.3** 创建天气助手普通 Topic：`WeatherAgentTask`
-- **1.4** 创建天气助手普通消费者 ID：`WeatherAgentTaskConsumerGroup`
-- **1.5** 创建行程规划助手普通 Topic：`TravelAgentTask`
-- **1.6** 创建行程规划助手普通消费者 ID：`TravelAgentTaskConsumerGroup`
+- **1.1** 创建接收响应请求的轻量级Topic：`WorkerAgentResponse`(supervisor-agent用于接收响应结果)
+- **1.2** 创建 与`WorkerAgentResponse` 绑定的轻量级消费者ID：`CID_HOST_AGENT_LITE`(supervisor-agent中用于订阅`WorkerAgentResponse`)
+- **1.3** 创建天气助手普通 Topic：`WeatherAgentTask`(weather-agent用于接收任务请求)
+- **1.4** 创建天气助手普通消费者 ID：`WeatherAgentTaskConsumerGroup`(weather-agent中用于订阅`WeatherAgentTask`)
+- **1.5** 创建行程规划助手普通 Topic：`TravelAgentTask`(travel-agent用于接收任务请求)
+- **1.6** 创建行程规划助手普通消费者 ID：`TravelAgentTaskConsumerGroup`(travel-agent中用于订阅`TravelAgentTask`)
+- **1.7** 创建天气/行程助手 接收点对点请求的轻量级LiteTopic：`WorkerAgentResponseServer`(weather-agent/travel-agent用于接收点对点请求)
+- **1.8** 创建 与`WorkerAgentResponseServer` 绑定的轻量级消费者ID：`CID_HOST_AGENT_LITE_SERVER`(weather-agent/travel-agent中用于订阅`WorkerAgentResponseServer`)
 
 ### 2. 部署大模型与 Agent 服务
 
@@ -35,12 +37,12 @@
 
 4. 创建天气助手Agent
 - 在阿里云百炼的应用管理页面，单击创建应用按钮。
-![img_6.png](img_6.png)
+![img_6.png](docs/images/img_6.png)
 
 - 在弹窗中选择智能体应用，应用名称填写天气助手，单击立即创建。
-![img_7.png](img_7.png)
+![img_7.png](docs/images/img_7.png)
 - 在应用中选择通义千问 3（通义千问-Plus-Latest） 模型，最长回复长度设定为 8192，开启思考模式。开启思考模式有助于提升模型处理复杂任务的能力，但同时会增加Token消耗。在实际生产应用中，请根据具体业务需求合理选择是否启用该功能。
-![img_8.png](img_8.png)
+![img_8.png](docs/images/img_8.png)
 - 在提示词中输入以下内容。
 ```
 # 角色
@@ -67,19 +69,19 @@
 ```
 
 - 在左侧导航栏中选择技能，然后单击MCP服务右侧的+按钮，为模型添加MCP服务。在MCP广场中查找并选择最美天气。如果是首次使用MCP服务，点击立即开通并根据页面提示开通服务。
-![img_9.png](img_9.png)
+![img_9.png](docs/images/img_9.png)
 - 单击发布按钮。
-![img_10.png](img_10.png)
+![img_10.png](docs/images/img_10.png)
 - 返回应用列表，将应用ID保存到本地用于后续配置。
 -
-- ![img_16.png](img_16.png)
+- ![img_16.png](docs/images/img_16.png)
 5. 创建行程规划助手Agent
 - 在阿里云百炼的应用管理页面，单击创建应用按钮。
-![img_11.png](img_11.png)
+![img_11.png](docs/images/img_11.png)
 - 在弹窗中选择智能体应用，应用名称填写行程助手，单击立即创建。
-![img_12.png](img_12.png)
+![img_12.png](docs/images/img_12.png)
 - 在应用中选择通义千问 3（通义千问-Plus-Latest） 模型，最长回复长度设定为 8192，开启思考模式。开启思考模式有助于提升模型处理复杂任务的能力，但同时会增加Token消耗。在实际生产应用中，请根据具体业务需求合理选择是否启用该功能。
-![img_13.png](img_13.png)
+![img_13.png](docs/images/img_13.png)
 - 在提示词中输入以下内容。
 ```
 ## 角色
@@ -129,11 +131,11 @@
 Amap Maps
 ```
 - 单击发布按钮。
-![img_14.png](img_14.png)
+![img_14.png](docs/images/img_14.png)
 
 - 返回应用列表，将应用ID(appId)保存到本地用于后续配置。
 -
-![img_15.png](img_15.png)
+![img_15.png](docs/images/img_15.png)
 
 ## 运行环境
 
@@ -165,39 +167,39 @@ mvn clean package -Dmaven.test.skip=true -Dcheckstyle.skip=true
 | workAgentResponseGroupID | LiteConsumer CID | 是    |
 
 
-#### 3.运行WeatherAgent
+#### 3.运行weather-agent
 ```shell
-cd WeatherAgent
+cd weather-agent
 ```
 
 ```shell
-MAVEN_OPTS="-DrocketMQEndpoint= -DrocketMQNamespace= -DbizTopic=WeatherAgentTask -DbizConsumerGroup=WeatherAgentTaskConsumerGroup -DrocketMQAK= -DrocketMQSK= -DapiKey= -DappId= " mvn quarkus:dev
+MAVEN_OPTS="-DrocketMQEndpoint= -DrocketMQNamespace= -DbizTopic=WeatherAgentTask -DbizConsumerGroup=WeatherAgentTaskConsumerGroup -DworkAgentResponseTopic=WorkerAgentResponseServer -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE_SERVER -DrocketMQAK= -DrocketMQSK= -DapiKey= -DappId= " mvn quarkus:dev
 ```
-![img.png](img.png)
+![img.png](docs/images/img.png)
 
-#### 4.运行TravelAgent
+#### 4.运行travel-agent
 ```shell
-cd TravelAgent
+cd travel-agent
 ```
-
-```shell
- MAVEN_OPTS="-DrocketMQEndpoint= -DrocketMQNamespace= -DbizTopic=TravelAgentTask -DbizConsumerGroup=TravelAgentTaskConsumerGroup -DrocketMQAK= -DrocketMQSK= -DapiKey= -DappId= " mvn quarkus:dev
-```
-![img_1.png](img_1.png)
-
-#### 5.运行SupervisorAgent
-```shell
-cd SupervisorAgent/target
-```
-```shell
-java -DrocketMQNamespace= -DworkAgentResponseTopic=WorkerAgentResponse -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE -DapiKey= -DrocketMQAK= -DrocketMQSK= -jar SupervisorAgent-2.1.1-SNAPSHOT-jar-with-dependencies.jar 
-```
-![img_5.png](img_5.png)
-
-6.运行SupervisorAgent-Web
 
 ```shell
-cd SupervisorAgent-Web/target
+ MAVEN_OPTS="-DrocketMQEndpoint= -DrocketMQNamespace= -DbizTopic=TravelAgentTask -DbizConsumerGroup=TravelAgentTaskConsumerGroup -DworkAgentResponseTopic=WorkerAgentResponseServer -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE_SERVER -DrocketMQAK= -DrocketMQSK= -DapiKey= -DappId= " mvn quarkus:dev
+```
+![img_1.png](docs/images/img_1.png)
+
+#### 5.运行supervisor-agent
+```shell
+cd supervisor-agent/target
+```
+```shell
+java -DrocketMQNamespace= -DworkAgentResponseTopic=WorkerAgentResponse -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE -DapiKey= -DrocketMQAK= -DrocketMQSK= -jar  supervisor-agent-2.1.1-SNAPSHOT-jar-with-dependencies.jar
+```
+![img_5.png](docs/images/img_5.png)
+
+6.运行supervisor-agent-web
+
+```shell
+cd supervisor-agent-web/target
 ```
 
 ```shell
@@ -207,7 +209,7 @@ java -DrocketMQNamespace= -DworkAgentResponseTopic=WorkerAgentResponse -DworkAge
 - 下面的示例展示了以RocketMQ作为底层Transport过程中实现异步通信以及断点重传功能
 - 咨询杭州明天天气怎么样的过程中，点击中断按钮模拟网络中断，点击重连实现网络重连，数据流恢复重传
 
-![img_2.png](img_2.png)
-![img_3.png](img_3.png)
-![img_4.png](img_4.png)
+![img_2.png](docs/images/img_2.png)
+![img_3.png](docs/images/img_3.png)
+![img_4.png](docs/images/img_4.png)
 
