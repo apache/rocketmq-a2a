@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 package io.agentscope;
-
+import java.util.ArrayList;
 import java.util.List;
 import io.a2a.spec.AgentInterface;
 import io.agentscope.core.ReActAgent;
@@ -45,29 +45,57 @@ import static io.agentscope.runtime.protocol.a2a.RocketMQUtils.ROCKETMQ_NAMESPAC
  */
 public class AgentScopeDeployRocketMQExample {
     private static final Logger log = LoggerFactory.getLogger(AgentScopeDeployRocketMQExample.class);
-    private static final String DASHSCOPE_API_KEY = System.getProperty("apiKey", "");
-    private static final String AGENT_NAME = "agentscope-a2a-rocketmq-example-agent";
+    private static final String API_KEY = System.getProperty("apiKey", "");
+    private static final String MODEL_NAME = "qwen-max";
+    private static final String AGENT_NAME = "agents-cope-a2a-rocketmq-example-agent";
 
     public static void main(String[] args) {
-        if (!checkConfigParam()) {
+        if (!validateRequiredConfig()) {
             System.exit(1);
         }
         runAgent();
     }
 
+    /**
+     * Deploys and runs the agent server with RocketMQ-backed A2A protocol support.
+     * <p>
+     * The agent is exposed via a local HTTP endpoint (port 10001), allowing other agents
+     * to invoke it through the A2A SDK using RocketMQ for asynchronous message delivery.
+     */
     private static void runAgent() {
-        AgentInterface agentInterface = new AgentInterface(RocketMQA2AConstant.ROCKETMQ_PROTOCOL, formatRocketMQServiceUrl(ROCKETMQ_ENDPOINT, ROCKETMQ_NAMESPACE, BIZ_TOPIC));
-        ConfigurableAgentCard agentCard = new ConfigurableAgentCard.Builder().url(formatRocketMQServiceUrl(ROCKETMQ_ENDPOINT, ROCKETMQ_NAMESPACE, BIZ_TOPIC)).preferredTransport(RocketMQA2AConstant.ROCKETMQ_PROTOCOL).additionalInterfaces(List.of(agentInterface)).description("use rocketmq as transport").build();
-        AgentApp agentApp = new AgentApp(agent(agentBuilder(dashScopeChatModel(DASHSCOPE_API_KEY))));
+        // Build the service URL used by clients to communicate via RocketMQ.
+        String rocketMQServiceUrl = formatRocketMQServiceUrl(ROCKETMQ_ENDPOINT, ROCKETMQ_NAMESPACE, BIZ_TOPIC);
+        // Define primary transport interface: RocketMQ A2A protocol.
+        AgentInterface agentInterface = new AgentInterface(RocketMQA2AConstant.ROCKETMQ_PROTOCOL, rocketMQServiceUrl);
+        // Create agent card — metadata describing how to connect to this agent.
+        ConfigurableAgentCard agentCard = new ConfigurableAgentCard.Builder().url(rocketMQServiceUrl)
+            .preferredTransport(RocketMQA2AConstant.ROCKETMQ_PROTOCOL).additionalInterfaces(List.of(agentInterface))
+            .description("use rocketmq as transport").build();
+        // Build and configure the actual agent logic (ReAct-style).
+        AgentApp agentApp = new AgentApp(agent(agentBuilder(dashScopeChatModel(API_KEY))));
         agentApp.deployManager(LocalDeployManager.builder().protocolConfigs(List.of(new A2aProtocolConfig(agentCard, 60, 10))).port(10001).build());
         agentApp.cors(registry -> registry.addMapping("/**").allowedOriginPatterns("*").allowedMethods("GET", "POST", "PUT", "DELETE").allowCredentials(true));
+        // Start the agent application
         agentApp.run();
     }
 
+    /**
+     * Constructs a ReActAgent builder pre-configured with model and prompt settings.
+     *
+     * @param model the LLM model backend (e.g., DashScope).
+     * @return a configured {@link ReActAgent.Builder}.
+     */
     public static ReActAgent.Builder agentBuilder(DashScopeChatModel model) {
         return ReActAgent.builder().model(model).name(AGENT_NAME).sysPrompt("You are an example of A2A(Agent2Agent) Protocol(use RocketmqTransport) Agent. You can answer some simple question according to your knowledge.");
     }
 
+    /**
+     * Wraps the agent in an {@link AgentScopeAgentHandler} to integrate with the AgentScope runtime.
+     * Handles incoming requests and manages streaming responses.
+     *
+     * @param builder the agent builder used to instantiate the agent per request.
+     * @return an agent handler supporting streaming query and health check.
+     */
     public static AgentScopeAgentHandler agent(ReActAgent.Builder builder) {
         return new AgentScopeAgentHandler() {
             @Override
@@ -84,8 +112,7 @@ public class AgentScopeDeployRocketMQExample {
                 } else if (messages instanceof Msg) {
                     return agent.stream((Msg)messages, streamOptions);
                 } else {
-                    Msg msg = Msg.builder().role(MsgRole.USER).build();
-                    return agent.stream(msg, streamOptions);
+                    return agent.stream(Msg.builder().role(MsgRole.USER).build(), streamOptions);
                 }
             }
             @Override
@@ -99,11 +126,19 @@ public class AgentScopeDeployRocketMQExample {
             }
         };
     }
+
+    /**
+     * Creates a DashScope chat model instance with streaming and thinking enabled.
+     *
+     * @param dashScopeApiKey the API key for authentication.
+     * @return a configured {@link DashScopeChatModel}.
+     * @throws IllegalArgumentException if the API key is missing.
+     */
     public static DashScopeChatModel dashScopeChatModel(String dashScopeApiKey) {
         if (StringUtils.isEmpty(dashScopeApiKey)) {
-            throw new IllegalArgumentException("DashScope API Key is empty, please set environment variable `AI_DASHSCOPE_API_KEY`");
+            throw new IllegalArgumentException("DashScope API Key is empty. Please set system property 'apiKey'.");
         }
-        return DashScopeChatModel.builder().apiKey(dashScopeApiKey).modelName("qwen-max").stream(true).enableThinking(true).build();
+        return DashScopeChatModel.builder().apiKey(dashScopeApiKey).modelName(MODEL_NAME).stream(true).enableThinking(false).build();
     }
 
     /**
@@ -111,7 +146,7 @@ public class AgentScopeDeployRocketMQExample {
      *
      * @return a valid RocketMQ Lite URL suitable for use with A2A SDK.
      * @throws IllegalArgumentException if either {@code #endpoint} or {@code #bizTopic} is null or blank,
-     * indicating missing critical configuration
+     * indicating missing critical configuration.
      */
     public static String formatRocketMQServiceUrl(String endpoint, String namespace, String bizTopic) {
         if (StringUtils.isEmpty(endpoint) || StringUtils.isEmpty(bizTopic)) {
@@ -121,20 +156,20 @@ public class AgentScopeDeployRocketMQExample {
         return String.format("http://%s/%s/%s", endpoint, namespace, bizTopic);
     }
 
-    private static boolean checkConfigParam() {
-        if (StringUtils.isEmpty(ROCKETMQ_ENDPOINT) || StringUtils.isEmpty(BIZ_TOPIC) || StringUtils.isEmpty(BIZ_CONSUMER_GROUP) || StringUtils.isEmpty(DASHSCOPE_API_KEY)) {
-            if (StringUtils.isEmpty(ROCKETMQ_ENDPOINT)) {
-                System.err.println("rocketMQEndpoint is empty");
-            }
-            if (StringUtils.isEmpty(BIZ_TOPIC)) {
-                System.err.println("bizTopic is empty");
-            }
-            if (StringUtils.isEmpty(BIZ_CONSUMER_GROUP)) {
-                System.err.println("bizConsumerGroup is empty");
-            }
-            if (StringUtils.isEmpty(DASHSCOPE_API_KEY)) {
-                System.err.println("apiKey is empty");
-            }
+    /**
+     * Validates required configuration parameters.
+     * Logs specific error messages for missing fields.
+     *
+     * @return true if all required configs are present; false otherwise.
+     */
+    private static boolean validateRequiredConfig() {
+        List<String> missing = new ArrayList<>();
+        if (StringUtils.isEmpty(ROCKETMQ_ENDPOINT)) {missing.add("rocketMQEndpoint");}
+        if (StringUtils.isEmpty(BIZ_TOPIC)) {missing.add("bizTopic");}
+        if (StringUtils.isEmpty(BIZ_CONSUMER_GROUP)) {missing.add("bizConsumerGroup");}
+        if (StringUtils.isEmpty(API_KEY)) {missing.add("apiKey (DashScope)");}
+        if (!missing.isEmpty()) {
+            log.error("Missing required configuration parameter(s): [{}]", String.join(", ", missing));
             return false;
         }
         return true;

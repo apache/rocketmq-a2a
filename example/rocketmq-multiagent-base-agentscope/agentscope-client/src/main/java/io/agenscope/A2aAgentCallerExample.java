@@ -42,6 +42,7 @@ public class A2aAgentCallerExample {
      */
     private static final String USER_INPUT_PREFIX = "\u001B[34mYou>\u001B[0m ";  // Blue prefix for user input
     private static final String AGENT_RESPONSE_PREFIX = "\u001B[32mAgent>\u001B[0m "; // Green prefix for agent response
+    private static final String TARGET_SERVER_BASE_URL = "http://localhost:10001";
 
     /**
      * The access key for authenticating with the RocketMQ service.
@@ -83,10 +84,16 @@ public class A2aAgentCallerExample {
         rocketMQTransportConfig.setNamespace(ROCKETMQ_NAMESPACE);
         rocketMQTransportConfig.setHttpClient(new JdkA2AHttpClient());
         A2aAgentConfig a2aAgentConfig = new A2aAgentConfigBuilder().withTransport(RocketMQTransport.class, rocketMQTransportConfig).build();
-        A2aAgent agent = A2aAgent.builder().a2aAgentConfig(a2aAgentConfig).name(AGENT_NAME).agentCardResolver(WellKnownAgentCardResolver.builder().baseUrl("http://localhost:10001").build()).build();
+        A2aAgent agent = A2aAgent.builder().a2aAgentConfig(a2aAgentConfig).name(AGENT_NAME).agentCardResolver(WellKnownAgentCardResolver.builder().baseUrl(TARGET_SERVER_BASE_URL).build()).build();
         startExample(agent);
     }
 
+    /**
+     * Starts an interactive CLI loop where the user can send messages to the agent.
+     * Type 'exit' or 'quit' to terminate.
+     *
+     * @param agent the A2A agent to communicate with
+     */
     private static void startExample(A2aAgent agent) {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))) {
             while (true) {
@@ -106,18 +113,27 @@ public class A2aAgentCallerExample {
         }
     }
 
+    /**
+     * Sends the user input to the agent and returns a reactive stream of response parts.
+     * Filters only text content from the streaming events.
+     *
+     * @param agent the agent to call.
+     * @param input the user's input message.
+     * @return a Flux emitting incremental string parts of the response.
+     */
     private static Flux<String> processInput(A2aAgent agent, String input) {
         Msg msg = Msg.builder().role(MsgRole.USER).content(TextBlock.builder().text(input).build()).build();
         return agent.stream(msg).map(event -> {
             if (event.isLast()) {
-                // The last message is whole artifact message result, which has been solved and print in before event handle.
+                // The last message is whole artifact message result, which has been solved and print in before event
+                // handle.
                 // Weather need to handle the last message, depends on the use case.
                 return "";
             }
             Msg message = event.getMessage();
             StringBuilder partText = new StringBuilder();
-            message.getContent().stream().filter(block -> block instanceof TextBlock).map(block -> (TextBlock) block)
-                    .forEach(block -> partText.append(block.getText()));
+            message.getContent().stream().filter(block -> block instanceof TextBlock).
+                map(block -> (TextBlock)block).forEach(block -> partText.append(block.getText()));
             return partText.toString();
         });
     }
