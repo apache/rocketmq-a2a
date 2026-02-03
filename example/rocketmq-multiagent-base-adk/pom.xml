@@ -41,7 +41,7 @@
         <rocketmq-client.version>5.2.0</rocketmq-client.version>
         <fastjson.version>1.2.83_noneautotype</fastjson.version>
         <quarkus.version>3.24.5</quarkus.version>
-        <rocketmq-a2a.version>1.0.9-SNAPSHOT</rocketmq-a2a.version>
+        <rocketmq-a2a.version>1.0.9</rocketmq-a2a.version>
         <jakarta.version>4.1.0</jakarta.version>
         <jakarta-ws.version>3.1.0</jakarta-ws.version>
         <a2a-sdk.version>0.3.3.Final</a2a-sdk.version>
