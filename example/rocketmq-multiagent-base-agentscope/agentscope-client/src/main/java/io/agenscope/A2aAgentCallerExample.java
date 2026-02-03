@@ -125,9 +125,6 @@ public class A2aAgentCallerExample {
         Msg msg = Msg.builder().role(MsgRole.USER).content(TextBlock.builder().text(input).build()).build();
         return agent.stream(msg).map(event -> {
             if (event.isLast()) {
-                // The last message is whole artifact message result, which has been solved and print in before event
-                // handle.
-                // Weather need to handle the last message, depends on the use case.
                 return "";
             }
             Msg message = event.getMessage();

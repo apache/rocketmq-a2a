@@ -44,7 +44,7 @@
         <slfj-version>2.0.13</slfj-version>
         <adk.verison>0.3.0</adk.verison>
         <common.version>2.1.1-SNAPSHOT</common.version>
-        <rocketmq-a2a.version>1.0.8</rocketmq-a2a.version>
+        <rocketmq-a2a.version>1.0.9</rocketmq-a2a.version>
     </properties>
 
     <dependencies>

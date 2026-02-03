@@ -36,15 +36,15 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <adk.verison>0.3.0</adk.verison>
-        <dashscope.version>2.21.6</dashscope.version>
         <rocketmq-client.version>5.2.0</rocketmq-client.version>
-        <fastjson.version>1.2.83_noneautotype</fastjson.version>
-        <quarkus.version>3.24.5</quarkus.version>
         <rocketmq-a2a.version>1.0.9</rocketmq-a2a.version>
+        <dashscope.version>2.21.6</dashscope.version>
+        <fastjson.version>1.2.83_noneautotype</fastjson.version>
+        <a2a-sdk.version>0.3.3.Final</a2a-sdk.version>
+        <adk.verison>0.3.0</adk.verison>
+        <quarkus.version>3.24.5</quarkus.version>
         <jakarta.version>4.1.0</jakarta.version>
         <jakarta-ws.version>3.1.0</jakarta-ws.version>
-        <a2a-sdk.version>0.3.3.Final</a2a-sdk.version>
     </properties>
     <dependencyManagement>
         <dependencies>
