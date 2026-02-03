@@ -53,7 +53,7 @@ public class RocketMQTransportProvider implements ClientTransportProvider<Rocket
     /**
      * Returns the protocol name associated with this transport provider.
      *
-     * @return the constant {@link #ROCKETMQ_PROTOCOL}, identifying the RocketMQ-based A2A transport.
+     * @return the constant ROCKETMQ_PROTOCOL, identifying the RocketMQ-based A2A transport.
      */
     @Override
     public String getTransportProtocol() {

@@ -64,40 +64,90 @@ public class RocketMQRequest {
      */
     private String liteTopic;
 
+    /**
+     * Default constructor for creating an instance of RocketMQRequest.
+     */
     public RocketMQRequest() {}
 
+    /**
+     * Gets the serialized request body.
+     *
+     * @return the request body as a string.
+     */
     public String getRequestBody() {
         return requestBody;
     }
 
+    /**
+     * Sets the serialized request body.
+     *
+     * @param requestBody the request body to set.
+     */
     public void setRequestBody(String requestBody) {
         this.requestBody = requestBody;
     }
 
+    /**
+     * Gets the protocol headers.
+     *
+     * @return the map of request headers.
+     */
     public Map<String, String> getRequestHeader() {
         return requestHeader;
     }
 
+    /**
+     * Sets the protocol headers.
+     *
+     * @param requestHeader the map of request headers to set.
+     */
     public void setRequestHeader(Map<String, String> requestHeader) {
         this.requestHeader = requestHeader;
     }
 
+    /**
+     * Gets the destination agent topic.
+     *
+     * @return the destination agent topic.
+     */
     public String getDestAgentTopic() {
         return destAgentTopic;
     }
 
+    /**
+     * Sets the destination agent topic.
+     *
+     * @param destAgentTopic the destination agent topic to set.
+     */
     public void setDestAgentTopic(String destAgentTopic) {
         this.destAgentTopic = destAgentTopic;
     }
 
+    /**
+     * Gets the LiteTopic used for session identification.
+     *
+     * @return the LiteTopic.
+     */
     public String getLiteTopic() {
         return liteTopic;
     }
 
+    /**
+     * Sets the LiteTopic used for session identification.
+     *
+     * @param liteTopic the LiteTopic to set.
+     */
     public void setLiteTopic(String liteTopic) {
         this.liteTopic = liteTopic;
     }
 
+    /**
+     * Adds a header to the request headers map.
+     * Initializes the map if it is null.
+     *
+     * @param key the header key.
+     * @param value the header value.
+     */
     public void addHeader(String key, String value) {
         if (null == requestHeader) {
             requestHeader = new HashMap<>();
@@ -105,51 +155,111 @@ public class RocketMQRequest {
         requestHeader.put(key, value);
     }
 
+    /**
+     * Gets the dedicated topic for receiving reply messages.
+     *
+     * @return the work agent response topic.
+     */
     public String getWorkAgentResponseTopic() {
         return workAgentResponseTopic;
     }
 
+    /**
+     * Sets the dedicated topic for receiving reply messages.
+     *
+     * @param workAgentResponseTopic the work agent response topic to set.
+     */
     public void setWorkAgentResponseTopic(String workAgentResponseTopic) {
         this.workAgentResponseTopic = workAgentResponseTopic;
     }
 
+    /**
+     * Creates a new builder instance for constructing RocketMQRequest objects.
+     *
+     * @return a new Builder instance.
+     */
     public static Builder builder() {
         return new Builder();
     }
 
+    /**
+     * Builder class for constructing RocketMQRequest instances.
+     */
     public static class Builder {
         private final RocketMQRequest request = new RocketMQRequest();
 
+        /**
+         * Sets the request body.
+         *
+         * @param requestBody the request body to set.
+         * @return the current Builder instance.
+         */
         public Builder requestBody(String requestBody) {
             request.setRequestBody(requestBody);
             return this;
         }
 
+        /**
+         * Sets the destination agent topic.
+         *
+         * @param destAgentTopic the destination agent topic to set.
+         * @return the current Builder instance.
+         */
         public Builder destAgentTopic(String destAgentTopic) {
             request.setDestAgentTopic(destAgentTopic);
             return this;
         }
 
+        /**
+         * Sets the work agent response topic.
+         *
+         * @param workAgentResponseTopic the work agent response topic to set.
+         * @return the current Builder instance.
+         */
         public Builder workAgentResponseTopic(String workAgentResponseTopic) {
             request.setWorkAgentResponseTopic(workAgentResponseTopic);
             return this;
         }
 
+        /**
+         * Sets the LiteTopic.
+         *
+         * @param liteTopic the LiteTopic to set.
+         * @return the current Builder instance.
+         */
         public Builder liteTopic(String liteTopic) {
             request.setLiteTopic(liteTopic);
             return this;
         }
 
+        /**
+         * Sets the request headers.
+         *
+         * @param requestHeader the map of request headers to set.
+         * @return the current Builder instance.
+         */
         public Builder requestHeader(Map<String, String> requestHeader) {
             request.setRequestHeader(requestHeader);
             return this;
         }
 
+        /**
+         * Adds a single header to the request headers.
+         *
+         * @param key the header key.
+         * @param value the header value.
+         * @return the current Builder instance.
+         */
         public Builder addHeader(String key, String value) {
             request.addHeader(key, value);
             return this;
         }
 
+        /**
+         * Builds and returns the constructed RocketMQRequest instance.
+         *
+         * @return the constructed RocketMQRequest.
+         */
         public RocketMQRequest build() {
             return request;
         }
