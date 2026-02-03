@@ -73,7 +73,7 @@ quarkus.index-dependency.rocketmq-a2a.artifact-id=rocketmq-a2a
 
 Please see the [rocketmq-multiagent-base-adk](example/rocketmq-multiagent-base-adk).
 
-[Apache RocketMQ](http://rocketmq.apache.org/) + [A2A](https://github.com/a2aproject/a2a-java) + [Agentscope](https://github.com/agentscope-ai) Sample
+[Apache RocketMQ](http://rocketmq.apache.org/) + [A2A](https://github.com/a2aproject/a2a-java) + [AgentScope](https://github.com/agentscope-ai) sample
 
 Please see the [rocketmq-multiagent-base-agentscope](example/rocketmq-multiagent-base-agentscope).
 
