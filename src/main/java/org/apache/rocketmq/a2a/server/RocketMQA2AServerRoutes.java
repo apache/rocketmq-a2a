@@ -270,7 +270,6 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
             response = buildSuccessResponse(nonStreamingResponse, messageView);
         } else {
             final Multi<? extends JSONRPCResponse<?>> finalStreamingResponse = streamingResponse;
-            log.info("RocketMQA2AServerRoutes streaming finalStreamingResponse: [{}]", JSON.toJSONString(finalStreamingResponse));
             // Submit an SSE data-sending task to the thread pool, passing in a CompletableFuture to receive notification upon task completion
             this.executor.execute(() -> {
                 this.multiSseSupport.sendSseStreamToRocketMQ(finalStreamingResponse.map(i -> (Object)i), null, request.getWorkAgentResponseTopic(), request.getLiteTopic(), messageView.getMessageId().toString(), completableFuture);

@@ -192,7 +192,7 @@ cd travel-agent
 cd supervisor-agent/target
 ```
 ```shell
-java -DrocketMQNamespace= -DworkAgentResponseTopic=WorkerAgentResponse -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE -DapiKey= -DrocketMQAK= -DrocketMQSK= -jar SupervisorAgent-2.1.1-SNAPSHOT-jar-with-dependencies.jar 
+java -DrocketMQNamespace= -DworkAgentResponseTopic=WorkerAgentResponse -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE -DapiKey= -DrocketMQAK= -DrocketMQSK= -jar  supervisor-agent-2.1.1-SNAPSHOT-jar-with-dependencies.jar
 ```
 ![img_5.png](docs/images/img_5.png)
 

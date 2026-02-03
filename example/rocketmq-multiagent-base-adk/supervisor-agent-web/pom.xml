@@ -45,6 +45,7 @@
         <adk.verison>0.3.0</adk.verison>
         <common.version>2.1.1-SNAPSHOT</common.version>
         <rocketmq-a2a.version>1.0.9</rocketmq-a2a.version>
+        <logback.version>1.4.14</logback.version>
     </properties>
 
     <dependencies>
@@ -71,6 +72,12 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+            <exclusions>
+                <exclusion>
+                    <artifactId>logback-classic</artifactId>
+                    <groupId>ch.qos.logback</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>io.projectreactor</groupId>
@@ -85,6 +92,16 @@
             <groupId>io.github.a2asdk</groupId>
             <artifactId>a2a-java-sdk-reference-jsonrpc</artifactId>
             <version>${a2a-java-sdk-version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-jboss-logmanager</artifactId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>slf4j-jboss-logmanager</artifactId>
+                    <groupId>org.jboss.slf4j</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.google.adk</groupId>
@@ -95,6 +112,11 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>${slfj-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
         </dependency>
         <dependency>
             <groupId>jakarta.enterprise</groupId>
