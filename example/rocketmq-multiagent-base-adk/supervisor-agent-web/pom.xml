@@ -26,7 +26,7 @@
         <relativePath/>
     </parent>
 
-    <artifactId>SupervisorAgent-Web</artifactId>
+    <artifactId>supervisor-agent-web</artifactId>
     <version>2.1.1-SNAPSHOT</version>
 
     <properties>
@@ -112,7 +112,7 @@
         </dependency>
         <dependency>
             <groupId>org.example</groupId>
-            <artifactId>Common</artifactId>
+            <artifactId>common</artifactId>
             <version>2.1.1-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>

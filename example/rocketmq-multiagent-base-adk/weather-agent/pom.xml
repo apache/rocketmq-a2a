@@ -21,11 +21,11 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.example</groupId>
-        <artifactId>RocketMQMultiAgent</artifactId>
+        <artifactId>rocketmq-multiagent-base-adk</artifactId>
         <version>2.1.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>WeatherAgent</artifactId>
+    <artifactId>weather-agent</artifactId>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
@@ -35,7 +35,7 @@
     <dependencies>
         <dependency>
             <groupId>org.example</groupId>
-            <artifactId>Common</artifactId>
+            <artifactId>common</artifactId>
             <version>2.1.1-SNAPSHOT</version>
         </dependency>
         <dependency>
@@ -69,7 +69,7 @@
         </dependency>
         <dependency>
             <groupId>org.example</groupId>
-            <artifactId>Common</artifactId>
+            <artifactId>common</artifactId>
             <version>2.1.1-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>

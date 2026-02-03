@@ -21,15 +21,15 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.example</groupId>
-    <artifactId>RocketMQMultiAgent</artifactId>
+    <artifactId>rocketmq-multiagent-base-adk</artifactId>
     <version>2.1.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <modules>
-        <module>SupervisorAgent</module>
-        <module>WeatherAgent</module>
-        <module>Common</module>
-        <module>TravelAgent</module>
-        <module>SupervisorAgent-Web</module>
+        <module>supervisor-agent</module>
+        <module>weather-agent</module>
+        <module>common</module>
+        <module>travel-agent</module>
+        <module>supervisor-agent-web</module>
     </modules>
 
     <properties>
