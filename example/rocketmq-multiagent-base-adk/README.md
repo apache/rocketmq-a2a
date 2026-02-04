@@ -173,7 +173,7 @@ cd weather-agent
 ```
 
 ```shell
-MAVEN_OPTS="-DrocketMQEndpoint= -DrocketMQNamespace= -DbizTopic=WeatherAgentTask -DbizConsumerGroup=WeatherAgentTaskConsumerGroup -DworkAgentResponseTopic=WorkerAgentResponseServer -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE_SERVER -DrocketMQAK= -DrocketMQSK= -DapiKey= -DappId= " mvn quarkus:dev
+MAVEN_OPTS="-DrocketMQEndpoint= -DrocketMQNamespace= -DbizTopic=WeatherAgentTask -DbizConsumerGroup=WeatherAgentTaskConsumerGroup -DworkAgentResponseTopic=WorkerAgentResponseServer -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE_SERVER -DrocketMQAK= -DrocketMQSK= -DapiKey= -DappId= " mvn quarkus:dev -am
 ```
 ![img.png](docs/images/img.png)
 
@@ -183,7 +183,7 @@ cd travel-agent
 ```
 
 ```shell
- MAVEN_OPTS="-DrocketMQEndpoint= -DrocketMQNamespace= -DbizTopic=TravelAgentTask -DbizConsumerGroup=TravelAgentTaskConsumerGroup -DworkAgentResponseTopic=WorkerAgentResponseServer -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE_SERVER -DrocketMQAK= -DrocketMQSK= -DapiKey= -DappId= " mvn quarkus:dev
+ MAVEN_OPTS="-DrocketMQEndpoint= -DrocketMQNamespace= -DbizTopic=TravelAgentTask -DbizConsumerGroup=TravelAgentTaskConsumerGroup -DworkAgentResponseTopic=WorkerAgentResponseServer -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE_SERVER -DrocketMQAK= -DrocketMQSK= -DapiKey= -DappId= " mvn quarkus:dev -am
 ```
 ![img_1.png](docs/images/img_1.png)
 
