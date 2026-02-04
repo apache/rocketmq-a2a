@@ -184,7 +184,7 @@ public class AgentService {
             return Flux.error(new IllegalArgumentException("userId, sessionId, and question must not be empty"));
         }
         Session userSession = sessionMap.computeIfAbsent(sessionId, k -> runner.sessionService().createSession(APP_NAME, userId, null, sessionId).blockingGet());
-        Map<String, List<TaskInfo>> sessionTaskListMap = userSessionTaskListMap.computeIfAbsent(userId, k -> new HashMap<>());
+        Map<String, List<TaskInfo>> sessionTaskListMap = userSessionTaskListMap.computeIfAbsent(userId, k -> new ConcurrentHashMap<>());
         List<TaskInfo> taskList = sessionTaskListMap.computeIfAbsent(sessionId, k -> new ArrayList<>());
         Flowable<Event> events = runner.runAsync(userId, userSession.id(), Content.fromParts(Part.fromText(question)));
         Sinks.Many<String> sink = Sinks.many().multicast().onBackpressureBuffer();
@@ -211,7 +211,7 @@ public class AgentService {
             return;
         }
         // Retrieve the map of sessions for this user (create if absent)
-        Map<String, List<TaskInfo>> sessionTaskListMap = userSessionTaskListMap.computeIfAbsent(userId, k -> new HashMap<>());
+        Map<String, List<TaskInfo>> sessionTaskListMap = userSessionTaskListMap.computeIfAbsent(userId, k -> new ConcurrentHashMap<>());
         // Retrieve the list of tasks associated with the session
         List<TaskInfo> taskInfos = sessionTaskListMap.get(sessionId);
         if (taskInfos != null) {
@@ -256,7 +256,7 @@ public class AgentService {
             return Flux.error(new IllegalArgumentException("userId, sessionId must not be empty"));
         }
         try {
-            Map<String, List<TaskInfo>> sessionTaskListMap = userSessionTaskListMap.computeIfAbsent(userId, k -> new HashMap<>());
+            Map<String, List<TaskInfo>> sessionTaskListMap = userSessionTaskListMap.computeIfAbsent(userId, k -> new ConcurrentHashMap<>());
             List<TaskInfo> taskInfoList = sessionTaskListMap.computeIfAbsent(sessionId, k -> new ArrayList<>());
             // Create a new sink to support multicast streaming
             Sinks.Many<String> sink = Sinks.many().multicast().onBackpressureBuffer();
@@ -626,7 +626,7 @@ public class AgentService {
      * @param msg the message string to emit (can be partial text, JSON, or status info).
      * @param isFinish if {@code true}, signals that this is the final message — attempts to complete the stream afterward.
      * @return {@code true} if the message was sent successfully and no terminal error occurred.
-     *         {@code false} if emission failed due to overflow, cancellation, or termination.
+     * {@code false} if emission failed due to overflow, cancellation, or termination.
      */
     private static boolean emitMessage(Sinks.Many<String> sink, String msg, boolean isFinish) {
         Sinks.EmitResult result = sink.tryEmitNext(msg);
