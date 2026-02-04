@@ -43,7 +43,6 @@
         <fastjson-version>1.2.83_noneautotype</fastjson-version>
         <slfj-version>2.0.13</slfj-version>
         <adk.verison>0.3.0</adk.verison>
-        <common.version>2.1.1-SNAPSHOT</common.version>
         <rocketmq-a2a.version>1.0.9</rocketmq-a2a.version>
         <logback.version>1.4.14</logback.version>
     </properties>
@@ -63,11 +62,6 @@
             <groupId>com.alibaba</groupId>
             <artifactId>fastjson</artifactId>
             <version>${fastjson-version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.example</groupId>
-            <artifactId>common</artifactId>
-            <version>${common.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -139,6 +133,11 @@
             <artifactId>jakarta.ws.rs-api</artifactId>
             <version>${jakarta.ws.rs-api.version}</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.example</groupId>
+            <artifactId>common</artifactId>
+            <version>2.1.1-SNAPSHOT</version>
         </dependency>
     </dependencies>
     <build>

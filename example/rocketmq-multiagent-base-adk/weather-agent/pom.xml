@@ -31,15 +31,9 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <common.version>2.1.1-SNAPSHOT</common.version>
         <quarkus.version>3.24.5</quarkus.version>
     </properties>
     <dependencies>
-        <dependency>
-            <groupId>org.example</groupId>
-            <artifactId>common</artifactId>
-            <version>${common.version}</version>
-        </dependency>
         <dependency>
             <groupId>com.google.adk</groupId>
             <artifactId>google-adk</artifactId>
@@ -93,6 +87,12 @@
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>dashscope-sdk-java</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.example</groupId>
+            <artifactId>common</artifactId>
+            <version>2.1.1-SNAPSHOT</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
     <build>
