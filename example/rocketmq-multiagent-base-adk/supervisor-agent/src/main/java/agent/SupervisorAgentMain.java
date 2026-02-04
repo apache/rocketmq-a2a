@@ -266,7 +266,6 @@ public class SupervisorAgentMain {
                     printHelp();
                     continue;
                 }
-                printSystemInfo("🤔 思考中...");
                 log.info("用户输入: [{}]", userInput);
                 Flowable<Event> events = runner.runAsync(USER_ID, sessionId, Content.fromParts(Part.fromText(userInput)));
                 events.blockingForEach(event -> {
@@ -288,14 +287,15 @@ public class SupervisorAgentMain {
         }
         if (!eventContent.startsWith(LEFT_BRACE)) {
             printPrompt(AGENT);
-            log.debug(eventContent);
+            System.out.println(eventContent);
             return;
         }
         try {
             Mission mission = JSON.parseObject(eventContent, Mission.class);
             if (null != mission) {
                 printPrompt(AGENT);
-                log.debug("Agent: [{}], forwarding request to another agent and waiting for its response. Target Agent: [{}], Query: [{}]", AGENT_NAME, mission.getAgent(), mission.getMessageInfo());
+                printSystemInfo("🤔 思考中...");
+                log.info("Agent: [{}], forwarding request to another agent and waiting for its response. Target Agent: [{}], Query: [{}]", AGENT_NAME, mission.getAgent(), mission.getMessageInfo());
                 forwardMissionToAgent(mission);
             }
         } catch (Exception e) {
@@ -483,7 +483,6 @@ public class SupervisorAgentMain {
      */
     private static void printSystemInfo(String message) {
         System.out.println("\u001B[34m[SYSTEM] " + message + "\u001B[0m");
-        log.info(message);
     }
 
     /**
@@ -495,7 +494,6 @@ public class SupervisorAgentMain {
      */
     private static void printSystemSuccess(String message) {
         System.out.println("\u001B[32m[SUCCESS] " + message + "\u001B[0m");
-        log.info(message);
     }
 
     /**

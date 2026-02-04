@@ -147,7 +147,7 @@ Amap Maps
 #### 1. 编译打包
 
 ```shell
-mvn clean package -Dmaven.test.skip=true -Dcheckstyle.skip=true
+mvn clean install -Dmaven.test.skip=true -Dcheckstyle.skip=true
 ```
 以下三个Agent进程建议在分别在不同的窗口中运行
 
