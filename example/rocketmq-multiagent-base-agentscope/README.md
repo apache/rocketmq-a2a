@@ -1,7 +1,7 @@
 
 # Quick Start
 
-本案例展示了一个基于 [Apache RocketMQ](http://rocketmq.apache.org/) Lite 版本与 [Agentscope](https://github.com/agentscope-ai) 集成的演示案例，通过消息中间件实现跨 Agent 的解耦通信与事件驱动交互，支持高并发、低延迟的分布式智能体协作场景。
+本案例展示了一个基于 [Apache RocketMQ](http://rocketmq.apache.org/) Lite 版本与 [AgentScope](https://github.com/agentscope-ai) 集成的演示案例，通过消息中间件实现跨 Agent 的解耦通信与事件驱动交互，支持高并发、低延迟的分布式智能体协作场景。
 
 ## 基本的前期准备工作
 
