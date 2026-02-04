@@ -58,7 +58,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant;
 import org.apache.rocketmq.a2a.transport.config.RocketMQTransportConfig;
 import org.apache.rocketmq.a2a.transport.impl.RocketMQTransport;
-import org.example.common.model.TaskInfo;
+import org.example.model.TaskInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -76,6 +76,7 @@ import reactor.core.publisher.Sinks.Many;
 @Service
 public class AgentService {
     private static final Logger log = LoggerFactory.getLogger(AgentService.class);
+
     /**
      * The logical name of this agent in the multi-agent system.
      */
@@ -342,8 +343,7 @@ public class AgentService {
             return;
         }
         try {
-            String agentName = mission.getAgent().replaceAll(" ", "");
-            Client client = agentClientMap.get(agentName);
+            Client client = agentClientMap.get(mission.getAgent().replaceAll(" ", ""));
             if (null == client) {
                 log.warn("handleMissionByMessage client is null");
                 return;
@@ -466,11 +466,11 @@ public class AgentService {
                         }
                         return;
                     }
-                    StringBuilder stringBuilder = new StringBuilder();
+                    StringBuilder resultBuilder = new StringBuilder();
                     for (Artifact tempArtifact : artifacts) {
-                        stringBuilder.append(extractTextFromMessage(tempArtifact));
+                        resultBuilder.append(extractTextFromMessage(tempArtifact));
                     }
-                    processAgentResponse(stringBuilder.toString(), taskInfo.getUserId(), taskInfo.getSessionId(), taskInfo.getTaskId());
+                    processAgentResponse(resultBuilder.toString(), taskInfo.getUserId(), taskInfo.getSessionId(), taskInfo.getTaskId());
                 }
             }
         });
@@ -591,7 +591,6 @@ public class AgentService {
 
     /**
      * Constructs a structured {@link Content} object from a plain text string.
-     * Used when preparing input messages to send to the LLM or agent system.
      *
      * @param content content the raw text input (e.g., user query or agent response).
      * @return a built {@link Content} object with role set to {@link #APP_NAME} and text wrapped in a Part,
@@ -609,8 +608,6 @@ public class AgentService {
 
     /**
      * Prints a system-level informational message in blue color to the console.
-     *
-     * <p>Used for displaying internal status, initialization steps, or non-critical notifications.
      *
      * @param message the message to display and log.
      */

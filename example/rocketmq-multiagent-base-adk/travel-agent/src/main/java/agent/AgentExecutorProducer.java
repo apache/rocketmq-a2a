@@ -58,7 +58,7 @@ public class AgentExecutorProducer {
     /**
      * Produces a custom {@link AgentExecutor} implementation that integrates with an external streaming API.
      *
-     * @return a configured agent executor
+     * @return a configured agent executor.
      */
     @Produces
     public AgentExecutor agentExecutor() {
