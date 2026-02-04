@@ -460,21 +460,19 @@ public class AgentService {
                 if (!CollectionUtils.isEmpty(artifacts)) {
                     String msg = extractTextFromMessage(artifacts.get(artifacts.size() - 1));
                     log.debug("receive msg: [{}]", msg);
-                    String lastOutput = taskInfo.getLastOutput();
-                    if (!lastOutput.equals(msg)) {
+
+                    if (TaskState.COMPLETED != task.getStatus().state()) {
                         boolean result = emitMessage(sink, msg, false);
                         if (!result) {
                             throw new RuntimeException("client close stream");
                         }
-                        taskInfo.setLastOutput(msg);
+                        return;
                     }
-                    if (TaskState.COMPLETED == task.getStatus().state()) {
-                        StringBuilder stringBuilder = new StringBuilder();
-                        for (Artifact tempArtifact : artifacts) {
-                            stringBuilder.append(extractTextFromMessage(tempArtifact));
-                        }
-                        processAgentResponse(stringBuilder.toString(), taskInfo.getUserId(), taskInfo.getSessionId(), taskInfo.getTaskId());
+                    StringBuilder stringBuilder = new StringBuilder();
+                    for (Artifact tempArtifact : artifacts) {
+                        stringBuilder.append(extractTextFromMessage(tempArtifact));
                     }
+                    processAgentResponse(stringBuilder.toString(), taskInfo.getUserId(), taskInfo.getSessionId(), taskInfo.getTaskId());
                 }
             }
         });

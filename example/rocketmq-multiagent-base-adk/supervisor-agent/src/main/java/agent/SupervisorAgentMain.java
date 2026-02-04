@@ -371,14 +371,15 @@ public class SupervisorAgentMain {
                 }
                 if (!CollectionUtils.isEmpty(artifacts)) {
                     TaskState state = task.getStatus().state();
-                    System.out.print(extractTextFromArtifact(artifacts.get(artifacts.size() - 1)));
-                    if (state == TaskState.COMPLETED) {
-                        StringBuilder stringBuilder = new StringBuilder();
-                        for (Artifact tempArtifact : artifacts) {
-                            stringBuilder.append(extractTextFromArtifact(tempArtifact));
-                        }
-                        processAgentResponse(stringBuilder.toString());
+                    if (state != TaskState.COMPLETED) {
+                        System.out.print(extractTextFromArtifact(artifacts.get(artifacts.size() - 1)));
+                        return;
                     }
+                    StringBuilder stringBuilder = new StringBuilder();
+                    for (Artifact tempArtifact : artifacts) {
+                        stringBuilder.append(extractTextFromArtifact(tempArtifact));
+                    }
+                    processAgentResponse(stringBuilder.toString());
                 }
             }
         });
