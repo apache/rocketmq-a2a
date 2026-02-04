@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.example.common.model;
+
 import reactor.core.publisher.Sinks;
 import reactor.core.publisher.Sinks.Many;
 
@@ -45,8 +46,6 @@ public class TaskInfo {
      */
     private String sessionId;
 
-    private String lastOutput = "";
-
     /**
      * A reactive sink used to push real-time response chunks to the client.
      */
@@ -55,11 +54,11 @@ public class TaskInfo {
     /**
      * Constructs a {@link TaskInfo} with basic metadata and a response sink.
      *
-     * @param taskId the unique task ID.
-     * @param taskDesc the task description.
-     * @param userId the user ID.
+     * @param taskId    the unique task ID.
+     * @param taskDesc  the task description.
+     * @param userId    the user ID.
      * @param sessionId the session ID.
-     * @param sink the reactive sink for streaming responses.
+     * @param sink      the reactive sink for streaming responses.
      */
     public TaskInfo(String taskId, String taskDesc, String sessionId, String userId, Sinks.Many<String> sink) {
         this.taskId = taskId;
@@ -111,14 +110,6 @@ public class TaskInfo {
         this.sink = sink;
     }
 
-    public String getLastOutput() {
-        return lastOutput;
-    }
-
-    public void setLastOutput(String lastOutput) {
-        this.lastOutput = lastOutput;
-    }
-
     public static Builder builder() {
         return new Builder();
     }
@@ -129,7 +120,6 @@ public class TaskInfo {
         private String userId;
         private String sessionId;
         private Sinks.Many<String> sink;
-        private String lastOutput = "";
 
         public Builder taskId(String taskId) {
             this.taskId = taskId;
@@ -156,11 +146,6 @@ public class TaskInfo {
             return this;
         }
 
-        public Builder lastOutput(String lastOutput) {
-            this.lastOutput = lastOutput != null ? lastOutput : "";
-            return this;
-        }
-
         public TaskInfo build() {
             TaskInfo taskInfo = new TaskInfo();
             taskInfo.setTaskId(taskId);
@@ -168,7 +153,6 @@ public class TaskInfo {
             taskInfo.setUserId(userId);
             taskInfo.setSessionId(sessionId);
             taskInfo.setSink(sink);
-            taskInfo.setLastOutput(lastOutput);
             return taskInfo;
         }
     }

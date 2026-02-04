@@ -460,10 +460,8 @@ public class AgentService {
                 if (!CollectionUtils.isEmpty(artifacts)) {
                     String msg = extractTextFromMessage(artifacts.get(artifacts.size() - 1));
                     log.debug("receive msg: [{}]", msg);
-
                     if (TaskState.COMPLETED != task.getStatus().state()) {
-                        boolean result = emitMessage(sink, msg, false);
-                        if (!result) {
+                        if (!emitMessage(sink, msg, false)) {
                             throw new RuntimeException("client close stream");
                         }
                         return;
