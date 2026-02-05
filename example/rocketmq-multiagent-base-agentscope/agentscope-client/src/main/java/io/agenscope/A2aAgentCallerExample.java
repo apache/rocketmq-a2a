@@ -84,7 +84,10 @@ public class A2aAgentCallerExample {
         rocketMQTransportConfig.setNamespace(ROCKETMQ_NAMESPACE);
         rocketMQTransportConfig.setHttpClient(new JdkA2AHttpClient());
         A2aAgentConfig a2aAgentConfig = new A2aAgentConfigBuilder().withTransport(RocketMQTransport.class, rocketMQTransportConfig).build();
-        A2aAgent agent = A2aAgent.builder().a2aAgentConfig(a2aAgentConfig).name(AGENT_NAME).agentCardResolver(WellKnownAgentCardResolver.builder().baseUrl(TARGET_SERVER_BASE_URL).build()).build();
+        A2aAgent agent = A2aAgent.builder()
+            .a2aAgentConfig(a2aAgentConfig)
+            .name(AGENT_NAME)
+            .agentCardResolver(WellKnownAgentCardResolver.builder().baseUrl(TARGET_SERVER_BASE_URL).build()).build();
         startExample(agent);
     }
 

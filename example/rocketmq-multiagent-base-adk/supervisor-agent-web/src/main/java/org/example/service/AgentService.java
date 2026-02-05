@@ -222,8 +222,7 @@ public class AgentService {
      * @param sessionId the ID of the session whose tasks are to be terminated.
      */
     private void terminateSessionTasks(String userId, String sessionId) {
-        Map<String, List<TaskInfo>> sessionTaskListMap = userSessionTaskListMap.computeIfAbsent(userId,
-            k -> new ConcurrentHashMap<>());
+        Map<String, List<TaskInfo>> sessionTaskListMap = userSessionTaskListMap.computeIfAbsent(userId, k -> new ConcurrentHashMap<>());
         List<TaskInfo> taskInfos = sessionTaskListMap.get(sessionId);
         if (taskInfos == null || taskInfos.isEmpty()) {
             return;
@@ -354,7 +353,13 @@ public class AgentService {
                 return;
             }
             String taskId = UUID.randomUUID().toString();
-            TaskInfo taskInfo = taskMap.computeIfAbsent(taskId, k -> TaskInfo.builder().taskId(taskId).taskDesc(mission.getMessageInfo()).sessionId(sessionId).userId(userId).sink(sink).build());
+            TaskInfo taskInfo = taskMap.computeIfAbsent(taskId, k -> TaskInfo.builder()
+                .taskId(taskId)
+                .taskDesc(mission.getMessageInfo())
+                .sessionId(sessionId)
+                .userId(userId)
+                .sink(sink)
+                .build());
             if (null != taskList) {
                 taskList.add(taskInfo);
             }
