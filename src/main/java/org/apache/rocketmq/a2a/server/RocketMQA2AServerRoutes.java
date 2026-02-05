@@ -278,7 +278,7 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
         if (null != response) {
             // Send the response result by invoking the Producer
             SendReceipt send = this.producer.send(buildMessageForResponse(request.getWorkAgentResponseTopic(), request.getLiteTopic(), response));
-            log.debug("RocketMQA2AServerRoutes send nonStreamingResponse success, msgId: [{}], response: [{}]", send.getMessageId(), JSON.toJSONString(response));
+            log.debug("RocketMQA2AServerRoutes send nonStreamingResponse successfully, msgId: [{}], response: [{}]", send.getMessageId(), JSON.toJSONString(response));
         }
     }
 
@@ -479,7 +479,7 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
                         // Construct a RocketMQResponse object for the incremental data item from the upstream output
                         RocketMQResponse response = RocketMQResponse.builder().responseBody(item.toString()).messageId(msgId).stream(true).end(false).build();
                         SendReceipt send = producer.send(buildMessageForResponse(workAgentResponseTopic, liteTopic, response));
-                        log.debug("MultiSseSupport send response success, msgId: [{}], response: [{}]", send.getMessageId(), JSON.toJSONString(response));
+                        log.debug("MultiSseSupport send response successfully, msgId: [{}], response: [{}]", send.getMessageId(), JSON.toJSONString(response));
                     } catch (Exception e) {
                         log.error("MultiSseSupport send stream error", e);
                     }
@@ -500,7 +500,7 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
                     try {
                         // Send the corresponding response result via RocketMQ Producer
                         SendReceipt send = producer.send(buildMessageForResponse(workAgentResponseTopic, liteTopic, response));
-                        log.debug("MultiSseSupport send response success, msgId: [{}], response: [{}]", send.getMessageId(), JSON.toJSONString(response));
+                        log.debug("MultiSseSupport send response successfully, msgId: [{}], response: [{}]", send.getMessageId(), JSON.toJSONString(response));
                     } catch (ClientException e) {
                         log.error("MultiSseSupport error send complete", e);
                     }

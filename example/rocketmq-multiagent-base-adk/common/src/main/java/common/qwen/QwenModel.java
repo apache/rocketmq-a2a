@@ -259,7 +259,7 @@ public class QwenModel extends BaseLlm {
         Part part = null;
         try {
             String content = chatResponse.getOutput().getChoices().get(0).getMessage().getContent();
-            if (!StringUtils.isEmpty(content)) {
+            if (StringUtils.isNotEmpty(content)) {
                 part = Part.builder().text(content).build();
             } else {
                 part = Part.builder().text("Sorry, no valid response content was received").build();

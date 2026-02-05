@@ -151,8 +151,8 @@ public class RocketMQUtil {
      */
     public static Producer getOrCreateProducer(String namespace, String endpoint, String accessKey, String secretKey, String agentTopic) {
         if (null == namespace || StringUtils.isEmpty(endpoint) || StringUtils.isEmpty(agentTopic)) {
-            log.warn("RocketMQUtil getOrCreateProducer param error, namespace: [{}], endpoint: [{}], agentTopic: [{}]", namespace, endpoint, agentTopic);
-            throw new IllegalArgumentException("initAndGetProducer param error");
+            log.warn("RocketMQUtil getOrCreateProducer param is invalid, namespace: [{}], endpoint: [{}], agentTopic: [{}]", namespace, endpoint, agentTopic);
+            throw new IllegalArgumentException("initAndGetProducer param is invalid");
         }
         Map<String, Producer> producerMap = ROCKETMQ_PRODUCER_MAP.computeIfAbsent(namespace, k -> new ConcurrentHashMap<>());
         //Get or create producer for this topic
@@ -179,8 +179,8 @@ public class RocketMQUtil {
      */
     public static Producer buildProducer(String namespace, String endpoint, String accessKey, String secretKey, String... topics) throws ClientException {
         if (null == namespace || StringUtils.isEmpty(endpoint)) {
-            log.warn("RocketMQUtil buildProducer param error, namespace: [{}], endpoint: [{}]", namespace, endpoint);
-            throw new IllegalArgumentException("buildProducer param error");
+            log.warn("RocketMQUtil buildProducer param is invalid, namespace: [{}], endpoint: [{}]", namespace, endpoint);
+            throw new IllegalArgumentException("buildProducer param is invalid");
         }
         SessionCredentialsProvider sessionCredentialsProvider = new StaticSessionCredentialsProvider(accessKey, secretKey);
         ClientConfiguration clientConfiguration = ClientConfiguration.newBuilder()
@@ -213,8 +213,8 @@ public class RocketMQUtil {
      */
     public static LitePushConsumer getOrCreateLitePushConsumer(String namespace, String endpoint, String accessKey, String secretKey, String workAgentResponseTopic, String workAgentResponseGroupID, String liteTopic) {
         if (null == namespace || StringUtils.isEmpty(endpoint) || StringUtils.isEmpty(workAgentResponseTopic) || StringUtils.isEmpty(workAgentResponseGroupID) || StringUtils.isEmpty(liteTopic)) {
-            log.warn("RocketMQUtil getOrCreateLitePushConsumer param error, namespace: [{}], endpoint: [{}], workAgentResponseTopic: [{}], workAgentResponseGroupID: [{}], liteTopic: [{}]", namespace, endpoint, workAgentResponseTopic, workAgentResponseGroupID, liteTopic);
-            throw new IllegalArgumentException("getOrCreateLitePushConsumer param error");
+            log.warn("RocketMQUtil getOrCreateLitePushConsumer param is invalid, namespace: [{}], endpoint: [{}], workAgentResponseTopic: [{}], workAgentResponseGroupID: [{}], liteTopic: [{}]", namespace, endpoint, workAgentResponseTopic, workAgentResponseGroupID, liteTopic);
+            throw new IllegalArgumentException("getOrCreateLitePushConsumer param is invalid");
         }
         // Get or create consumer map for this namespace
         Map<String, LitePushConsumer> consumerMap = ROCKETMQ_CONSUMER_MAP.computeIfAbsent(namespace, k -> new ConcurrentHashMap<>());
@@ -253,8 +253,8 @@ public class RocketMQUtil {
      */
     public static LitePushConsumer buildLitePushConsumer(String endpoint, String namespace, String accessKey, String secretKey, String workAgentResponseTopic, String workAgentResponseGroupID, MessageListener messageListener) throws ClientException {
         if (StringUtils.isEmpty(endpoint) || StringUtils.isEmpty(workAgentResponseGroupID) || StringUtils.isEmpty(workAgentResponseTopic) || null == messageListener) {
-            log.warn("RocketMQUtil buildLitePushConsumer check param error, endpoint: [{}], workAgentResponseGroupID: [{}], workAgentResponseTopic: [{}], messageListener: [{}]", endpoint, workAgentResponseGroupID, workAgentResponseTopic, messageListener);
-            throw new IllegalArgumentException("buildLitePushConsumer param error");
+            log.warn("RocketMQUtil buildLitePushConsumer check param is invalid, endpoint: [{}], workAgentResponseGroupID: [{}], workAgentResponseTopic: [{}], messageListener: [{}]", endpoint, workAgentResponseGroupID, workAgentResponseTopic, messageListener);
+            throw new IllegalArgumentException("buildLitePushConsumer param is invalid");
         }
         SessionCredentialsProvider sessionCredentialsProvider = new StaticSessionCredentialsProvider(accessKey, secretKey);
         ClientConfiguration clientConfiguration = ClientConfiguration.newBuilder()
@@ -286,8 +286,8 @@ public class RocketMQUtil {
      */
     public static PushConsumer buildPushConsumer(String endpoint, String namespace, String accessKey, String secretKey, String bizGroup, String bizTopic, MessageListener messageListener) throws ClientException {
         if (StringUtils.isEmpty(endpoint) || StringUtils.isEmpty(bizGroup) || StringUtils.isEmpty(bizTopic) || null == messageListener) {
-            log.warn("RocketMQUtil buildPushConsumer check param error, endpoint: [{}], bizGroup: [{}], bizTopic: [{}], messageListener: [{}]", endpoint, bizGroup, bizTopic, messageListener);
-            throw new IllegalArgumentException("buildPushConsumer param error");
+            log.warn("RocketMQUtil buildPushConsumer param is invalid, endpoint: [{}], bizGroup: [{}], bizTopic: [{}], messageListener: [{}]", endpoint, bizGroup, bizTopic, messageListener);
+            throw new IllegalArgumentException("buildPushConsumer param is invalid");
         }
         SessionCredentialsProvider sessionCredentialsProvider = new StaticSessionCredentialsProvider(accessKey, secretKey);
         ClientConfiguration clientConfiguration = ClientConfiguration.newBuilder()
@@ -362,8 +362,8 @@ public class RocketMQUtil {
      */
     public static Message buildMessageForResponse(String topic, String liteTopic, RocketMQResponse response) {
         if (StringUtils.isEmpty(topic) || StringUtils.isEmpty(liteTopic)) {
-            log.warn("RocketMQUtil buildMessageForResponse param error, topic: [{}], liteTopic: [{}], response: [{}]", topic, liteTopic, JSON.toJSONString(response));
-            throw new IllegalArgumentException("buildMessageForResponse param error");
+            log.warn("RocketMQUtil buildMessageForResponse param is invalid, topic: [{}], liteTopic: [{}], response: [{}]", topic, liteTopic, JSON.toJSONString(response));
+            throw new IllegalArgumentException("buildMessageForResponse param is invalid");
         }
         return PROVIDER.newMessageBuilder()
             .setTopic(topic)
@@ -393,8 +393,8 @@ public class RocketMQUtil {
     public static String sendRocketMQRequest(PayloadAndHeaders payloadAndHeaders, String agentTopic, String liteTopic, String workAgentResponseTopic, Producer producer, String taskId)
         throws JsonProcessingException, ClientException {
         if (null == payloadAndHeaders || StringUtils.isEmpty(agentTopic) || StringUtils.isEmpty(liteTopic) || StringUtils.isEmpty(workAgentResponseTopic) || null == producer) {
-            log.warn("RocketMQUtil sendRocketMQRequest param error, payloadAndHeaders: [{}], agentTopic: [{}], workAgentResponseTopic: [{}], liteTopic: [{}], producer: [{}]", payloadAndHeaders, agentTopic, workAgentResponseTopic, liteTopic, producer);
-            throw new IllegalArgumentException("sendRocketMQRequest param error");
+            log.warn("RocketMQUtil sendRocketMQRequest param is invalid, payloadAndHeaders: [{}], agentTopic: [{}], workAgentResponseTopic: [{}], liteTopic: [{}], producer: [{}]", payloadAndHeaders, agentTopic, workAgentResponseTopic, liteTopic, producer);
+            throw new IllegalArgumentException("sendRocketMQRequest param is invalid");
         }
         //build RocketMQRequest
         RocketMQRequest request = new RocketMQRequest();
@@ -415,7 +415,7 @@ public class RocketMQUtil {
         byte[] body = messageBodyStr.getBytes(StandardCharsets.UTF_8);
         Message message = null;
         // Check if sticky routing is enabled via TASK_SERVER_RECEIPT_MAP
-        if (!StringUtils.isEmpty(taskId) && TASK_SERVER_RECEIPT_MAP.containsKey(taskId)) {
+        if (StringUtils.isNotEmpty(taskId) && TASK_SERVER_RECEIPT_MAP.containsKey(taskId)) {
             ServerReceipt serverReceipt = TASK_SERVER_RECEIPT_MAP.get(taskId);
             message = PROVIDER.newMessageBuilder().setTopic(serverReceipt.getServerWorkAgentResponseTopic()).setLiteTopic(serverReceipt.getServerLiteTopic()).setBody(body).build();
             log.debug("RocketMQUtil sendRocketMQRequest send message to serverLiteTopic taskId: [{}], serverReceipt: [{}]", taskId, JSON.toJSONString(serverReceipt));
@@ -512,18 +512,20 @@ public class RocketMQUtil {
      */
     private static void parseAndEmit(RocketMQResponse response, SSEEventListener sseEventListener) {
         String item = response.getResponseBody();
-        if (!StringUtils.isEmpty(item)) {
-            String prefix = RocketMQA2AConstant.DATA_PREFIX;
-            if (item.startsWith(prefix)) {
-                item = item.substring(prefix.length()).trim();
-            }
-            if (!item.isEmpty()) {
-                try {
-                    sseEventListener.onMessage(item, new CompletableFuture<>());
-                } catch (Exception e) {
-                    log.error("RocketMQUtil failed to deliver stream chunk to SSE listener for response: [{}]", JSON.toJSONString(response), e);
-                }
-            }
+        if (StringUtils.isEmpty(item)) {
+            return;
+        }
+        String prefix = RocketMQA2AConstant.DATA_PREFIX;
+        if (item.startsWith(prefix)) {
+            item = item.substring(prefix.length()).trim();
+        }
+        if (item.isEmpty()) {
+            return;
+        }
+        try {
+            sseEventListener.onMessage(item, new CompletableFuture<>());
+        } catch (Exception e) {
+            log.error("RocketMQUtil failed to deliver stream chunk to SSE listener for response: [{}]", JSON.toJSONString(response), e);
         }
     }
 
@@ -669,6 +671,12 @@ public class RocketMQUtil {
         return value;
     }
 
+    /**
+     * Serializes the given object to a JSON string.
+     *
+     * @param o the object to serialize; if null, returns null.
+     * @return the JSON string representation of the object, or null if serialization fails or input is null.
+     */
     public static String toJsonString(Object o) {
         if (null == o) {
             log.debug("RocketMQUtil toJsonString input object is null, returning null");
@@ -690,7 +698,7 @@ public class RocketMQUtil {
      */
     public static RocketMQResource parseAgentCardAddition(AgentCard agentCard) {
         if (null == agentCard || StringUtils.isEmpty(agentCard.preferredTransport()) || StringUtils.isEmpty(agentCard.url()) || CollectionUtils.isEmpty(agentCard.additionalInterfaces())) {
-            log.warn("RocketMQTransport parseAgentCardAddition param error, agentCard: [{}]", JSON.toJSONString(agentCard));
+            log.warn("RocketMQTransport parseAgentCardAddition param is invalid, agentCard: [{}]", JSON.toJSONString(agentCard));
             return null;
         }
         String preferredTransport = agentCard.preferredTransport();
@@ -728,7 +736,7 @@ public class RocketMQUtil {
     private static RocketMQResource parseAndValidateRocketMQResource(String url) {
         try {
             RocketMQResource rocketMQResource = pareAgentCardUrl(url);
-            if (rocketMQResource != null && !StringUtils.isEmpty(rocketMQResource.getEndpoint()) && !StringUtils.isEmpty(rocketMQResource.getTopic())) {
+            if (rocketMQResource != null && StringUtils.isNotEmpty(rocketMQResource.getEndpoint()) && StringUtils.isNotEmpty(rocketMQResource.getTopic())) {
                 return rocketMQResource;
             }
         } catch (Exception e) {
@@ -746,7 +754,7 @@ public class RocketMQUtil {
      */
     public static RocketMQResource pareAgentCardUrl(String agentCardUrl) {
         if (StringUtils.isEmpty(agentCardUrl) || !agentCardUrl.startsWith(HTTPS_URL_PREFIX) && !agentCardUrl.startsWith(HTTP_URL_PREFIX)) {
-            log.warn("RocketMQResource pareAgentCardUrl param error, agentCardUrl: [{}]", agentCardUrl);
+            log.warn("RocketMQResource pareAgentCardUrl param is invalid, agentCardUrl: [{}]", agentCardUrl);
             return null;
         }
         if (agentCardUrl.startsWith(HTTPS_URL_PREFIX)) {

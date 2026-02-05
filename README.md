@@ -47,17 +47,17 @@ Add a dependency using maven:
 Create an A2A Client Using RocketMQTransport and RocketMQTransportConfig
 
 ```java
-    // build client with RocketMQTransport and RocketMQTransportConfig
-    RocketMQTransportConfig rocketMQTransportConfig=new RocketMQTransportConfig();
-        rocketMQTransportConfig.setAccessKey(accessKey);
-        rocketMQTransportConfig.setSecretKey(secretKey);
-        rocketMQTransportConfig.setWorkAgentResponseGroupID(WorkAgentResponseGroupID);
-        rocketMQTransportConfig.setWorkAgentResponseTopic(WorkAgentResponseTopic);
-        rocketMQTransportConfig.setRocketMQNamespace(RocketMQNamespace);
-        Client client=Client.builder(finalAgentCard)
-        .addConsumers(consumers)
-        .streamingErrorHandler(streamingErrorHandler)
-        .withTransport(RocketMQTransport.class, rocketMQTransportConfig)
+   // build client with RocketMQTransport and RocketMQTransportConfig
+   RocketMQTransportConfig rocketMQTransportConfig = new RocketMQTransportConfig();
+       rocketMQTransportConfig.setAccessKey(accessKey);
+       rocketMQTransportConfig.setSecretKey(secretKey);
+       rocketMQTransportConfig.setWorkAgentResponseGroupID(WorkAgentResponseGroupID);
+       rocketMQTransportConfig.setWorkAgentResponseTopic(WorkAgentResponseTopic);
+       rocketMQTransportConfig.setRocketMQNamespace(RocketMQNamespace);
+       Client client = Client.builder(finalAgentCard)
+       .addConsumers(consumers)
+       .streamingErrorHandler(streamingErrorHandler)
+       .withTransport(RocketMQTransport.class, rocketMQTransportConfig)
     .build();
 ```
 

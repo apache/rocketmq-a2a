@@ -78,8 +78,8 @@ public class AgentInteraction {
      * @return a newly created task.
      */
     public static Task createTask(io.a2a.spec.Message request) {
-        String id = !StringUtils.isEmpty(request.getTaskId()) ? request.getTaskId() : UUID.randomUUID().toString();
-        String contextId = !StringUtils.isEmpty(request.getContextId()) ? request.getContextId() : UUID.randomUUID().toString();
+        String id = StringUtils.isNotEmpty(request.getTaskId()) ? request.getTaskId() : UUID.randomUUID().toString();
+        String contextId = StringUtils.isNotEmpty(request.getContextId()) ? request.getContextId() : UUID.randomUUID().toString();
         return new Task(id, contextId, new TaskStatus(TaskState.SUBMITTED), null, List.of(request), null);
     }
 }

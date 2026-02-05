@@ -452,7 +452,7 @@ public class SupervisorAgentMain {
             }
             try {
                 Mission mission = JSON.parseObject(content, Mission.class);
-                if (null != mission && !StringUtils.isEmpty(mission.getMessageInfo()) && !StringUtils.isEmpty(mission.getAgent())) {
+                if (null != mission && StringUtils.isNotEmpty(mission.getMessageInfo()) && StringUtils.isNotEmpty(mission.getAgent())) {
                     printPrompt(AGENT);
                     log.debug("forwarding to another agent and waiting for its response. Target Agent: [{}], Query: [{}]", mission.getAgent(), mission.getMessageInfo());
                     forwardMissionToAgent(mission);

@@ -85,7 +85,7 @@ public class A2AChatController {
         }
         try {
             agentService.endStreamChat(userId, sessionId);
-            log.debug("closeStreamChat success, userId: [{}], sessionId: [{}]", userId, sessionId);
+            log.debug("closeStreamChat successfully, userId: [{}], sessionId: [{}]", userId, sessionId);
             return ResponseEntity.ok("stream closed successfully");
         } catch (Exception e) {
             log.error("failed to close stream, userId: [{}], sessionId: [{}]", userId, sessionId, e);
@@ -111,7 +111,7 @@ public class A2AChatController {
         }
         try {
             Flux<String> flux = agentService.resubscribeStream(userId, sessionId);
-            log.debug("resubscribeStreamChat success, userId: [{}], sessionId: [{}]", userId, sessionId);
+            log.debug("resubscribeStreamChat successfully, userId: [{}], sessionId: [{}]", userId, sessionId);
             return flux;
         } catch (Exception e) {
             log.error("failed to resubscribe to stream, userId: [{}], sessionId: [{}]", userId, sessionId, e);

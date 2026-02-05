@@ -27,7 +27,8 @@ import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.ROCKET
  * <p>
  * This class implements the {@link ClientTransportProvider} interface to support
  * RocketMQ-based message transport between A2A clients and remote agents.
- * It is responsible for instantiating transports with the appropriate configuration, agent identity, and endpoint information.
+ * It is responsible for instantiating transports with the appropriate configuration, agent identity, and endpoint
+ * information.
  */
 public class RocketMQTransportProvider implements ClientTransportProvider<RocketMQTransport, RocketMQTransportConfig> {
 

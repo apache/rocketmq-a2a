@@ -250,7 +250,7 @@ public class AgentService {
         metadata.put(RocketMQA2AConstant.UNSUB_LITE_TOPIC, sessionId);
         Collection<Client> clients = agentClientMap.values();
         if (CollectionUtils.isEmpty(clients)) {
-            log.debug("endStreamChat success, clients is empty");
+            log.debug("endStreamChat successfully, clients is empty");
             return;
         }
         for (Client client : clients) {
@@ -600,7 +600,7 @@ public class AgentService {
             lastQuestion = content;
             try {
                 Mission mission = JSON.parseObject(content, Mission.class);
-                if (null != mission && !StringUtils.isEmpty(mission.getMessageInfo()) && !StringUtils.isEmpty(mission.getAgent())) {
+                if (null != mission && StringUtils.isNotEmpty(mission.getMessageInfo()) && StringUtils.isNotEmpty(mission.getAgent())) {
                     log.debug("转发到其他的Agent, 等待其他Agent响应，Agent: [{}], 问题: [{}]", mission.getAgent(), mission.getMessageInfo());
                     emitMessage(sink, "\n \n ******" + AGENT_NAME + " 转发请求到其他的Agent, 等待其响应，Agent: " + mission.getAgent() + "， 问题: " + mission.getMessageInfo(), false);
                     handleMissionByMessage(mission, taskId, sessionId);
@@ -623,7 +623,7 @@ public class AgentService {
         }
         String taskId = taskInfo.getTaskId();
         taskMap.remove(taskId);
-        log.debug("completeTask taskMap clear success, taskId: [{}]", taskId);
+        log.debug("completeTask taskMap clear successfully, taskId: [{}]", taskId);
         Map<String, List<TaskInfo>> sessionTaskListMap = userSessionTaskListMap.get(taskInfo.getUserId());
         if (null == sessionTaskListMap) {
             return;
@@ -633,7 +633,7 @@ public class AgentService {
             return;
         }
         boolean result = taskInfos.removeIf(next -> next.getTaskId().equals(taskId));
-        log.debug("completeTask userSessionTaskListMap clear success, taskId: [{}], result: [{}]", taskId, result);
+        log.debug("completeTask userSessionTaskListMap clear successfully, taskId: [{}], result: [{}]", taskId, result);
     }
 
     /**
