@@ -27,7 +27,7 @@
     <modules>
         <module>supervisor-agent</module>
         <module>weather-agent</module>
-        <module>common</module>
+        <module>common-base-adk</module>
         <module>travel-agent</module>
         <module>supervisor-agent-web</module>
     </modules>
@@ -110,7 +110,7 @@
             </dependency>
             <dependency>
                 <groupId>org.example</groupId>
-                <artifactId>common</artifactId>
+                <artifactId>common-base-adk</artifactId>
                 <version>${common.version}</version>
             </dependency>
             <dependency>

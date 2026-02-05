@@ -68,7 +68,7 @@
         </dependency>
         <dependency>
             <groupId>org.example</groupId>
-            <artifactId>common</artifactId>
+            <artifactId>common-base-adk</artifactId>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
