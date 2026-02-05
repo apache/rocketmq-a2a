@@ -711,7 +711,7 @@ public class RocketMQUtil {
         }
         List<AgentInterface> agentInterfaces = agentCard.additionalInterfaces();
         if (CollectionUtils.isEmpty(agentInterfaces)) {
-            log.debug("parseAgentCardAddition agentInterfaces is empty"); // 调整为 debug 级别
+            log.debug("parseAgentCardAddition agentInterfaces is empty");
             return null;
         }
         for (AgentInterface agentInterface : agentInterfaces) {

@@ -147,7 +147,7 @@ Amap Maps
 #### 1. 编译打包
 
 ```shell
-mvn clean install -Dmaven.test.skip=true -Dcheckstyle.skip=true
+mvn clean install -Dmaven.test.skip=true -Dcheckstyle.skip=true -Dquarkus.package.type=uber-jar
 ```
 以下三个Agent进程建议在分别在不同的窗口中运行
 
@@ -169,21 +169,19 @@ mvn clean install -Dmaven.test.skip=true -Dcheckstyle.skip=true
 
 #### 3.运行weather-agent
 ```shell
-cd weather-agent
+cd weather-agent/target
 ```
-
 ```shell
-MAVEN_OPTS="-DrocketMQEndpoint= -DrocketMQNamespace= -DbizTopic=WeatherAgentTask -DbizConsumerGroup=WeatherAgentTaskConsumerGroup -DworkAgentResponseTopic=WorkerAgentResponseServer -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE_SERVER -DrocketMQAK= -DrocketMQSK= -DapiKey= -DappId= " mvn quarkus:dev
+java -DrocketMQEndpoint= -DrocketMQNamespace= -DbizTopic=WeatherAgentTask -DbizConsumerGroup=WeatherAgentTaskConsumerGroup -DworkAgentResponseTopic=WorkerAgentResponseServer -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE_SERVER -DrocketMQAK= -DrocketMQSK= -DapiKey= -DappId= -jar weather-agent-2.1.1-SNAPSHOT-runner.jar
 ```
 ![img.png](docs/images/img.png)
 
 #### 4.运行travel-agent
 ```shell
-cd travel-agent
+cd travel-agent/target
 ```
-
 ```shell
- MAVEN_OPTS="-DrocketMQEndpoint= -DrocketMQNamespace= -DbizTopic=TravelAgentTask -DbizConsumerGroup=TravelAgentTaskConsumerGroup -DworkAgentResponseTopic=WorkerAgentResponseServer -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE_SERVER -DrocketMQAK= -DrocketMQSK= -DapiKey= -DappId= " mvn quarkus:dev
+ java -DrocketMQEndpoint= -DrocketMQNamespace= -DbizTopic= -DbizConsumerGroup=TravelAgentTaskConsumerGroup -DworkAgentResponseTopic=WorkerAgentResponseServer -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE_SERVER -DrocketMQAK= -DrocketMQSK= -DapiKey= -DappId= -jar travel-agent-2.1.1-SNAPSHOT-runner.jar
 ```
 ![img_1.png](docs/images/img_1.png)
 
@@ -192,7 +190,7 @@ cd travel-agent
 cd supervisor-agent/target
 ```
 ```shell
-java -DrocketMQNamespace= -DworkAgentResponseTopic=WorkerAgentResponse -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE -DapiKey= -DrocketMQAK= -DrocketMQSK= -jar  supervisor-agent-2.1.1-SNAPSHOT-jar-with-dependencies.jar
+java -DrocketMQNamespace= -DworkAgentResponseTopic=WorkerAgentResponse -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE -DapiKey= -DrocketMQAK= -DrocketMQSK= -jar supervisor-agent-2.1.1-SNAPSHOT-jar-with-dependencies.jar
 ```
 ![img_5.png](docs/images/img_5.png)
 
