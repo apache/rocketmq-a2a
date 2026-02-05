@@ -206,8 +206,8 @@ public class RocketMQTransport implements ClientTransport {
         SendMessageRequest sendMessageRequest = new SendMessageRequest.Builder().jsonrpc(JSONRPCMessage.JSONRPC_VERSION).method(SendMessageRequest.METHOD).params(request).build();
         PayloadAndHeaders payloadAndHeaders = applyInterceptors(SendMessageRequest.METHOD, sendMessageRequest, this.agentCard, context);
         try {
-            String responseMessageId = sendRocketMQRequest(payloadAndHeaders, this.agentTopic, resolveAndSubscribeLiteTopic(request.message().getContextId()), this.workAgentResponseTopic, this.producer, null);
-            SendMessageResponse response = unmarshalResponse(getResult(responseMessageId, this.namespace, SEND_MESSAGE_RESPONSE_REFERENCE), SEND_MESSAGE_RESPONSE_REFERENCE);
+            String requestId = sendRocketMQRequest(payloadAndHeaders, this.agentTopic, resolveAndSubscribeLiteTopic(request.message().getContextId()), this.workAgentResponseTopic, this.producer, null);
+            SendMessageResponse response = unmarshalResponse(getResult(requestId, this.namespace, SEND_MESSAGE_RESPONSE_REFERENCE), SEND_MESSAGE_RESPONSE_REFERENCE);
             return response.getResult();
         } catch (Exception e) {
             log.error("RocketMQTransport sendMessage error", e);
@@ -233,13 +233,13 @@ public class RocketMQTransport implements ClientTransport {
         try {
             SendStreamingMessageRequest sendStreamingMessageRequest = new SendStreamingMessageRequest.Builder().jsonrpc(JSONRPCMessage.JSONRPC_VERSION).method(SendStreamingMessageRequest.METHOD).params(request).build();
             PayloadAndHeaders payloadAndHeaders = applyInterceptors(SendStreamingMessageRequest.METHOD, sendStreamingMessageRequest, this.agentCard, context);
-            String responseMessageId = sendRocketMQRequest(payloadAndHeaders, this.agentTopic, resolveAndSubscribeLiteTopic(request.message().getContextId()), this.workAgentResponseTopic, this.producer, null);
-            if (StringUtils.isEmpty(responseMessageId)) {
-                log.error("RocketMQTransport sendMessageStreaming error, responseMessageId is empty");
+            String requestId = sendRocketMQRequest(payloadAndHeaders, this.agentTopic, resolveAndSubscribeLiteTopic(request.message().getContextId()), this.workAgentResponseTopic, this.producer, null);
+            if (StringUtils.isEmpty(requestId)) {
+                log.error("RocketMQTransport sendMessageStreaming error, requestId is empty");
                 return;
             }
-            MESSAGE_STREAM_RESPONSE_MAP.computeIfAbsent(this.namespace, k -> new ConcurrentHashMap<>()).put(responseMessageId, new SSEEventListener(eventConsumer, errorConsumer));
-            log.debug("RocketMQTransport sendMessageStreaming successfully, responseMessageId: [{}]", responseMessageId);
+            MESSAGE_STREAM_RESPONSE_MAP.computeIfAbsent(this.namespace, k -> new ConcurrentHashMap<>()).put(requestId, new SSEEventListener(eventConsumer, errorConsumer));
+            log.debug("RocketMQTransport sendMessageStreaming successfully, requestId: [{}]", requestId);
         } catch (Exception e) {
             log.error("RocketMQTransport sendMessageStreaming error", e);
             throw new A2AClientException("RocketMQTransport sendMessageStreaming error", e);
@@ -339,8 +339,8 @@ public class RocketMQTransport implements ClientTransport {
         try {
             GetTaskRequest getTaskRequest = new GetTaskRequest.Builder().jsonrpc(JSONRPCMessage.JSONRPC_VERSION).method(GetTaskRequest.METHOD).params(request).build();
             PayloadAndHeaders payloadAndHeaders = applyInterceptors(GetTaskRequest.METHOD, getTaskRequest, this.agentCard, context);
-            String responseMessageId = sendRocketMQRequest(payloadAndHeaders, this.agentTopic, defaultLiteTopic, this.workAgentResponseTopic, this.producer, request.id());
-            GetTaskResponse response = unmarshalResponse(getResult(responseMessageId, this.namespace, GET_TASK_RESPONSE_REFERENCE), GET_TASK_RESPONSE_REFERENCE);
+            String requestId = sendRocketMQRequest(payloadAndHeaders, this.agentTopic, defaultLiteTopic, this.workAgentResponseTopic, this.producer, request.id());
+            GetTaskResponse response = unmarshalResponse(getResult(requestId, this.namespace, GET_TASK_RESPONSE_REFERENCE), GET_TASK_RESPONSE_REFERENCE);
             return response.getResult();
         } catch (Exception e) {
             log.error("RocketMQTransport getTask error", e);
@@ -362,8 +362,8 @@ public class RocketMQTransport implements ClientTransport {
         try {
             CancelTaskRequest cancelTaskRequest = new CancelTaskRequest.Builder().jsonrpc(JSONRPCMessage.JSONRPC_VERSION).method(CancelTaskRequest.METHOD).params(request).build();
             PayloadAndHeaders payloadAndHeaders = applyInterceptors(CancelTaskRequest.METHOD, cancelTaskRequest, this.agentCard, context);
-            String responseMessageId = sendRocketMQRequest(payloadAndHeaders, this.agentTopic, defaultLiteTopic, this.workAgentResponseTopic, this.producer, request.id());
-            CancelTaskResponse response = unmarshalResponse(getResult(responseMessageId, this.namespace, CANCEL_TASK_RESPONSE_REFERENCE), CANCEL_TASK_RESPONSE_REFERENCE);
+            String requestId = sendRocketMQRequest(payloadAndHeaders, this.agentTopic, defaultLiteTopic, this.workAgentResponseTopic, this.producer, request.id());
+            CancelTaskResponse response = unmarshalResponse(getResult(requestId, this.namespace, CANCEL_TASK_RESPONSE_REFERENCE), CANCEL_TASK_RESPONSE_REFERENCE);
             return response.getResult();
         } catch (Exception e) {
             log.error("RocketMQTransport cancelTask error", e);
@@ -385,8 +385,8 @@ public class RocketMQTransport implements ClientTransport {
         try {
             SetTaskPushNotificationConfigRequest setTaskPushNotificationRequest = new SetTaskPushNotificationConfigRequest.Builder().jsonrpc(JSONRPCMessage.JSONRPC_VERSION).method(SetTaskPushNotificationConfigRequest.METHOD).params(request).build();
             PayloadAndHeaders payloadAndHeaders = applyInterceptors(SetTaskPushNotificationConfigRequest.METHOD, setTaskPushNotificationRequest, this.agentCard, context);
-            String responseMessageId = sendRocketMQRequest(payloadAndHeaders, this.agentTopic, defaultLiteTopic, this.workAgentResponseTopic, this.producer, request.taskId());
-            SetTaskPushNotificationConfigResponse response = unmarshalResponse(getResult(responseMessageId, this.namespace, SET_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE), SET_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE);
+            String requestId = sendRocketMQRequest(payloadAndHeaders, this.agentTopic, defaultLiteTopic, this.workAgentResponseTopic, this.producer, request.taskId());
+            SetTaskPushNotificationConfigResponse response = unmarshalResponse(getResult(requestId, this.namespace, SET_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE), SET_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE);
             return response.getResult();
         } catch (Exception e) {
             log.error("RocketMQTransport setTaskPushNotificationConfiguration error", e);
@@ -408,8 +408,8 @@ public class RocketMQTransport implements ClientTransport {
         try {
             GetTaskPushNotificationConfigRequest getTaskPushNotificationRequest = new GetTaskPushNotificationConfigRequest.Builder().jsonrpc(JSONRPCMessage.JSONRPC_VERSION).method(GetTaskPushNotificationConfigRequest.METHOD).params(request).build();
             PayloadAndHeaders payloadAndHeaders = applyInterceptors(GetTaskPushNotificationConfigRequest.METHOD, getTaskPushNotificationRequest, this.agentCard, context);
-            String responseMessageId = sendRocketMQRequest(payloadAndHeaders, this.agentTopic, defaultLiteTopic, this.workAgentResponseTopic, this.producer, request.id());
-            GetTaskPushNotificationConfigResponse response = unmarshalResponse(getResult(responseMessageId, this.namespace, GET_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE), GET_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE);
+            String requestId = sendRocketMQRequest(payloadAndHeaders, this.agentTopic, defaultLiteTopic, this.workAgentResponseTopic, this.producer, request.id());
+            GetTaskPushNotificationConfigResponse response = unmarshalResponse(getResult(requestId, this.namespace, GET_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE), GET_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE);
             return response.getResult();
         } catch (Exception e) {
             log.error("RocketMQTransport getTaskPushNotificationConfiguration error", e);
@@ -431,8 +431,8 @@ public class RocketMQTransport implements ClientTransport {
         try {
             ListTaskPushNotificationConfigRequest listTaskPushNotificationRequest = new ListTaskPushNotificationConfigRequest.Builder().jsonrpc(JSONRPCMessage.JSONRPC_VERSION).method(ListTaskPushNotificationConfigRequest.METHOD).params(request).build();
             PayloadAndHeaders payloadAndHeaders = applyInterceptors(ListTaskPushNotificationConfigRequest.METHOD, listTaskPushNotificationRequest, this.agentCard, context);
-            String responseMessageId = sendRocketMQRequest(payloadAndHeaders, this.agentTopic, defaultLiteTopic, this.workAgentResponseTopic, this.producer, request.id());
-            ListTaskPushNotificationConfigResponse response = unmarshalResponse(getResult(responseMessageId, this.namespace, LIST_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE), LIST_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE);
+            String requestId = sendRocketMQRequest(payloadAndHeaders, this.agentTopic, defaultLiteTopic, this.workAgentResponseTopic, this.producer, request.id());
+            ListTaskPushNotificationConfigResponse response = unmarshalResponse(getResult(requestId, this.namespace, LIST_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE), LIST_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE);
             return response.getResult();
         } catch (Exception e) {
             log.error("RocketMQTransport listTaskPushNotificationConfigurations error", e);
@@ -454,8 +454,8 @@ public class RocketMQTransport implements ClientTransport {
         try {
             DeleteTaskPushNotificationConfigRequest deleteTaskPushNotificationRequest = new DeleteTaskPushNotificationConfigRequest.Builder().jsonrpc(JSONRPCMessage.JSONRPC_VERSION).method(DeleteTaskPushNotificationConfigRequest.METHOD).params(request).build();
             PayloadAndHeaders payloadAndHeaders = applyInterceptors(DeleteTaskPushNotificationConfigRequest.METHOD, deleteTaskPushNotificationRequest, this.agentCard, context);
-            String responseMessageId = sendRocketMQRequest(payloadAndHeaders, this.agentTopic, defaultLiteTopic, this.workAgentResponseTopic, this.producer, request.id());
-            getResult(responseMessageId, this.namespace, DELETE_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE);
+            String requestId = sendRocketMQRequest(payloadAndHeaders, this.agentTopic, defaultLiteTopic, this.workAgentResponseTopic, this.producer, request.id());
+            getResult(requestId, this.namespace, DELETE_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE);
         } catch (Exception e) {
             log.error("RocketMQTransport deleteTaskPushNotificationConfigurations error", e);
             throw new A2AClientException("RocketMQTransport deleteTaskPushNotificationConfigurations error", e);
@@ -483,8 +483,8 @@ public class RocketMQTransport implements ClientTransport {
             try {
                 GetAuthenticatedExtendedCardRequest getExtendedAgentCardRequest = new GetAuthenticatedExtendedCardRequest.Builder().jsonrpc(JSONRPCMessage.JSONRPC_VERSION).method(GetAuthenticatedExtendedCardRequest.METHOD).build(); // id will be randomly generated
                 PayloadAndHeaders payloadAndHeaders = applyInterceptors(GetAuthenticatedExtendedCardRequest.METHOD, getExtendedAgentCardRequest, this.agentCard, context);
-                String responseMessageId = sendRocketMQRequest(payloadAndHeaders, this.agentTopic, defaultLiteTopic, this.workAgentResponseTopic, this.producer, null);
-                GetAuthenticatedExtendedCardResponse response = unmarshalResponse(getResult(responseMessageId, this.namespace, GET_AUTHENTICATED_EXTENDED_CARD_RESPONSE_REFERENCE), GET_AUTHENTICATED_EXTENDED_CARD_RESPONSE_REFERENCE);
+                String requestId = sendRocketMQRequest(payloadAndHeaders, this.agentTopic, defaultLiteTopic, this.workAgentResponseTopic, this.producer, null);
+                GetAuthenticatedExtendedCardResponse response = unmarshalResponse(getResult(requestId, this.namespace, GET_AUTHENTICATED_EXTENDED_CARD_RESPONSE_REFERENCE), GET_AUTHENTICATED_EXTENDED_CARD_RESPONSE_REFERENCE);
                 return response.getResult();
             } catch (Exception e) {
                 log.error("RocketMQTransport GetAuthenticatedExtendedCard error", e);
