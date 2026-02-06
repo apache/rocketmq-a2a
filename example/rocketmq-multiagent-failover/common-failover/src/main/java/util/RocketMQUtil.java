@@ -43,7 +43,6 @@ import org.slf4j.LoggerFactory;
  * <p>
  * This class loads configuration from system properties and provides factory methods to create
  * RocketMQ producers and consumers with consistent settings.
- *
  */
 public class RocketMQUtil {
     private static final Logger log = LoggerFactory.getLogger(RocketMQUtil.class);
@@ -209,10 +208,10 @@ public class RocketMQUtil {
      * Checks if the required RocketMQ client configuration parameters are set.
      * Throws an exception if any of the required parameters is missing.
      */
-    public static void checkRocketMQConfigParamClient() {
+    public static void checkRocketMQConfigClientParam() {
         if (StringUtils.isEmpty(WORK_AGENT_RESPONSE_TOPIC) || StringUtils.isEmpty(WORK_AGENT_RESPONSE_GROUP_ID) || StringUtils.isEmpty(ROCKETMQ_ENDPOINT) || StringUtils.isEmpty(AGENT_TOPIC)) {
-            log.warn("checkRocketMQConfigParamClient param is invalid, workAgentResponseTopic: [{}], workAgentResponseGroupID: [{}], rocketMQEndpoint: [{}], agentTopic: [{}]", WORK_AGENT_RESPONSE_TOPIC, WORK_AGENT_RESPONSE_GROUP_ID, ROCKETMQ_ENDPOINT, AGENT_TOPIC);
-            throw new IllegalArgumentException("checkRocketMQConfigParamClient param is invalid");
+            log.warn("checkRocketMQConfigClientParam param is invalid, workAgentResponseTopic: [{}], workAgentResponseGroupID: [{}], rocketMQEndpoint: [{}], agentTopic: [{}]", WORK_AGENT_RESPONSE_TOPIC, WORK_AGENT_RESPONSE_GROUP_ID, ROCKETMQ_ENDPOINT, AGENT_TOPIC);
+            throw new IllegalArgumentException("checkRocketMQConfigClientParam param is invalid");
         }
     }
 
@@ -220,10 +219,10 @@ public class RocketMQUtil {
      * Checks if the required RocketMQ server configuration parameters are set.
      * Throws an exception if any of the required parameters is missing.
      */
-    public static void checkRocketMQConfigParamServer() {
+    public static void checkRocketMQConfigServerParam() {
         if (StringUtils.isEmpty(ROCKETMQ_ENDPOINT) || StringUtils.isEmpty(BIZ_TOPIC) || StringUtils.isEmpty(BIZ_CONSUMER_GROUP)) {
-            log.warn("checkRocketMQConfigParamServer error, rocketMQEndpoint: [{}], bizTopic: [{}], bizConsumerGroup: [{}]", ROCKETMQ_ENDPOINT, BIZ_TOPIC, BIZ_CONSUMER_GROUP);
-            throw new IllegalArgumentException("checkRocketMQConfigParamServer param is invalid");
+            log.warn("checkRocketMQConfigServerParam param is invalid, rocketMQEndpoint: [{}], bizTopic: [{}], bizConsumerGroup: [{}]", ROCKETMQ_ENDPOINT, BIZ_TOPIC, BIZ_CONSUMER_GROUP);
+            throw new IllegalArgumentException("checkRocketMQConfigServerParam param is invalid");
         }
     }
 }

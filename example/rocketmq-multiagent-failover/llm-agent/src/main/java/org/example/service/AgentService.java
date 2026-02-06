@@ -52,7 +52,7 @@ import static util.RocketMQUtil.ROCKETMQ_ENDPOINT;
 import static util.RocketMQUtil.ROCKETMQ_NAMESPACE;
 import static util.RocketMQUtil.SECRET_KEY;
 import static util.RocketMQUtil.buildMessage;
-import static util.RocketMQUtil.checkRocketMQConfigParamServer;
+import static util.RocketMQUtil.checkRocketMQConfigServerParam;
 
 /**
  * AI Agent service that consumes RocketMQ messages, invokes QWen LLM, and streams responses back via RocketMQ.
@@ -74,7 +74,7 @@ public class AgentService {
 
     @PostConstruct
     public void init() throws ClientException {
-        checkRocketMQConfigParamServer();
+        checkRocketMQConfigServerParam();
         checkQwenConfigParam();
         this.producer = RocketMQUtil.buildProducer(ROCKETMQ_ENDPOINT, ROCKETMQ_NAMESPACE, ACCESS_KEY, SECRET_KEY);
         this.pushConsumer = RocketMQUtil.buildPushConsumer(ROCKETMQ_ENDPOINT, ROCKETMQ_NAMESPACE, ACCESS_KEY, SECRET_KEY, BIZ_CONSUMER_GROUP, BIZ_TOPIC, buildMessageListener());
@@ -162,7 +162,7 @@ public class AgentService {
                         String content = message.getOutput().getChoices().get(0).getMessage().getContent();
                         RocketMQResponse response = RocketMQResponse.builder().liteTopic(liteTopic).responseBody(content).stream(true).end(false).userId(userId).taskId(taskId).question(question).build();
                         SendReceipt send = producer.send(buildMessage(workAgentResponseTopic, liteTopic, response));
-                        log.debug("MultiSSeSupport send response success, msgId: [{}], time: [{}]", send.getMessageId(), System.currentTimeMillis());
+                        log.debug("MultiSSeSupport send response successfully, msgId: [{}], time: [{}]", send.getMessageId(), System.currentTimeMillis());
                     } catch (Exception e) {
                         log.error("MultiSSeSupport send stream error", e);
                     }

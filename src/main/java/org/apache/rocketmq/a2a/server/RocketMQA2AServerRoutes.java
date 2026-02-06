@@ -197,7 +197,7 @@ public class RocketMQA2AServerRoutes extends A2AServerRoutes {
             //Init serverLiteTopic
             this.serverLiteTopic = UUID.randomUUID().toString();
             this.litePushConsumer.subscribeLite(serverLiteTopic);
-            log.info("RocketMQA2AServerRoutes init success, bizTopic: [{}], bizConsumerGroup: [{}], workAgentResponseTopic: [{}], workAgentResponseGroupID: [{}], serverLiteTopic: [{}]", BIZ_TOPIC, BIZ_CONSUMER_GROUP, WORK_AGENT_RESPONSE_GROUP_ID, WORK_AGENT_RESPONSE_TOPIC, serverLiteTopic);
+            log.info("RocketMQA2AServerRoutes init successfully, bizTopic: [{}], bizConsumerGroup: [{}], workAgentResponseTopic: [{}], workAgentResponseGroupID: [{}], serverLiteTopic: [{}]", BIZ_TOPIC, BIZ_CONSUMER_GROUP, WORK_AGENT_RESPONSE_GROUP_ID, WORK_AGENT_RESPONSE_TOPIC, serverLiteTopic);
         } catch (Exception e) {
             log.error("RocketMQA2AServerRoutes error", e);
         }

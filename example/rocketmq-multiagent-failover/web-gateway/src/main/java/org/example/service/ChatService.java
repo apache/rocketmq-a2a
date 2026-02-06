@@ -51,7 +51,7 @@ public class ChatService {
         }
         Sinks.Many<String> sink = Sinks.many().multicast().onBackpressureBuffer();
         String msgId = rocketMQService.sendMessage(userId, sessionId, question, sink);
-        log.debug("ChatService streamChat send message success, userId: [{}], sessionId: [{}], question: [{}]", userId, sessionId, question);
+        log.debug("ChatService streamChat send message successfully, userId: [{}], sessionId: [{}], question: [{}]", userId, sessionId, question);
         if (StringUtils.isEmpty(msgId)) {
             log.warn("ChatService streamChat send message error, msgId is empty");
             throw new RuntimeException("ChatService streamChat send message error");
@@ -74,7 +74,7 @@ public class ChatService {
         }
         try {
             rocketMQService.ubSubLiteTopic(userId, sessionId);
-            log.debug("ChatService closeStreamChat success, userId: [{}], sessionId: [{}]", userId, sessionId);
+            log.debug("ChatService closeStreamChat successfully, userId: [{}], sessionId: [{}]", userId, sessionId);
         } catch (Exception e) {
             log.error("ChatService closeStreamChat failed, userId: [{}], sessionId: [{}]", userId, sessionId, e);
             throw new RuntimeException("ChatService closeStreamChat failed", e);
@@ -99,7 +99,7 @@ public class ChatService {
         try {
             Sinks.Many<String> sink = Sinks.many().multicast().onBackpressureBuffer();
             rocketMQService.reSubLiteTopic(userId, sessionId, sink, lastOffset);
-            log.debug("ChatService resubscribeStream success, userId: [{}], sessionId: [{}]", userId, sessionId);
+            log.debug("ChatService resubscribeStream successfully, userId: [{}], sessionId: [{}]", userId, sessionId);
             return Flux.from(sink.asFlux());
         } catch (Exception e) {
             log.error("ChatService resubscribeStream failed, userId: [{}], sessionId: [{}]", userId, sessionId, e);

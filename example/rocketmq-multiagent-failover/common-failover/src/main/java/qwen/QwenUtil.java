@@ -67,6 +67,7 @@ public class QwenUtil {
     public static Flowable<GenerationResult> streamCallWithMessage(String userMsg)
         throws NoApiKeyException, InputRequiredException {
         if (StringUtils.isEmpty(userMsg)) {
+            log.warn("streamCallWithMessage userMsg is empty");
             throw new IllegalArgumentException("streamCallWithMessage userMsg must not be null");
         }
         return new Generation().streamCall(buildGenerationParam(Message.builder().role(Role.USER.getValue()).content(userMsg).build()));

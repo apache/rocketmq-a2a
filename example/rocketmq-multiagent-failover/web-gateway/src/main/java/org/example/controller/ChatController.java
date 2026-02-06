@@ -68,7 +68,7 @@ public class ChatController {
                 return Flux.error(new IllegalArgumentException("streamChat param is invalid"));
             }
             Flux<String> fluxResult = agentService.streamChat(userId, sessionId, question);
-            log.debug("streamChat success, userId: [{}], sessionId: [{}], question: [{}]", userId, sessionId, question);
+            log.debug("streamChat successfully, userId: [{}], sessionId: [{}], question: [{}]", userId, sessionId, question);
             return fluxResult;
         } catch (Exception e) {
             log.error("streamChat failed, userId: [{}], sessionId: [{}], question: [{}]", userId, sessionId, question, e);
@@ -122,7 +122,7 @@ public class ChatController {
                 return Flux.error(new IllegalArgumentException("resubscribeStreamChat param is invalid"));
             }
             Flux<String> fluxResult = agentService.resubscribeStream(userId, sessionId, lastOffset);
-            log.debug("resubscribeStreamChat success, userId: [{}], sessionId: [{}], lastOffset: [{}]", userId, sessionId, lastOffset);
+            log.debug("resubscribeStreamChat successfully, userId: [{}], sessionId: [{}], lastOffset: [{}]", userId, sessionId, lastOffset);
             return fluxResult;
         } catch (Exception e) {
            log.error("resubscribeStreamChat failed, userId: [{}], sessionId: [{}]", userId, sessionId);

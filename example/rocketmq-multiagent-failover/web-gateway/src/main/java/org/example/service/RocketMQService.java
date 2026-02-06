@@ -55,7 +55,7 @@ import reactor.core.publisher.Sinks;
 import reactor.core.publisher.Sinks.Many;
 import util.RocketMQUtil;
 
-import static util.RocketMQUtil.checkRocketMQConfigParamClient;
+import static util.RocketMQUtil.checkRocketMQConfigClientParam;
 
 /**
  * Service class for handling RocketMQ operations including message sending, subscription management, and stream recovery.
@@ -79,10 +79,10 @@ public class RocketMQService {
 
     @PostConstruct
     public void init() throws ClientException {
-        checkRocketMQConfigParamClient();
+        checkRocketMQConfigClientParam();
         this.producer = RocketMQUtil.buildProducer(ROCKETMQ_ENDPOINT, ROCKETMQ_NAMESPACE, ACCESS_KEY, SECRET_KEY);
         this.litePushConsumer = RocketMQUtil.buildLitePushConsumer(ROCKETMQ_ENDPOINT, ROCKETMQ_NAMESPACE, ACCESS_KEY, SECRET_KEY, WORK_AGENT_RESPONSE_GROUP_ID, WORK_AGENT_RESPONSE_TOPIC, buildMessageListener());
-        log.info("RocketMQService init success");
+        log.info("RocketMQService init successfully");
     }
 
     /**
@@ -117,7 +117,7 @@ public class RocketMQService {
             String requestStr = JSON.toJSONString(RocketMQRequest.builder().question(question).agentTopic(AGENT_TOPIC).workAgentResponseTopic(WORK_AGENT_RESPONSE_TOPIC).userId(userId).liteTopic(sessionId).taskId(taskId).build());
             SendReceipt sendReceipt = producer.send(provider.newMessageBuilder().setTopic(AGENT_TOPIC).setBody(requestStr.getBytes(StandardCharsets.UTF_8)).build());
             String msgId = sendReceipt.getMessageId().toString();
-            log.debug("RocketMQService sendMessage success, messageId: [{}]", msgId);
+            log.debug("RocketMQService sendMessage successfully, messageId: [{}]", msgId);
             return msgId;
         } catch (Exception e) {
             log.error("RocketMQService sendMessage failed", e);
@@ -201,11 +201,11 @@ public class RocketMQService {
         List<StreamingTaskHandle> unCompleteList = taskInfoMap.values().stream().filter(i -> !i.isComplete()).toList();
         unCompleteList.forEach(i -> {
             i.getSink().emitError(new RuntimeException("Client disconnected"), Sinks.EmitFailureHandler.FAIL_FAST);
-            log.info("Client disconnected success");
+            log.info("Client disconnected successfully");
         });
         try {
             this.litePushConsumer.unsubscribeLite(liteTopic);
-            log.debug("RocketMQService ubSubLiteTopic success, userId: [{}], liteTopic: [{}]", userId, liteTopic);
+            log.debug("RocketMQService ubSubLiteTopic successfully, userId: [{}], liteTopic: [{}]", userId, liteTopic);
         } catch (Exception e) {
             log.error("RocketMQService ubSubLiteTopic failed, userId: [{}], liteTopic: [{}]", userId, liteTopic);
         }
