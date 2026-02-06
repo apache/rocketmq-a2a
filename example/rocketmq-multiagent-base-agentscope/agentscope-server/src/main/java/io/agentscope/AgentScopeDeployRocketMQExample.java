@@ -41,7 +41,7 @@ import static io.agentscope.runtime.protocol.a2a.RocketMQUtils.ROCKETMQ_ENDPOINT
 import static io.agentscope.runtime.protocol.a2a.RocketMQUtils.ROCKETMQ_NAMESPACE;
 
 /**
- * Example demonstrating how to use AgentScope to proxy ReActAgent
+ * Example demonstrating how to use AgentScope to proxy ReActAgent.
  */
 public class AgentScopeDeployRocketMQExample {
     private static final Logger log = LoggerFactory.getLogger(AgentScopeDeployRocketMQExample.class);
