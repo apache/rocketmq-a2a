@@ -13,14 +13,13 @@
 部署 [Apache RocketMQ](http://rocketmq.apache.org/) 的 LiteTopic 版本(关于开源版本，预计在2月发布)，或购买支持 LiteTopic 的 RocketMQ 商业版实例，并创建以下资源：
 
 - **1.1** 创建接收响应请求的轻量级Topic：`WorkerAgentResponse`(web-gateway用于接收响应结果)
-- **1.2** 创建 与`WorkerAgentResponse` 绑定的轻量级消费者ID：`CID_HOST_AGENT_LITE`(web-gateway中用于订阅`WorkerAgentResponse`)
+- **1.2** 创建与`WorkerAgentResponse` 绑定的轻量级消费者CID：`CID_HOST_AGENT_LITE`(web-gateway中用于订阅`WorkerAgentResponse`)
 - **1.3** 创建普通Topic：`LLM_TOPIC`(llm-agent用于接收任务请求)
-- **1.4** 创建普通消费者ID：`LLM_CID`(llm-agent中用于订阅`LLM_TOPIC`)
+- **1.4** 创建普通消费者CID：`LLM_CID`(llm-agent中用于订阅`LLM_TOPIC`)
 
-### 2. 以下示例以阿里云百炼平台提供的Qwen大模型调用服务为例。欢迎社区开发者贡献更多来自其他厂商的集成案例。
+### 2. 以下示例以阿里云百炼平台提供的Qwen大模型调用服务为例。欢迎社区开发者贡献来自其他厂商的更多集成案例。
 
 1. 进入阿里云百炼平台
-
 2. 获取对应调用服务的apiKey
 
 ## 运行环境
@@ -35,7 +34,7 @@
 ```shell
 mvn clean install -Dmaven.test.skip=true -Dcheckstyle.skip=true
 ```
-以下4个进程建议在分别在不同的窗口中运行
+以下4个进程建议分别在不同的窗口中运行
 
 ### 2. 基本参数介绍
 
@@ -83,10 +82,10 @@ cd SupervisorAgent-Web/target
 ```shell
 java  -DrocketMQEndpoint= -DrocketMQNamespace= -DworkAgentResponseTopic=WorkerAgentResponse -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE -DrocketMQAK= -DrocketMQSK= -DagentTopic=LLM_TOPIC -jar web-gateway-2.1.1-SNAPSHOT.jar --server.port=9292
 ```
-- 打开浏览器，访问 localhost:9090
+- 打开浏览器，访问 http://localhost:9090
+- 点击“重连会话”按钮，即可在节点切换过程中实现无缝会话恢复与数据续传
 
-
-
+<img src="docs/img1.png" alt="Architecture Diagram" width="1200" />
 
 
 

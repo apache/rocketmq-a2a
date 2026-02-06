@@ -88,7 +88,7 @@ public class ChatController {
      * @return {@link ResponseEntity} with "true" if closed successfully, "false" otherwise.
      */
     @GetMapping("/closeStream")
-    public ResponseEntity<String> closeStreamChat(@RequestParam(defaultValue = "rocketmq", name = "userId") String userId, @RequestParam(name = "sessionId") String sessionId) {
+    public ResponseEntity<String> closeStreamChat(@RequestParam(defaultValue = "rocketmq") String userId, @RequestParam String sessionId) {
         try {
             if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId)) {
                 log.warn("closeStreamChat param is invalid, userId: [{}], sessionId: [{}]", userId, sessionId);
