@@ -181,7 +181,7 @@ java -DrocketMQEndpoint= -DrocketMQNamespace= -DbizTopic=WeatherAgentTask -DbizC
 cd travel-agent/target
 ```
 ```shell
- java -DrocketMQEndpoint= -DrocketMQNamespace= -DbizTopic= -DbizConsumerGroup=TravelAgentTaskConsumerGroup -DworkAgentResponseTopic=WorkerAgentResponseServer -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE_SERVER -DrocketMQAK= -DrocketMQSK= -DapiKey= -DappId= -jar travel-agent-2.1.1-SNAPSHOT-runner.jar
+ java -DrocketMQEndpoint= -DrocketMQNamespace= -DbizTopic=TravelAgentTask -DbizConsumerGroup=TravelAgentTaskConsumerGroup -DworkAgentResponseTopic=WorkerAgentResponseServer -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE_SERVER -DrocketMQAK= -DrocketMQSK= -DapiKey= -DappId= -jar travel-agent-2.1.1-SNAPSHOT-runner.jar
 ```
 ![img_1.png](docs/images/img_1.png)
 
@@ -201,7 +201,7 @@ cd supervisor-agent-web/target
 ```
 
 ```shell
-java -DrocketMQNamespace= -DworkAgentResponseTopic=WorkerAgentResponse -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE -DapiKey= -DrocketMQAK= -DrocketMQSK= -jar SupervisorAgent-Web-2.1.1-SNAPSHOT.jar
+java -DrocketMQNamespace= -DworkAgentResponseTopic=WorkerAgentResponse -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE -DapiKey= -DrocketMQAK= -DrocketMQSK= -jar supervisor-agent-web-2.1.1-SNAPSHOT.jar
 ```
 - 打开浏览器，访问 localhost:9090
 - 下面的示例展示了以RocketMQ作为底层Transport过程中实现异步通信以及断点重传功能
