@@ -65,6 +65,11 @@ public class RocketMQRequest {
     private String liteTopic;
 
     /**
+     * Unique identifier for the request, used for tracking and correlation.
+     */
+    private String requestId;
+
+    /**
      * Default constructor for creating an instance of RocketMQRequest.
      */
     public RocketMQRequest() {}
@@ -139,6 +144,24 @@ public class RocketMQRequest {
      */
     public void setLiteTopic(String liteTopic) {
         this.liteTopic = liteTopic;
+    }
+
+    /**
+     * Gets the unique request identifier.
+     *
+     * @return the request ID.
+     */
+    public String getRequestId() {
+        return requestId;
+    }
+
+    /**
+     * Sets the unique request identifier.
+     *
+     * @param requestId the request ID to set.
+     */
+    public void setRequestId(String requestId) {
+        this.requestId = requestId;
     }
 
     /**
@@ -229,6 +252,17 @@ public class RocketMQRequest {
          */
         public Builder liteTopic(String liteTopic) {
             request.setLiteTopic(liteTopic);
+            return this;
+        }
+
+        /**
+         * Sets the request ID.
+         *
+         * @param requestId the request ID to set.
+         * @return the current Builder instance.
+         */
+        public Builder requestId(String requestId) {
+            request.setRequestId(requestId);
             return this;
         }
 
