@@ -108,8 +108,8 @@ public class RocketMQService {
             log.error("RocketMQService sendMessage subscribeLite error", e);
             return null;
         }
-        Map<String, Map<String, StreamingTaskHandle>> sessionTaskListMap = userSessionTaskListMap.computeIfAbsent(userId, k -> new HashMap<>());
-        Map<String, StreamingTaskHandle> taskInfoMap = sessionTaskListMap.computeIfAbsent(sessionId, k -> new HashMap<>());
+        Map<String, Map<String, StreamingTaskHandle>> sessionTaskListMap = userSessionTaskListMap.computeIfAbsent(userId, k -> new ConcurrentHashMap<>());
+        Map<String, StreamingTaskHandle> taskInfoMap = sessionTaskListMap.computeIfAbsent(sessionId, k -> new ConcurrentHashMap<>());
         String taskId = UUID.randomUUID().toString();
         taskInfoMap.put(taskId, StreamingTaskHandle.builder().taskId(taskId).taskDesc(question).sessionId(sessionId).userId(userId).sink(sink).isRecover(false).build());
         final ClientServiceProvider provider = ClientServiceProvider.loadService();
@@ -162,9 +162,9 @@ public class RocketMQService {
      * @param completableFuture completion callback to set result.
      */
     private void setupStreamRecoveryContext(String userId, String sessionId, Sinks.Many<String> sink, CompletableFuture<Boolean> completableFuture) {
-        Map<String, Map<String, StreamingTaskHandle>> sessionTaskListMap = userSessionTaskListMap.computeIfAbsent(userId, k -> new HashMap<>());
-        sessionTaskListMap.computeIfAbsent(sessionId, k -> new HashMap<>());
-        Map<String, StreamRecoveryContext> sessionRecoverMap = userSessionDefaultSinkMap.computeIfAbsent(userId, k -> new HashMap<>());
+        Map<String, Map<String, StreamingTaskHandle>> sessionTaskListMap = userSessionTaskListMap.computeIfAbsent(userId, k -> new ConcurrentHashMap<>());
+        sessionTaskListMap.computeIfAbsent(sessionId, k -> new ConcurrentHashMap<>());
+        Map<String, StreamRecoveryContext> sessionRecoverMap = userSessionDefaultSinkMap.computeIfAbsent(userId, k -> new ConcurrentHashMap<>());
         sessionRecoverMap.put(sessionId, StreamRecoveryContext.builder().sink(sink).completableFuture(completableFuture).build());
     }
 
@@ -194,8 +194,8 @@ public class RocketMQService {
      * @param liteTopic the LiteTopic to unsubscribe from.
      */
     public void ubSubLiteTopic(String userId, String liteTopic) {
-        Map<String, Map<String, StreamingTaskHandle>> sessionTaskListMap = userSessionTaskListMap.computeIfAbsent(userId, k -> new HashMap<>());
-        Map<String, StreamingTaskHandle> taskInfoMap = sessionTaskListMap.computeIfAbsent(liteTopic, k -> new HashMap<>());
+        Map<String, Map<String, StreamingTaskHandle>> sessionTaskListMap = userSessionTaskListMap.computeIfAbsent(userId, k -> new ConcurrentHashMap<>());
+        Map<String, StreamingTaskHandle> taskInfoMap = sessionTaskListMap.computeIfAbsent(liteTopic, k -> new ConcurrentHashMap<>());
         userSessionTaskListMap.remove(userId);
         userSessionDefaultSinkMap.remove(userId);
         List<StreamingTaskHandle> unCompleteList = taskInfoMap.values().stream().filter(i -> !i.isComplete()).toList();
