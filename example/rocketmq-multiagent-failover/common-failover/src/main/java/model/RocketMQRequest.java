@@ -18,8 +18,6 @@ package model;
 
 /**
  * Represents a request sent from a client to an AI agent via RocketMQ.
- * Encapsulates user input, target agent addressing, session context,
- * and routing topics required for asynchronous reply handling.
  */
 public class RocketMQRequest {
     /**
@@ -40,7 +38,7 @@ public class RocketMQRequest {
     /**
      * The dedicated topic for receiving reply messages from the target agent.
      * Typically, a liteTopic that is bound to {@link #workAgentResponseTopic}.
-     * LiteTopic is a lightweight session identifier, similar to a SessionId,
+     * LiteTopic is a session identifier, similar to a SessionId,
      * dynamically created at runtime for data storage and isolation.
      */
     private String liteTopic;

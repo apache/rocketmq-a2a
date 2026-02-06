@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 import util.RocketMQUtil;
 
 /**
- * Utility class for interacting with Alibaba Cloud's Qwen large language model.
+ * Utility class for interacting with Qwen large language model.
  * <p>
  * This class provides a streamlined interface for streaming LLM inference using the DashScope SDK.
  * It supports configurable model selection (e.g., qwen-turbo, qwen-plus) and validates required parameters
@@ -46,10 +46,9 @@ public class QwenUtil {
     private static final String API_KEY = System.getProperty("apiKey");
 
     /**
-     * The Qwen model to use for inference. Defaults to "qwen-turbo" for low latency and cost-efficiency.
-     * Other options include "qwen-plus" (balanced) and "qwen-max" (high capability).
+     * The Qwen model to use for inference.
      */
-    private static final String LLM_MODE = "qwen-turbo";
+    private static final String LLM_MODE = "qwen-plus";
 
     /**
      * Initiates a streaming inference request to the Qwen large language model with the given user message.
@@ -65,7 +64,8 @@ public class QwenUtil {
      * @throws NoApiKeyException if the API key is not configured.
      * @throws InputRequiredException if required request fields are missing.
      */
-    public static Flowable<GenerationResult> streamCallWithMessage(String userMsg) throws NoApiKeyException, InputRequiredException {
+    public static Flowable<GenerationResult> streamCallWithMessage(String userMsg)
+        throws NoApiKeyException, InputRequiredException {
         if (StringUtils.isEmpty(userMsg)) {
             throw new IllegalArgumentException("streamCallWithMessage userMsg must not be null");
         }
@@ -91,6 +91,7 @@ public class QwenUtil {
 
     /**
      * Validates whether the QWen configuration is complete and valid.
+     *
      * @return {@code true} if all required parameters are present; {@code false} otherwise.
      */
     public static boolean checkQwenConfigParam() {

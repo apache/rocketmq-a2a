@@ -19,9 +19,7 @@ package util;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Collections;
-
 import com.alibaba.fastjson.JSON;
-
 import model.RocketMQResponse;
 import org.apache.rocketmq.client.apis.ClientConfiguration;
 import org.apache.rocketmq.client.apis.ClientException;

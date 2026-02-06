@@ -18,15 +18,12 @@ package model;
 
 /**
  * Represents a response message sent via RocketMQ from an AI agent service.
- * <p>
- * This class carries the result of processing a {@link RocketMQRequest}, including
- * the response payload, routing metadata, and stream control flags.
  */
 public class RocketMQResponse {
 
     /**
      * The dedicated topic for receiving reply messages from the target agent.
-     * LiteTopic is a lightweight session identifier, similar to a SessionId, dynamically created at runtime for data
+     * LiteTopic is a session identifier, similar to a SessionId, dynamically created at runtime for data
      * storage and isolation.
      */
     private String liteTopic;

@@ -43,7 +43,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import util.RocketMQUtil;
-
 import static qwen.QwenUtil.checkQwenConfigParam;
 import static qwen.QwenUtil.streamCallWithMessage;
 import static util.RocketMQUtil.ACCESS_KEY;

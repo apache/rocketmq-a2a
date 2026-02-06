@@ -3,12 +3,12 @@
 
 本案例展示了一个利用 [Apache RocketMQ](http://rocketmq.apache.org/) 的LiteTopic能力，为分布式Web应用中的长连接会话管理提供了高效解决方案。
 
-# 整体架构图
+## 整体架构图
 <img src="docs/img.png" alt="Architecture Diagram" width="1200" />
 
-# 基本的前期准备工作
+## 基本的前期准备工作
 
-## 1. 部署 Apache RocketMQ
+### 1. 部署 Apache RocketMQ
 
 部署 [Apache RocketMQ](http://rocketmq.apache.org/) 的 LiteTopic 版本(关于开源版本，预计在2月发布)，或购买支持 LiteTopic 的 RocketMQ 商业版实例，并创建以下资源：
 
@@ -17,27 +17,27 @@
 - **1.3** 创建 普通Topic：`LLM_TOPIC`(LLMAgent用于接收请求)
 - **1.4** 创建 普通消费者ID：`LLM_CID`(LLMAgent用于接收请求)
 
-## 2. 以下示例以阿里云百炼平台提供的Qwen大模型调用服务为例。欢迎社区开发者贡献更多来自其他厂商的集成案例。
+### 2. 以下示例以阿里云百炼平台提供的Qwen大模型调用服务为例。欢迎社区开发者贡献更多来自其他厂商的集成案例。
 
 1. 进入阿里云百炼平台
 
 2. 创建对应的模型调用服务与Agent调用服务的apiKey
 
-# 运行环境
+## 运行环境
 
 - JDK 17 及以上
 - [Maven](http://maven.apache.org/) 3.9 及以上
 
-# 代码打包与示例运行
+## 代码打包与示例运行
 
-## 1. 编译打包
+### 1. 编译打包
 
 ```shell
 mvn clean package -Dmaven.test.skip=true -Dcheckstyle.skip=true
 ```
 以下4个进程建议在分别在不同的窗口中运行
 
-## 2. 基本参数介绍
+### 2. 基本参数介绍
 
 | 参数名称  | 基本介绍                                          | 是否必填 |
 |-------|-----------------------------------------------|------|
@@ -54,7 +54,7 @@ mvn clean package -Dmaven.test.skip=true -Dcheckstyle.skip=true
 
 
 
-## 3.运行LLMAagent
+### 3.运行LLMAagent
 ```shell
 cd LLMAgent/target
 ```
@@ -63,7 +63,7 @@ cd LLMAgent/target
 java -DrocketMQEndpoint= -DrocketMQNamespace= -DrocketMQAK= -DrocketMQSK= -DbizTopic=LLM_TOPIC -DbizConsumerGroup=LLM_CID -DapiKey= -jar LLMAgent-2.1.1-SNAPSHOT.jar
 ```
 
-## 4.运行SupervisorAgent-Web (进程1，监听9090端口)
+### 4.运行SupervisorAgent-Web (进程1，监听9090端口)
 ```shell
 cd SupervisorAgent-Web/target
 ```
@@ -71,7 +71,7 @@ cd SupervisorAgent-Web/target
 java  -DrocketMQEndpoint= -DrocketMQNamespace= -DworkAgentResponseTopic=WorkerAgentResponse -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE -DrocketMQAK= -DrocketMQSK= -DagentTopic=LLM_TOPIC -jar SupervisorAgent-Web-2.1.1-SNAPSHOT.jar --server.port=9090
 ```
 
-## 5.运行SupervisorAgent-Web (进程2，监听9191端口)
+### 5.运行SupervisorAgent-Web (进程2，监听9191端口)
 ```shell
 cd SupervisorAgent-Web/target
 ```
@@ -79,7 +79,7 @@ cd SupervisorAgent-Web/target
 java  -DrocketMQEndpoint= -DrocketMQNamespace= -DworkAgentResponseTopic=WorkerAgentResponse -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE -DrocketMQAK= -DrocketMQSK= -DagentTopic=LLM_TOPIC -jar SupervisorAgent-Web-2.1.1-SNAPSHOT.jar --server.port=9191
 ```
 
-## 6.运行SupervisorAgent-Web (进程3，监听9292端口)
+### 6.运行SupervisorAgent-Web (进程3，监听9292端口)
 ```shell
 cd SupervisorAgent-Web/target
 ```
