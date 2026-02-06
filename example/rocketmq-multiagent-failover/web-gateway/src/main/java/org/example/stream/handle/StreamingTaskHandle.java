@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.example.stream.handle;
+
 import reactor.core.publisher.Sinks;
 import reactor.core.publisher.Sinks.Many;
 
@@ -73,13 +74,14 @@ public class StreamingTaskHandle {
     private Sinks.Many<String> sink;
 
     /**
-     * Constructs a new StreamingTaskHandle instance
-     * @param taskId the unique ID of the task.
-     * @param taskDesc the description or type of the task.
-     * @param sessionId the session ID associated with this task.
-     * @param userId the ID of the user who owns this task.
-     * @param sink the sink used to emit real-time output to clients.
-     * @param isRecover whether this task is resuming from a previous state.
+     * Constructs a new StreamingTaskHandle instance.
+     *
+     * @param taskId    the unique ID of the task
+     * @param taskDesc  the description or type of the task
+     * @param sessionId the session ID associated with this task
+     * @param userId    the ID of the user who owns this task
+     * @param sink      the sink used to emit real-time output to clients
+     * @param isRecover whether this task is resuming from a previous state
      */
     public StreamingTaskHandle(String taskId, String taskDesc, String sessionId, String userId, Sinks.Many<String> sink, boolean isRecover) {
         this.taskId = taskId;
@@ -90,77 +92,168 @@ public class StreamingTaskHandle {
         this.isRecover = isRecover;
     }
 
+    /**
+     * Checks if the task has completed.
+     *
+     * @return {@code true} if the task is complete, {@code false} otherwise
+     */
     public boolean isComplete() {
         return isComplete;
     }
 
+    /**
+     * Sets the completion status of the task.
+     *
+     * @param complete {@code true} to mark the task as complete, {@code false} otherwise
+     */
     public void setComplete(boolean complete) {
         isComplete = complete;
     }
 
+    /**
+     * Default constructor for StreamingTaskHandle.
+     */
     public StreamingTaskHandle() {
     }
 
+    /**
+     * Returns a new Builder instance for creating StreamingTaskHandle objects.
+     *
+     * @return a new Builder instance
+     */
     public static Builder builder() {
         return new Builder();
     }
 
+    /**
+     * Gets the task ID.
+     *
+     * @return the task ID
+     */
     public String getTaskId() {
         return taskId;
     }
 
+    /**
+     * Sets the task ID.
+     *
+     * @param taskId the task ID to set
+     */
     public void setTaskId(String taskId) {
         this.taskId = taskId;
     }
 
+    /**
+     * Gets the task description.
+     *
+     * @return the task description
+     */
     public String getTaskDesc() {
         return taskDesc;
     }
 
+    /**
+     * Sets the task description.
+     *
+     * @param taskDesc the task description to set
+     */
     public void setTaskDesc(String taskDesc) {
         this.taskDesc = taskDesc;
     }
 
+    /**
+     * Gets the session ID.
+     *
+     * @return the session ID
+     */
     public String getSessionId() {
         return sessionId;
     }
 
+    /**
+     * Sets the session ID.
+     *
+     * @param sessionId the session ID to set
+     */
     public void setSessionId(String sessionId) {
         this.sessionId = sessionId;
     }
 
+    /**
+     * Gets the user ID.
+     *
+     * @return the user ID
+     */
     public String getUserId() {
         return userId;
     }
 
+    /**
+     * Sets the user ID.
+     *
+     * @param userId the user ID to set
+     */
     public void setUserId(String userId) {
         this.userId = userId;
     }
 
+    /**
+     * Gets the reactive sink used for streaming output.
+     *
+     * @return the sink
+     */
     public Many<String> getSink() {
         return sink;
     }
 
+    /**
+     * Sets the reactive sink used for streaming output.
+     *
+     * @param sink the sink to set
+     */
     public void setSink(Many<String> sink) {
         this.sink = sink;
     }
 
+    /**
+     * Gets the last output produced by the task.
+     *
+     * @return the last output
+     */
     public String getLastOutput() {
         return lastOutput;
     }
 
+    /**
+     * Sets the last output produced by the task.
+     *
+     * @param lastOutput the last output to set
+     */
     public void setLastOutput(String lastOutput) {
         this.lastOutput = lastOutput;
     }
 
+    /**
+     * Checks if the task is running in recovery mode.
+     *
+     * @return {@code true} if in recovery mode, {@code false} otherwise
+     */
     public boolean isRecover() {
         return isRecover;
     }
 
+    /**
+     * Sets the recovery mode flag.
+     *
+     * @param recover {@code true} to enable recovery mode, {@code false} otherwise
+     */
     public void setRecover(boolean recover) {
         isRecover = recover;
     }
 
+    /**
+     * Builder class for constructing StreamingTaskHandle instances.
+     */
     public static class Builder {
         private String taskId;
         private String taskDesc;
@@ -171,46 +264,99 @@ public class StreamingTaskHandle {
         private boolean isComplete = false;
         private boolean isRecover = false;
 
+        /**
+         * Sets the task ID for the StreamingTaskHandle being built.
+         *
+         * @param taskId the task ID.
+         * @return this Builder instance.
+         */
         public Builder taskId(String taskId) {
             this.taskId = taskId;
             return this;
         }
 
+        /**
+         * Sets the task description for the StreamingTaskHandle being built.
+         *
+         * @param taskDesc the task description.
+         * @return this Builder instance.
+         */
         public Builder taskDesc(String taskDesc) {
             this.taskDesc = taskDesc;
             return this;
         }
 
+        /**
+         * Sets the session ID for the StreamingTaskHandle being built.
+         *
+         * @param sessionId the session ID.
+         * @return this Builder instance.
+         */
         public Builder sessionId(String sessionId) {
             this.sessionId = sessionId;
             return this;
         }
 
+        /**
+         * Sets the user ID for the StreamingTaskHandle being built.
+         *
+         * @param userId the user ID.
+         * @return this Builder instance.
+         */
         public Builder userId(String userId) {
             this.userId = userId;
             return this;
         }
 
+        /**
+         * Sets the reactive sink for the StreamingTaskHandle being built.
+         *
+         * @param sink the sink.
+         * @return this Builder instance.
+         */
         public Builder sink(Sinks.Many<String> sink) {
             this.sink = sink;
             return this;
         }
 
+        /**
+         * Sets the last output for the StreamingTaskHandle being built.
+         *
+         * @param lastOutput the last output.
+         * @return this Builder instance.
+         */
         public Builder lastOutput(String lastOutput) {
             this.lastOutput = lastOutput;
             return this;
         }
 
+        /**
+         * Sets the completion status for the StreamingTaskHandle being built.
+         *
+         * @param isComplete {@code true} if complete, {@code false} otherwise
+         * @return this Builder instance.
+         */
         public Builder isComplete(boolean isComplete) {
             this.isComplete = isComplete;
             return this;
         }
 
+        /**
+         * Sets the recovery mode flag for the StreamingTaskHandle being built.
+         *
+         * @param isRecover {@code true} to enable recovery mode, {@code false} otherwise
+         * @return this Builder instance.
+         */
         public Builder isRecover(boolean isRecover) {
             this.isRecover = isRecover;
             return this;
         }
 
+        /**
+         * Builds and returns a new StreamingTaskHandle instance with the configured properties.
+         *
+         * @return a new StreamingTaskHandle instance.
+         */
         public StreamingTaskHandle build() {
             StreamingTaskHandle streamingTaskHandle = new StreamingTaskHandle(taskId, taskDesc, sessionId, userId, sink, isRecover);
             streamingTaskHandle.setLastOutput(lastOutput);

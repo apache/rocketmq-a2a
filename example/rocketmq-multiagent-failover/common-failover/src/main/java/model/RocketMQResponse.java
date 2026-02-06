@@ -64,16 +64,20 @@ public class RocketMQResponse {
     private String question;
 
     /**
-     * construct a new RocketMQResponse instance
-     * @param liteTopic The dedicated topic for receiving reply messages from the target agent.
-     * LiteTopic is a lightweight session identifier, similar to a SessionId, dynamically created at runtime for data storage and isolation.
+     * Constructs a new RocketMQResponse instance.
+     *
+     * @param liteTopic    The dedicated topic for receiving reply messages from the target agent.
+     *                     LiteTopic is a lightweight session identifier, similar to a SessionId, dynamically created at
+     *                     runtime for data storage and isolation.
      * @param responseBody The actual response body, typically a JSON string.
-     * @param stream Indicates whether this response is part of a streaming sequence.
-     * If {@code true}, the consumer should expect multiple messages until {@link #isEnd()} is {@code true}.
-     * @param end Indicates whether this is the final message in a streaming sequence. Always {@code true} for non-streaming responses.
-     * @param userId Unique identifier of the user who initiated the request.
-     * @param taskId Unique task ID for tracking.
-     * @param question The original user question (optional).
+     * @param stream       Indicates whether this response is part of a streaming sequence.
+     *                     If {@code true}, the consumer should expect multiple messages until {@link #isEnd()} is
+     *                     {@code true}.
+     * @param end          Indicates whether this is the final message in a streaming sequence. Always {@code true} for
+     *                     non-streaming responses.
+     * @param userId       Unique identifier of the user who initiated the request.
+     * @param taskId       Unique task ID for tracking.
+     * @param question     The original user question (optional).
      */
     public RocketMQResponse(String liteTopic, String responseBody, boolean stream, boolean end,
         String userId, String taskId, String question) {
@@ -86,68 +90,119 @@ public class RocketMQResponse {
         this.question = question;
     }
 
+    /**
+     * Default constructor.
+     */
     public RocketMQResponse() {}
 
+    /**
+     * Returns a new Builder instance for fluent construction.
+     */
     public static Builder builder() {
         return new Builder();
     }
 
+    /**
+     * Sets the lite topic.
+     */
     public void setLiteTopic(String liteTopic) {
         this.liteTopic = liteTopic;
     }
 
+    /**
+     * Sets the response body.
+     */
     public void setResponseBody(String responseBody) {
         this.responseBody = responseBody;
     }
 
+    /**
+     * Checks if this response is part of a streaming sequence.
+     */
     public boolean isStream() {
         return stream;
     }
 
+    /**
+     * Sets whether this response is part of a streaming sequence.
+     */
     public void setStream(boolean stream) {
         this.stream = stream;
     }
 
+    /**
+     * Checks if this is the final message in a streaming sequence.
+     */
     public boolean isEnd() {
         return end;
     }
 
+    /**
+     * Sets whether this is the final message in a streaming sequence.
+     */
     public void setEnd(boolean end) {
         this.end = end;
     }
 
+    /**
+     * Sets the task ID.
+     */
     public void setTaskId(String taskId) {
         this.taskId = taskId;
     }
 
+    /**
+     * Gets the lite topic.
+     */
     public String getLiteTopic() {
         return liteTopic;
     }
 
+    /**
+     * Gets the response body.
+     */
     public String getResponseBody() {
         return responseBody;
     }
 
+    /**
+     * Gets the task ID.
+     */
     public String getTaskId() {
         return taskId;
     }
 
+    /**
+     * Gets the user ID.
+     */
     public String getUserId() {
         return userId;
     }
 
+    /**
+     * Sets the user ID.
+     */
     public void setUserId(String userId) {
         this.userId = userId;
     }
 
+    /**
+     * Gets the original user question.
+     */
     public String getQuestion() {
         return question;
     }
 
+    /**
+     * Sets the original user question.
+     */
     public void setQuestion(String question) {
         this.question = question;
     }
 
+    /**
+     * Builder class for constructing RocketMQResponse instances fluently.
+     */
     public static class Builder {
         private String liteTopic;
         private String responseBody;
@@ -157,41 +212,65 @@ public class RocketMQResponse {
         private String taskId;
         private String question;
 
+        /**
+         * Sets the lite topic.
+         */
         public Builder liteTopic(String liteTopic) {
             this.liteTopic = liteTopic;
             return this;
         }
 
+        /**
+         * Sets the response body.
+         */
         public Builder responseBody(String responseBody) {
             this.responseBody = responseBody;
             return this;
         }
 
+        /**
+         * Sets whether this response is part of a streaming sequence.
+         */
         public Builder stream(boolean stream) {
             this.stream = stream;
             return this;
         }
 
+        /**
+         * Sets whether this is the final message in a streaming sequence.
+         */
         public Builder end(boolean end) {
             this.end = end;
             return this;
         }
 
+        /**
+         * Sets the user ID.
+         */
         public Builder userId(String userId) {
             this.userId = userId;
             return this;
         }
 
+        /**
+         * Sets the task ID.
+         */
         public Builder taskId(String taskId) {
             this.taskId = taskId;
             return this;
         }
 
+        /**
+         * Sets the original user question.
+         */
         public Builder question(String question) {
             this.question = question;
             return this;
         }
 
+        /**
+         * Builds and returns a new RocketMQResponse instance.
+         */
         public RocketMQResponse build() {
             return new RocketMQResponse(liteTopic, responseBody, stream, end, userId, taskId, question);
         }

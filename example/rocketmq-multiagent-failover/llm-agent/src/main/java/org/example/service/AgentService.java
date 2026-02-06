@@ -24,12 +24,10 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
 import com.alibaba.dashscope.aigc.generation.GenerationResult;
 import com.alibaba.dashscope.exception.InputRequiredException;
 import com.alibaba.dashscope.exception.NoApiKeyException;
 import com.alibaba.fastjson.JSON;
-
 import io.reactivex.Flowable;
 import jakarta.annotation.PostConstruct;
 import model.RocketMQRequest;

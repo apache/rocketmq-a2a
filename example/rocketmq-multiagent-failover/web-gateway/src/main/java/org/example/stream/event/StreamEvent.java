@@ -29,41 +29,82 @@ public class StreamEvent {
 
     /**
      * The actual data or message content of this event.
-     * typically a plain string or serialized JSON object.
+     * Typically a plain string or serialized JSON object.
      */
     private final String content;
 
+    /**
+     * Constructs a new StreamEvent with the specified offset and content.
+     *
+     * @param offset  the position of the event in the stream
+     * @param content the data or message content of the event
+     */
     public StreamEvent(long offset, String content) {
         this.offset = offset;
         this.content = content;
     }
 
+    /**
+     * Returns a new Builder instance for creating StreamEvent objects.
+     *
+     * @return a new Builder instance
+     */
     public static Builder builder() {
         return new Builder();
     }
 
+    /**
+     * Returns the offset of this event.
+     *
+     * @return the offset
+     */
     public long getOffset() {
         return offset;
     }
 
+    /**
+     * Returns the content of this event.
+     *
+     * @return the content
+     */
     public String getContent() {
         return content;
     }
 
+    /**
+     * Builder class for constructing StreamEvent instances.
+     */
     public static class Builder {
         private long offset;
         private String content;
 
+        /**
+         * Sets the offset for the StreamEvent being built.
+         *
+         * @param offset the position of the event in the stream
+         * @return this Builder instance
+         */
         public Builder offset(long offset) {
             this.offset = offset;
             return this;
         }
 
+        /**
+         * Sets the content for the StreamEvent being built.
+         *
+         * @param content the data or message content of the event
+         * @return this Builder instance
+         */
         public Builder content(String content) {
             this.content = content;
             return this;
         }
 
+        /**
+         * Builds and returns a new StreamEvent instance with the configured properties.
+         *
+         * @return a new StreamEvent instance
+         */
         public StreamEvent build() {
             return new StreamEvent(offset, content);
         }
