@@ -151,7 +151,7 @@ public class AgentService {
          */
         public void writeRocketmq(Flowable<GenerationResult> result, String workAgentResponseTopic, String liteTopic, CompletableFuture<Boolean> completableFuture, String taskId, String userId, String question) {
             if (null == result || StringUtils.isEmpty(workAgentResponseTopic) || StringUtils.isEmpty(liteTopic) || StringUtils.isEmpty(taskId) || StringUtils.isEmpty(userId)) {
-                log.warn("MultiSSeSupport writeRocketmq param error, result: [{}], workAgentResponseTopic: [{}], liteTopic: [{}], taskId: [{}], userId: [{}]", result, workAgentResponseTopic, liteTopic, taskId, userId);
+                log.warn("MultiSSeSupport writeRocketmq param is invalid, result: [{}], workAgentResponseTopic: [{}], liteTopic: [{}], taskId: [{}], userId: [{}]", result, workAgentResponseTopic, liteTopic, taskId, userId);
                 completableFuture.complete(true);
                 return;
             }

@@ -46,7 +46,7 @@ public class RocketMQTransportProvider implements ClientTransportProvider<Rocket
     public RocketMQTransport create(RocketMQTransportConfig clientTransportConfig, AgentCard agentCard, String agentUrl)
         throws A2AClientException {
         if (clientTransportConfig == null) {
-            throw new IllegalArgumentException("RocketMQTransportProvider create RocketMQTransport param error, clientTransportConfig is null");
+            throw new IllegalArgumentException("RocketMQTransportProvider create RocketMQTransport param is invalid, clientTransportConfig is null");
         }
         return new RocketMQTransport(clientTransportConfig, agentCard);
     }

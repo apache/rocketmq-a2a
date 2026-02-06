@@ -98,8 +98,8 @@ public class RocketMQService {
      */
     public String sendMessage(String userId, String sessionId, String question, Sinks.Many<String> sink) {
         if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId) || StringUtils.isEmpty(question) || null == sink) {
-            log.warn("RocketMQService sendMessage param error, userId: [{}], sessionId: [{}], question: [{}], sink: [{}]", userId, sessionId, question, sink);
-            throw new IllegalArgumentException("RocketMQService sendMessage param error");
+            log.warn("RocketMQService sendMessage param is invalid, userId: [{}], sessionId: [{}], question: [{}], sink: [{}]", userId, sessionId, question, sink);
+            throw new IllegalArgumentException("RocketMQService sendMessage param is invalid");
         }
         try {
             this.litePushConsumer.subscribeLite(sessionId);
@@ -137,8 +137,8 @@ public class RocketMQService {
      */
     public void reSubLiteTopic(String userId, String sessionId, Sinks.Many<String> sink, Long lastOffset) {
         if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId) || null == sink) {
-            log.warn("RocketMQService reSubLiteTopic param error, userId: [{}], liteTopic: [{}], sink: [{}]", userId, sessionId, sink);
-            throw new IllegalArgumentException("RocketMQService reSubLiteTopic param error");
+            log.warn("RocketMQService reSubLiteTopic param is invalid, userId: [{}], liteTopic: [{}], sink: [{}]", userId, sessionId, sink);
+            throw new IllegalArgumentException("RocketMQService reSubLiteTopic param is invalid");
         }
         CompletableFuture<Boolean> completableFuture = new CompletableFuture<>();
         setupStreamRecoveryContext(userId, sessionId, sink, completableFuture);

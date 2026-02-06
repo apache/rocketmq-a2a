@@ -64,8 +64,8 @@ public class ChatController {
     public Flux<String> streamChat(@RequestParam() String question, @RequestParam(defaultValue = "rocketmq") String userId, @RequestParam() String sessionId) {
         try {
             if (StringUtils.isEmpty(question) || StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId)) {
-                log.warn("streamChat param error, question: [{}], userId: [{}], sessionId: [{}]", question, userId, sessionId);
-                return Flux.error(new IllegalArgumentException("streamChat param error"));
+                log.warn("streamChat param is invalid, question: [{}], userId: [{}], sessionId: [{}]", question, userId, sessionId);
+                return Flux.error(new IllegalArgumentException("streamChat param is invalid"));
             }
             Flux<String> fluxResult = agentService.streamChat(userId, sessionId, question);
             log.debug("streamChat success, userId: [{}], sessionId: [{}], question: [{}]", userId, sessionId, question);
@@ -91,7 +91,7 @@ public class ChatController {
     public ResponseEntity<String> closeStreamChat(@RequestParam(defaultValue = "rocketmq") String userId, @RequestParam String sessionId) {
         try {
             if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId)) {
-                log.warn("closeStreamChat param error, userId: [{}], sessionId: [{}]", userId, sessionId);
+                log.warn("closeStreamChat param is invalid, userId: [{}], sessionId: [{}]", userId, sessionId);
                 return ResponseEntity.status(400).body("closeStreamChat param is error");
             }
             agentService.closeStreamChat(userId, sessionId);
@@ -118,8 +118,8 @@ public class ChatController {
     public Flux<String> resubscribeStreamChat(@RequestParam(defaultValue = "rocketmq") String userId, @RequestParam String sessionId, @RequestParam(required = false) Long lastOffset) {
         try {
             if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId)) {
-                log.warn("resubscribeStreamChat param error, userId: [{}], sessionId: [{}]", userId, sessionId);
-                return Flux.error(new IllegalArgumentException("resubscribeStreamChat param error"));
+                log.warn("resubscribeStreamChat param is invalid, userId: [{}], sessionId: [{}]", userId, sessionId);
+                return Flux.error(new IllegalArgumentException("resubscribeStreamChat param is invalid"));
             }
             Flux<String> fluxResult = agentService.resubscribeStream(userId, sessionId, lastOffset);
             log.debug("resubscribeStreamChat success, userId: [{}], sessionId: [{}], lastOffset: [{}]", userId, sessionId, lastOffset);

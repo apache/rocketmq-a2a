@@ -96,7 +96,7 @@ public class QwenUtil {
      */
     public static boolean checkQwenConfigParam() {
         if (StringUtils.isEmpty(API_KEY)) {
-            log.warn("QwenUtil checkQwenConfigParam param error, apikey is empty");
+            log.warn("QwenUtil checkQwenConfigParam param is invalid, apikey is empty");
             return false;
         }
         return true;

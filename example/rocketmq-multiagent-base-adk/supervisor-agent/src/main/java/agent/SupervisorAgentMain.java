@@ -315,7 +315,7 @@ public class SupervisorAgentMain {
      */
     private static void forwardMissionToAgent(Mission mission) {
         if (null == mission || StringUtils.isEmpty(mission.getAgent()) || StringUtils.isEmpty(mission.getMessageInfo())) {
-            log.warn("forwardMissionToAgent param error, mission: [{}]", JSON.toJSONString(mission));
+            log.warn("forwardMissionToAgent param is invalid, mission: [{}]", JSON.toJSONString(mission));
             return;
         }
         try {

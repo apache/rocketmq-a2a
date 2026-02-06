@@ -165,8 +165,8 @@ public class QwenModel extends BaseLlm {
     @Override
     public BaseLlmConnection connect(LlmRequest llmRequest) {
         if (null == llmRequest) {
-            log.warn("QwenModel connect param error, llmRequest is null");
-            throw new IllegalArgumentException("QwenModel connect param error, llmRequest is null");
+            log.warn("QwenModel connect param is invalid, llmRequest is null");
+            throw new IllegalArgumentException("QwenModel connect param is invalid, llmRequest is null");
         }
         return new BaseLlmConnection() {
             private boolean connected = true;

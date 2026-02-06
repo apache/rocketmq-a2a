@@ -46,8 +46,8 @@ public class ChatService {
      */
     public Flux<String> streamChat(String userId, String sessionId, String question) {
         if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId) || StringUtils.isEmpty(question)) {
-            log.warn("ChatService streamChat param error, userId: [{}], sessionId: [{}], question: [{}]", userId, sessionId, question);
-            throw new IllegalArgumentException("ChatService streamChat param error");
+            log.warn("ChatService streamChat param is invalid, userId: [{}], sessionId: [{}], question: [{}]", userId, sessionId, question);
+            throw new IllegalArgumentException("ChatService streamChat param is invalid");
         }
         Sinks.Many<String> sink = Sinks.many().multicast().onBackpressureBuffer();
         String msgId = rocketMQService.sendMessage(userId, sessionId, question, sink);
@@ -69,7 +69,7 @@ public class ChatService {
      */
     public void closeStreamChat(String userId, String sessionId) {
         if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId)) {
-            log.warn("ChatService closeStreamChat param error, userId: [{}], sessionId: [{}]", userId, sessionId);
+            log.warn("ChatService closeStreamChat param is invalid, userId: [{}], sessionId: [{}]", userId, sessionId);
             throw new IllegalArgumentException("ChatService close stream chat error");
         }
         try {
@@ -93,8 +93,8 @@ public class ChatService {
      */
     public Flux<String> resubscribeStream(String userId, String sessionId, Long lastOffset) {
         if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId)) {
-            log.warn("ChatService resubscribeStream param error, userId: [{}], sessionId: [{}], lastOffset: [{}]", userId, sessionId, lastOffset);
-            throw new IllegalArgumentException("ChatService resubscribeStream param error");
+            log.warn("ChatService resubscribeStream param is invalid, userId: [{}], sessionId: [{}], lastOffset: [{}]", userId, sessionId, lastOffset);
+            throw new IllegalArgumentException("ChatService resubscribeStream param is invalid");
         }
         try {
             Sinks.Many<String> sink = Sinks.many().multicast().onBackpressureBuffer();
