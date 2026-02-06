@@ -39,12 +39,13 @@
         <jakarta.ws.rs-api.version>3.1.0</jakarta.ws.rs-api.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <a2a-java-sdk-version>0.3.3.Final</a2a-java-sdk-version>
-        <rocketmq-client-version>5.1.0</rocketmq-client-version>
+        <rocketmq-client-version>5.2.0</rocketmq-client-version>
         <fastjson-version>1.2.83_noneautotype</fastjson-version>
         <slfj-version>2.0.13</slfj-version>
         <adk.verison>0.3.0</adk.verison>
         <rocketmq-a2a.version>1.0.9</rocketmq-a2a.version>
         <logback.version>1.4.14</logback.version>
+        <project.version>2.1.1-SNAPSHOT</project.version>
     </properties>
 
     <dependencies>
@@ -137,7 +138,7 @@
         <dependency>
             <groupId>org.example</groupId>
             <artifactId>common-base-adk</artifactId>
-            <version>2.1.1-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
     </dependencies>
     <build>

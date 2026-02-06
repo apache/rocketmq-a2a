@@ -17,40 +17,21 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <common-util-version>4.4</common-util-version>
-        <adk.verison>0.3.0</adk.verison>
         <dashscope.version>2.21.6</dashscope.version>
-        <rocketmq-client.version>5.2.0</rocketmq-client.version>
         <fastjson.version>1.2.83_noneautotype</fastjson.version>
-        <quarkus.version>3.24.5</quarkus.version>
-        <jakarta.version>4.1.0</jakarta.version>
-        <jakarta-ws.version>3.1.0</jakarta-ws.version>
-        <lang3.version>3.14.0</lang3.version>
+        <common-util.version>4.4</common-util.version>
+        <lang3.version>3.18.0</lang3.version>
+        <rocketmq-client.version>5.2.0</rocketmq-client.version>
+        <project.version>2.1.1-SNAPSHOT</project.version>
         <springboot.version>3.2.5</springboot.version>
-        <a2a-sdk.version>0.3.3.Final</a2a-sdk.version>
-        <a2a-java-sdk-version>0.3.3.Final</a2a-java-sdk-version>
     </properties>
+
     <dependencyManagement>
         <dependencies>
-            <dependency>
-                <groupId>com.google.adk</groupId>
-                <artifactId>google-adk</artifactId>
-                <version>${adk.verison}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.google.adk</groupId>
-                <artifactId>google-adk-dev</artifactId>
-                <version>${adk.verison}</version>
-            </dependency>
             <dependency>
                 <groupId>com.alibaba</groupId>
                 <artifactId>dashscope-sdk-java</artifactId>
                 <version>${dashscope.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-client-java</artifactId>
-                <version>${rocketmq-client.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.alibaba</groupId>
@@ -58,53 +39,24 @@
                 <version>${fastjson.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.quarkus</groupId>
-                <artifactId>quarkus-bom</artifactId>
-                <version>${quarkus.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>io.quarkus</groupId>
-                <artifactId>quarkus-resteasy-jackson</artifactId>
-                <version>${quarkus.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>jakarta.enterprise</groupId>
-                <artifactId>jakarta.enterprise.cdi-api</artifactId>
-                <version>${jakarta.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>jakarta.ws.rs</groupId>
-                <artifactId>jakarta.ws.rs-api</artifactId>
-                <version>${jakarta-ws.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.example</groupId>
-                <artifactId>common-session-consistency</artifactId>
-                <version>2.1.1-SNAPSHOT</version>
-            </dependency>
-            <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-collections4</artifactId>
-                <version>${common-util-version}</version>
+                <version>${common-util.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
                 <version>${lang3.version}</version>
             </dependency>
-
             <dependency>
-                <groupId>io.github.a2asdk</groupId>
-                <artifactId>a2a-java-sdk-client</artifactId>
-                <version>${a2a-java-sdk-version}</version>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-client-java</artifactId>
+                <version>${rocketmq-client.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.github.a2asdk</groupId>
-                <artifactId>a2a-java-sdk-reference-jsonrpc</artifactId>
-                <version>${a2a-java-sdk-version}</version>
+                <groupId>org.example</groupId>
+                <artifactId>common-session-consistency</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.springframework.boot</groupId>
@@ -115,5 +67,4 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
-
 </project>
