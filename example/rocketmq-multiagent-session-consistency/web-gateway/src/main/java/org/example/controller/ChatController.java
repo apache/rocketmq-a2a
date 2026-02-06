@@ -61,7 +61,7 @@ public class ChatController {
      * @return a {@link Flux} emitting string chunks incrementally; returns null on error.
      */
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> streamChat(@RequestParam() String question, @RequestParam(defaultValue = "rocketmq") String userId, @RequestParam() String sessionId) {
+    public Flux<String> streamChat(@RequestParam String question, @RequestParam(defaultValue = "rocketmq") String userId, @RequestParam String sessionId) {
         try {
             if (StringUtils.isEmpty(question) || StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId)) {
                 log.warn("streamChat param is invalid, question: [{}], userId: [{}], sessionId: [{}]", question, userId, sessionId);
@@ -88,7 +88,7 @@ public class ChatController {
      * @return {@link ResponseEntity} with "true" if closed successfully, "false" otherwise.
      */
     @GetMapping("/closeStream")
-    public ResponseEntity<String> closeStreamChat(@RequestParam(defaultValue = "rocketmq") String userId, @RequestParam String sessionId) {
+    public ResponseEntity<String> closeStreamChat(@RequestParam(defaultValue = "rocketmq", name = "userId") String userId, @RequestParam(name = "sessionId") String sessionId) {
         try {
             if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId)) {
                 log.warn("closeStreamChat param is invalid, userId: [{}], sessionId: [{}]", userId, sessionId);
