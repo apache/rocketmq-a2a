@@ -188,8 +188,8 @@ public class RocketMQUtil {
      * Builds a RocketMQ message from a {@link RocketMQResponse}.
      *
      * @param topic the dedicated topic for receiving reply messages from the target agent(Typically, a lightweight Topic).
-     * @param liteTopic LiteTopic is a lightweight session identifier, similar to a SessionId, dynamically created at runtime for data storage and isolation.
-     * @param response Response payload.
+     * @param liteTopic liteTopic is a lightweight session identifier, similar to a SessionId, dynamically created at runtime for data storage and isolation.
+     * @param response response payload.
      * @return a {@link Message} instance, or {@code null} if validation fails.
      */
     public static Message buildMessage(String topic, String liteTopic, RocketMQResponse response) {

@@ -63,18 +63,17 @@ public class RocketMQResponse {
     /**
      * Constructs a new RocketMQResponse instance.
      *
-     * @param liteTopic    The dedicated topic for receiving reply messages from the target agent.
-     *                     LiteTopic is a lightweight session identifier, similar to a SessionId, dynamically created at
-     *                     runtime for data storage and isolation.
-     * @param responseBody The actual response body, typically a JSON string.
-     * @param stream       Indicates whether this response is part of a streaming sequence.
-     *                     If {@code true}, the consumer should expect multiple messages until {@link #isEnd()} is
-     *                     {@code true}.
-     * @param end          Indicates whether this is the final message in a streaming sequence. Always {@code true} for
-     *                     non-streaming responses.
-     * @param userId       Unique identifier of the user who initiated the request.
-     * @param taskId       Unique task ID for tracking.
-     * @param question     The original user question (optional).
+     * @param liteTopic the dedicated topic for receiving reply messages from the target agent.
+     * LiteTopic is a lightweight session identifier, similar to a SessionId, dynamically created at
+     * runtime for data storage and isolation.
+     * @param responseBody the actual response body, typically a JSON string.
+     * @param stream indicates whether this response is part of a streaming sequence.
+     * if {@code true}, the consumer should expect multiple messages until {@link #isEnd()} is {@code true}.
+     * @param end indicates whether this is the final message in a streaming sequence. Always {@code true} for
+     * non-streaming responses.
+     * @param userId unique identifier of the user who initiated the request.
+     * @param taskId unique task ID for tracking.
+     * @param question the original user question (optional).
      */
     public RocketMQResponse(String liteTopic, String responseBody, boolean stream, boolean end,
         String userId, String taskId, String question) {

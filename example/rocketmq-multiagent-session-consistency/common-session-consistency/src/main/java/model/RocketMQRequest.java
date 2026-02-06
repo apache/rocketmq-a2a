@@ -56,16 +56,16 @@ public class RocketMQRequest {
     /**
      * Constructs a new RocketMQRequest instance.
      *
-     * @param question               the user's input question to the AI agent.
-     * @param agentTopic             the RocketMQ topic used by the agent service to receive this request.
+     * @param question the user's input question to the AI agent.
+     * @param agentTopic the RocketMQ topic used by the agent service to receive this request.
      * @param workAgentResponseTopic the dedicated topic for receiving reply messages from the target agent (typically a
-     *                               lightweight topic).
-     * @param userId                 the unique identifier of the user initiating the request.
-     * @param liteTopic              the dedicated topic for receiving reply messages from the target agent.
-     *                               typically, a liteTopic that is bound to {@link #workAgentResponseTopic}.
-     *                               liteTopic is a lightweight session identifier, similar to a SessionId,
-     *                               dynamically created at runtime for data storage and isolation.
-     * @param taskId                 Unique identifier for tracking this specific task or conversation.
+     * lightweight topic).
+     * @param userId the unique identifier of the user initiating the request.
+     * @param liteTopic the dedicated topic for receiving reply messages from the target agent.
+     * typically, a liteTopic that is bound to {@link #workAgentResponseTopic}.
+     * liteTopic is a lightweight session identifier, similar to a SessionId,
+     * dynamically created at runtime for data storage and isolation.
+     * @param taskId Unique identifier for tracking this specific task or conversation.
      */
     public RocketMQRequest(String question, String agentTopic, String workAgentResponseTopic, String userId,
         String liteTopic, String taskId) {

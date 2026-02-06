@@ -37,12 +37,12 @@ public class ChatService {
     /**
      * Initiates a streaming chat session.
      *
-     * @param userId Unique identifier for the user.
-     * @param sessionId Unique identifier for the session.
-     * @param question The user's question content.
-     * @return A [Flux] object containing the chat response stream.
-     * @throws IllegalArgumentException Thrown when input parameters are empty.
-     * @throws RuntimeException Thrown when message sending fails.
+     * @param userId unique identifier for the user.
+     * @param sessionId unique identifier for the session.
+     * @param question the user's question content.
+     * @return a [Flux] object containing the chat response stream.
+     * @throws IllegalArgumentException thrown when input parameters are empty.
+     * @throws RuntimeException thrown when message sending fails.
      */
     public Flux<String> streamChat(String userId, String sessionId, String question) {
         if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId) || StringUtils.isEmpty(question)) {
@@ -62,10 +62,10 @@ public class ChatService {
     /**
      * Closes the specified user's chat session.
      *
-     * @param userId Unique identifier for the user.
-     * @param sessionId Unique identifier for the session.
-     * @throws IllegalArgumentException Thrown when input parameters are empty.
-     * @throws RuntimeException Thrown when closing session fails.
+     * @param userId unique identifier for the user.
+     * @param sessionId unique identifier for the session.
+     * @throws IllegalArgumentException thrown when input parameters are empty.
+     * @throws RuntimeException thrown when closing session fails.
      */
     public void closeStreamChat(String userId, String sessionId) {
         if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId)) {
@@ -84,12 +84,12 @@ public class ChatService {
     /**
      * Resubscribes to streaming chat for resuming sessions after disconnection.
      *
-     * @param userId Unique identifier for the user.
-     * @param sessionId Unique identifier for the session.
-     * @param lastOffset The offset of the last received message, used to continue from the breakpoint.
-     * @return A [Flux] object containing the chat response stream.
-     * @throws IllegalArgumentException Thrown when input parameters are empty.
-     * @throws RuntimeException Thrown when re-subscription fails.
+     * @param userId unique identifier for the user.
+     * @param sessionId unique identifier for the session.
+     * @param lastOffset the offset of the last received message, used to continue from the breakpoint.
+     * @return a [Flux] object containing the chat response stream.
+     * @throws IllegalArgumentException thrown when input parameters are empty.
+     * @throws RuntimeException thrown when re-subscription fails.
      */
     public Flux<String> resubscribeStream(String userId, String sessionId, Long lastOffset) {
         if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(sessionId)) {
