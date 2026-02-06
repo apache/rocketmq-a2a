@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package io.agenscope;
+package io.agentscope;
 
 import java.io.BufferedReader;
 import java.io.IOException;

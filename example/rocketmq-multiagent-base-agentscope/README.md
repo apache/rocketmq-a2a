@@ -66,4 +66,4 @@ mvn compile exec:java -Dexec.mainClass=io.agentscope.A2aAgentCallerExample -Droc
 
 启动后可在终端与agentscope构建的agent进行会话
 
-<img src="docs/img.png" alt="Architecture Diagram" width="600" />
+<img src="docs/img.png" alt="Architecture Diagram" width="600"/>
