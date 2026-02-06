@@ -4,11 +4,11 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.example</groupId>
-    <artifactId>rocketmq-multiagent-failover</artifactId>
+    <artifactId>rocketmq-multiagent-session-consistency</artifactId>
     <packaging>pom</packaging>
     <version>2.1.1-SNAPSHOT</version>
     <modules>
-        <module>common-failover</module>
+        <module>common-session-consistency</module>
         <module>web-gateway</module>
         <module>llm-agent</module>
     </modules>
@@ -18,82 +18,72 @@
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <common-util-version>4.4</common-util-version>
+        <adk.verison>0.3.0</adk.verison>
+        <dashscope.version>2.21.6</dashscope.version>
+        <rocketmq-client.version>5.2.0</rocketmq-client.version>
+        <fastjson.version>1.2.83_noneautotype</fastjson.version>
+        <quarkus.version>3.24.5</quarkus.version>
+        <jakarta.version>4.1.0</jakarta.version>
+        <jakarta-ws.version>3.1.0</jakarta-ws.version>
+        <lang3.version>3.14.0</lang3.version>
+        <springboot.version>3.2.5</springboot.version>
+        <a2a-sdk.version>0.3.3.Final</a2a-sdk.version>
+        <a2a-java-sdk-version>0.3.3.Final</a2a-java-sdk-version>
     </properties>
     <dependencyManagement>
         <dependencies>
-            <!-- The ADK Core dependency -->
             <dependency>
                 <groupId>com.google.adk</groupId>
                 <artifactId>google-adk</artifactId>
-                <version>0.3.0</version>
+                <version>${adk.verison}</version>
             </dependency>
-            <!-- The ADK Dev Web UI to debug your agent (Optional) -->
             <dependency>
                 <groupId>com.google.adk</groupId>
                 <artifactId>google-adk-dev</artifactId>
-                <version>0.3.0</version>
+                <version>${adk.verison}</version>
             </dependency>
             <dependency>
                 <groupId>com.alibaba</groupId>
                 <artifactId>dashscope-sdk-java</artifactId>
-                <version>2.21.6</version>
-            </dependency>
-            <dependency>
-                <groupId>com.openai</groupId>
-                <artifactId>openai-java</artifactId>
-                <version>4.1.0</version>
+                <version>${dashscope.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-client-java</artifactId>
-                <version>5.1.1-lite-offset-option-inner</version>
+                <version>${rocketmq-client.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.alibaba</groupId>
                 <artifactId>fastjson</artifactId>
-                <version>1.2.83_noneautotype</version>
+                <version>${fastjson.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.quarkus</groupId>
                 <artifactId>quarkus-bom</artifactId>
-                <version>3.24.5</version>
+                <version>${quarkus.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>io.quarkus</groupId>
                 <artifactId>quarkus-resteasy-jackson</artifactId>
-                <version>3.24.5</version>
+                <version>${quarkus.version}</version>
             </dependency>
             <dependency>
                 <groupId>jakarta.enterprise</groupId>
                 <artifactId>jakarta.enterprise.cdi-api</artifactId>
-                <version>4.1.0</version>
+                <version>${jakarta.version}</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>jakarta.ws.rs</groupId>
                 <artifactId>jakarta.ws.rs-api</artifactId>
-                <version>3.1.0</version>
-            </dependency>
-            <dependency>
-                <groupId>com.alibaba</groupId>
-                <artifactId>fastjson</artifactId>
-                <version>1.2.83_noneautotype</version>
-            </dependency>
-            <dependency>
-                <groupId>com.alibaba</groupId>
-                <artifactId>dashscope-sdk-java</artifactId>
-                <version>2.21.6</version>
-            </dependency>
-            <dependency>
-                <groupId>com.openai</groupId>
-                <artifactId>openai-java</artifactId>
-                <version>2.6.0</version>
+                <version>${jakarta-ws.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.example</groupId>
-                <artifactId>common-failover</artifactId>
+                <artifactId>common-session-consistency</artifactId>
+                <version>2.1.1-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
@@ -103,12 +93,23 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
-                <version>3.14.0</version>
+                <version>${lang3.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.a2asdk</groupId>
+                <artifactId>a2a-java-sdk-client</artifactId>
+                <version>${a2a-java-sdk-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.a2asdk</groupId>
+                <artifactId>a2a-java-sdk-reference-jsonrpc</artifactId>
+                <version>${a2a-java-sdk-version}</version>
             </dependency>
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
-                <version>3.2.5</version>
+                <version>${springboot.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

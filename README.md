@@ -69,14 +69,17 @@ quarkus.index-dependency.rocketmq-a2a.group-id=org.apache.rocketmq
 quarkus.index-dependency.rocketmq-a2a.artifact-id=rocketmq-a2a
 ```
 ## Samples
-[Apache RocketMQ](http://rocketmq.apache.org/) + [A2A](https://github.com/a2aproject/a2a-java) + [Google ADK（Agent Development Kit）](https://github.com/google/adk-java) sample
+1.[Apache RocketMQ](http://rocketmq.apache.org/) + [A2A](https://github.com/a2aproject/a2a-java) + [Google ADK（Agent Development Kit）](https://github.com/google/adk-java) sample
 
 Please see the [rocketmq-multiagent-base-adk](example/rocketmq-multiagent-base-adk).
 
-[Apache RocketMQ](http://rocketmq.apache.org/) + [A2A](https://github.com/a2aproject/a2a-java) + [AgentScope](https://github.com/agentscope-ai) sample
+2.[Apache RocketMQ](http://rocketmq.apache.org/) + [A2A](https://github.com/a2aproject/a2a-java) + [AgentScope](https://github.com/agentscope-ai) sample
 
 Please see the [rocketmq-multiagent-base-agentscope](example/rocketmq-multiagent-base-agentscope).
 
+3.[Apache RocketMQ](http://rocketmq.apache.org/) + Session state consistency.
+
+Please see the [rocketmq-multiagent-failover](example/rocketmq-multiagent-failover).
 
 ## Contributing
 
