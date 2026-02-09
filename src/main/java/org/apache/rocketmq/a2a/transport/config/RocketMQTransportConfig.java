@@ -334,17 +334,14 @@ public class RocketMQTransportConfig extends ClientTransportConfig<RocketMQTrans
      * Builder class for RocketMQTransportConfig.
      */
     public static class Builder {
-        private String accessKey;
-        private String secretKey;
-        private String endpoint;
-        private String namespace;
-        private String workAgentResponseTopic;
-        private String workAgentResponseGroupID;
-        private String agentTopic;
-        private String agentUrl;
-        private String liteTopic;
-        private boolean useDefaultRecoverMode = false;
-        private A2AHttpClient httpClient;
+        private RocketMQTransportConfig config;
+
+        /**
+         * Default constructor that initializes the config object.
+         */
+        public Builder() {
+            this.config = new RocketMQTransportConfig();
+        }
 
         /**
          * Sets the access key.
@@ -353,7 +350,7 @@ public class RocketMQTransportConfig extends ClientTransportConfig<RocketMQTrans
          * @return the builder instance.
          */
         public Builder accessKey(String accessKey) {
-            this.accessKey = accessKey;
+            config.setAccessKey(accessKey);
             return this;
         }
 
@@ -364,7 +361,7 @@ public class RocketMQTransportConfig extends ClientTransportConfig<RocketMQTrans
          * @return the builder instance.
          */
         public Builder secretKey(String secretKey) {
-            this.secretKey = secretKey;
+            config.setSecretKey(secretKey);
             return this;
         }
 
@@ -375,7 +372,7 @@ public class RocketMQTransportConfig extends ClientTransportConfig<RocketMQTrans
          * @return the builder instance.
          */
         public Builder endpoint(String endpoint) {
-            this.endpoint = endpoint;
+            config.setEndpoint(endpoint);
             return this;
         }
 
@@ -386,7 +383,7 @@ public class RocketMQTransportConfig extends ClientTransportConfig<RocketMQTrans
          * @return the builder instance.
          */
         public Builder namespace(String namespace) {
-            this.namespace = namespace;
+            config.setNamespace(namespace);
             return this;
         }
 
@@ -397,7 +394,7 @@ public class RocketMQTransportConfig extends ClientTransportConfig<RocketMQTrans
          * @return the builder instance.
          */
         public Builder workAgentResponseTopic(String workAgentResponseTopic) {
-            this.workAgentResponseTopic = workAgentResponseTopic;
+            config.setWorkAgentResponseTopic(workAgentResponseTopic);
             return this;
         }
 
@@ -408,7 +405,7 @@ public class RocketMQTransportConfig extends ClientTransportConfig<RocketMQTrans
          * @return the builder instance.
          */
         public Builder workAgentResponseGroupID(String workAgentResponseGroupID) {
-            this.workAgentResponseGroupID = workAgentResponseGroupID;
+            config.setWorkAgentResponseGroupID(workAgentResponseGroupID);
             return this;
         }
 
@@ -419,7 +416,7 @@ public class RocketMQTransportConfig extends ClientTransportConfig<RocketMQTrans
          * @return the builder instance.
          */
         public Builder agentTopic(String agentTopic) {
-            this.agentTopic = agentTopic;
+            config.setAgentTopic(agentTopic);
             return this;
         }
 
@@ -430,7 +427,7 @@ public class RocketMQTransportConfig extends ClientTransportConfig<RocketMQTrans
          * @return the builder instance.
          */
         public Builder agentUrl(String agentUrl) {
-            this.agentUrl = agentUrl;
+            config.setAgentUrl(agentUrl);
             return this;
         }
 
@@ -441,7 +438,7 @@ public class RocketMQTransportConfig extends ClientTransportConfig<RocketMQTrans
          * @return the builder instance.
          */
         public Builder liteTopic(String liteTopic) {
-            this.liteTopic = liteTopic;
+            config.setLiteTopic(liteTopic);
             return this;
         }
 
@@ -452,7 +449,7 @@ public class RocketMQTransportConfig extends ClientTransportConfig<RocketMQTrans
          * @return the builder instance.
          */
         public Builder useDefaultRecoverMode(boolean useDefaultRecoverMode) {
-            this.useDefaultRecoverMode = useDefaultRecoverMode;
+            config.setUseDefaultRecoverMode(useDefaultRecoverMode);
             return this;
         }
 
@@ -463,7 +460,7 @@ public class RocketMQTransportConfig extends ClientTransportConfig<RocketMQTrans
          * @return the builder instance.
          */
         public Builder httpClient(A2AHttpClient httpClient) {
-            this.httpClient = httpClient;
+            config.setHttpClient(httpClient);
             return this;
         }
 
@@ -473,13 +470,6 @@ public class RocketMQTransportConfig extends ClientTransportConfig<RocketMQTrans
          * @return a new RocketMQTransportConfig instance.
          */
         public RocketMQTransportConfig build() {
-            // Use full constructor to ensure all fields are properly initialized
-            RocketMQTransportConfig config = new RocketMQTransportConfig(
-                accessKey, secretKey, endpoint, namespace,
-                workAgentResponseTopic, workAgentResponseGroupID,
-                agentTopic, httpClient, liteTopic, useDefaultRecoverMode
-            );
-            config.setAgentUrl(agentUrl);
             return config;
         }
     }

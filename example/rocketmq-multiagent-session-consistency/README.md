@@ -82,6 +82,7 @@ cd SupervisorAgent-Web/target
 ```shell
 java  -DrocketMQEndpoint= -DrocketMQNamespace= -DworkAgentResponseTopic=WorkerAgentResponse -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE -DrocketMQAK= -DrocketMQSK= -DagentTopic=LLM_TOPIC -jar web-gateway-2.1.1-SNAPSHOT.jar --server.port=9292
 ```
+### 7.开始体验
 - 打开浏览器，访问 http://localhost:9090
 - 点击“重连会话”按钮，即可在节点切换过程中实现无缝会话恢复与数据续传
 
