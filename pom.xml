@@ -27,7 +27,7 @@
 
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-a2a</artifactId>
-    <version>1.0.9-SNAPSHOT</version>
+    <version>1.0.9</version>
 
     <name>Apache RocketMQ A2A ${project.version}</name>
     <description>Integrate Apache RocketMQ with A2A</description>
@@ -37,7 +37,7 @@
         <url>git@github.com:apache/rocketmq-a2a.git</url>
         <connection>scm:git:git@github.com:apache/rocketmq-a2a.git</connection>
         <developerConnection>scm:git:git@github.com:apache/rocketmq-a2a.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>rocketmq-a2a-1.0.9</tag>
     </scm>
 
     <mailingLists>
