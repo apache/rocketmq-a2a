@@ -176,11 +176,7 @@ public class TaskInfo {
      * Builder class for constructing {@link TaskInfo} instances with a fluent API.
      */
     public static class Builder {
-        private String taskId;
-        private String taskDesc;
-        private String userId;
-        private String sessionId;
-        private Sinks.Many<String> sink;
+        private final TaskInfo taskInfo = new TaskInfo();
 
         /**
          * Sets the task ID for the {@link TaskInfo} being built.
@@ -189,7 +185,7 @@ public class TaskInfo {
          * @return the current {@link Builder} instance.
          */
         public Builder taskId(String taskId) {
-            this.taskId = taskId;
+            taskInfo.setTaskId(taskId);
             return this;
         }
 
@@ -200,7 +196,7 @@ public class TaskInfo {
          * @return the current {@link Builder} instance.
          */
         public Builder taskDesc(String taskDesc) {
-            this.taskDesc = taskDesc;
+            taskInfo.setTaskDesc(taskDesc);
             return this;
         }
 
@@ -211,7 +207,7 @@ public class TaskInfo {
          * @return the current {@link Builder} instance.
          */
         public Builder userId(String userId) {
-            this.userId = userId;
+            taskInfo.setUserId(userId);
             return this;
         }
 
@@ -222,7 +218,7 @@ public class TaskInfo {
          * @return the current {@link Builder} instance.
          */
         public Builder sessionId(String sessionId) {
-            this.sessionId = sessionId;
+            taskInfo.setSessionId(sessionId);
             return this;
         }
 
@@ -233,7 +229,7 @@ public class TaskInfo {
          * @return the current {@link Builder} instance.
          */
         public Builder sink(Sinks.Many<String> sink) {
-            this.sink = sink;
+            taskInfo.setSink(sink);
             return this;
         }
 
@@ -243,12 +239,6 @@ public class TaskInfo {
          * @return a new {@link TaskInfo} instance.
          */
         public TaskInfo build() {
-            TaskInfo taskInfo = new TaskInfo();
-            taskInfo.setTaskId(taskId);
-            taskInfo.setTaskDesc(taskDesc);
-            taskInfo.setUserId(userId);
-            taskInfo.setSessionId(sessionId);
-            taskInfo.setSink(sink);
             return taskInfo;
         }
     }

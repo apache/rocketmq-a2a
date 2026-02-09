@@ -113,15 +113,8 @@ public class A2AResponseFuture {
          * Validates that both {@code completableFuture} and {@code typeReference} are not null.
          *
          * @return a new {@code A2AResponseFuture} instance.
-         * @throws IllegalArgumentException if either {@code completableFuture} or {@code typeReference} is null.
          */
         public A2AResponseFuture build() {
-            if (completableFuture == null) {
-                throw new IllegalArgumentException("completableFuture must not be null");
-            }
-            if (typeReference == null) {
-                throw new IllegalArgumentException("typeReference must not be null");
-            }
             return new A2AResponseFuture(completableFuture, typeReference);
         }
     }

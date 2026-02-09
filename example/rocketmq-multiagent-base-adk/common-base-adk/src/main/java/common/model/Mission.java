@@ -148,10 +148,7 @@ public class Mission {
      * Builder class for constructing Mission objects with a fluent API.
      */
     public static class Builder {
-        private String agent;
-        private String messageInfo;
-        private String taskId;
-        private String sessionId;
+        private final Mission mission = new Mission();
 
         /**
          * Sets the agent identifier for the mission.
@@ -160,7 +157,7 @@ public class Mission {
          * @return the Builder instance for method chaining.
          */
         public Builder agent(String agent) {
-            this.agent = agent;
+            mission.setAgent(agent);
             return this;
         }
 
@@ -171,7 +168,7 @@ public class Mission {
          * @return the Builder instance for method chaining.
          */
         public Builder messageInfo(String messageInfo) {
-            this.messageInfo = messageInfo;
+            mission.setMessageInfo(messageInfo);
             return this;
         }
 
@@ -182,7 +179,7 @@ public class Mission {
          * @return the Builder instance for method chaining.
          */
         public Builder taskId(String taskId) {
-            this.taskId = taskId;
+            mission.setTaskId(taskId);
             return this;
         }
 
@@ -193,17 +190,17 @@ public class Mission {
          * @return the Builder instance for method chaining.
          */
         public Builder sessionId(String sessionId) {
-            this.sessionId = sessionId;
+            mission.setSessionId(sessionId);
             return this;
         }
 
         /**
-         * Builds and returns a new Mission instance with the configured properties.
+         * returns a new Mission instance with the configured properties.
          *
          * @return a new Mission instance.
          */
         public Mission build() {
-            return new Mission(agent, messageInfo, taskId, sessionId);
+            return mission;
         }
     }
 }

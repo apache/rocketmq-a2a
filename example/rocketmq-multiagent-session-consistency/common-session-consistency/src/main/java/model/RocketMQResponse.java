@@ -200,19 +200,13 @@ public class RocketMQResponse {
      * Builder class for constructing RocketMQResponse instances fluently.
      */
     public static class Builder {
-        private String liteTopic;
-        private String responseBody;
-        private boolean stream;
-        private boolean end;
-        private String userId;
-        private String taskId;
-        private String question;
+        private final RocketMQResponse rocketMQResponse = new RocketMQResponse();
 
         /**
          * Sets the lite topic.
          */
         public Builder liteTopic(String liteTopic) {
-            this.liteTopic = liteTopic;
+            rocketMQResponse.setLiteTopic(liteTopic);
             return this;
         }
 
@@ -220,7 +214,7 @@ public class RocketMQResponse {
          * Sets the response body.
          */
         public Builder responseBody(String responseBody) {
-            this.responseBody = responseBody;
+            rocketMQResponse.setResponseBody(responseBody);
             return this;
         }
 
@@ -228,7 +222,7 @@ public class RocketMQResponse {
          * Sets whether this response is part of a streaming sequence.
          */
         public Builder stream(boolean stream) {
-            this.stream = stream;
+            rocketMQResponse.setStream(stream);
             return this;
         }
 
@@ -236,7 +230,7 @@ public class RocketMQResponse {
          * Sets whether this is the final message in a streaming sequence.
          */
         public Builder end(boolean end) {
-            this.end = end;
+            rocketMQResponse.setEnd(end);
             return this;
         }
 
@@ -244,7 +238,7 @@ public class RocketMQResponse {
          * Sets the user ID.
          */
         public Builder userId(String userId) {
-            this.userId = userId;
+            rocketMQResponse.setUserId(userId);
             return this;
         }
 
@@ -252,7 +246,7 @@ public class RocketMQResponse {
          * Sets the task ID.
          */
         public Builder taskId(String taskId) {
-            this.taskId = taskId;
+            rocketMQResponse.setTaskId(taskId);
             return this;
         }
 
@@ -260,7 +254,7 @@ public class RocketMQResponse {
          * Sets the original user question.
          */
         public Builder question(String question) {
-            this.question = question;
+            rocketMQResponse.setQuestion(question);
             return this;
         }
 
@@ -268,7 +262,7 @@ public class RocketMQResponse {
          * Builds and returns a new RocketMQResponse instance.
          */
         public RocketMQResponse build() {
-            return new RocketMQResponse(liteTopic, responseBody, stream, end, userId, taskId, question);
+            return rocketMQResponse;
         }
     }
 }

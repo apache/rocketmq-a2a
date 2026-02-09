@@ -177,18 +177,13 @@ public class RocketMQRequest {
      * Builder class for constructing RocketMQRequest instances fluently.
      */
     public static class Builder {
-        private String question;
-        private String agentTopic;
-        private String workAgentResponseTopic;
-        private String userId;
-        private String liteTopic;
-        private String taskId;
+        private final RocketMQRequest rocketMQRequest = new RocketMQRequest();
 
         /**
          * Sets the user's input question.
          */
         public Builder question(String question) {
-            this.question = question;
+            rocketMQRequest.setQuestion(question);
             return this;
         }
 
@@ -196,7 +191,7 @@ public class RocketMQRequest {
          * Sets the agent topic.
          */
         public Builder agentTopic(String agentTopic) {
-            this.agentTopic = agentTopic;
+            rocketMQRequest.setAgentTopic(agentTopic);
             return this;
         }
 
@@ -204,7 +199,7 @@ public class RocketMQRequest {
          * Sets the work agent response topic.
          */
         public Builder workAgentResponseTopic(String workAgentResponseTopic) {
-            this.workAgentResponseTopic = workAgentResponseTopic;
+            rocketMQRequest.setWorkAgentResponseTopic(workAgentResponseTopic);
             return this;
         }
 
@@ -212,7 +207,7 @@ public class RocketMQRequest {
          * Sets the user ID.
          */
         public Builder userId(String userId) {
-            this.userId = userId;
+            rocketMQRequest.setUserId(userId);
             return this;
         }
 
@@ -220,7 +215,7 @@ public class RocketMQRequest {
          * Sets the lite topic.
          */
         public Builder liteTopic(String liteTopic) {
-            this.liteTopic = liteTopic;
+            rocketMQRequest.setLiteTopic(liteTopic);
             return this;
         }
 
@@ -228,7 +223,7 @@ public class RocketMQRequest {
          * Sets the task ID.
          */
         public Builder taskId(String taskId) {
-            this.taskId = taskId;
+            rocketMQRequest.setTaskId(taskId);
             return this;
         }
 
@@ -236,7 +231,7 @@ public class RocketMQRequest {
          * Builds and returns a new RocketMQRequest instance.
          */
         public RocketMQRequest build() {
-            return new RocketMQRequest(question, agentTopic, workAgentResponseTopic, userId, liteTopic, taskId);
+            return rocketMQRequest;
         }
     }
 }
