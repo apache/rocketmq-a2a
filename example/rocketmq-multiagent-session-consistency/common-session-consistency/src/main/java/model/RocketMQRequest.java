@@ -228,7 +228,7 @@ public class RocketMQRequest {
         }
 
         /**
-         * Builds and returns a new RocketMQRequest instance.
+         * Returns a new RocketMQRequest instance.
          */
         public RocketMQRequest build() {
             return rocketMQRequest;

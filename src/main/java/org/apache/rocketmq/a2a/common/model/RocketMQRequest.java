@@ -290,9 +290,9 @@ public class RocketMQRequest {
         }
 
         /**
-         * Builds and returns the constructed RocketMQRequest instance.
+         * Returns the constructed RocketMQRequest instance with the configured properties.
          *
-         * @return the constructed RocketMQRequest.
+         * @return a new RocketMQRequest instance.
          */
         public RocketMQRequest build() {
             return request;

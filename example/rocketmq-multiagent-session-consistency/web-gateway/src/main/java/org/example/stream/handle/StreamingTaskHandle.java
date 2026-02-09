@@ -76,11 +76,11 @@ public class StreamingTaskHandle {
     /**
      * Constructs a new StreamingTaskHandle instance.
      *
-     * @param taskId    the unique ID of the task
-     * @param taskDesc  the description or type of the task
+     * @param taskId the unique ID of the task
+     * @param taskDesc the description or type of the task
      * @param sessionId the session ID associated with this task
-     * @param userId    the ID of the user who owns this task
-     * @param sink      the sink used to emit real-time output to clients
+     * @param userId the ID of the user who owns this task
+     * @param sink the sink used to emit real-time output to clients
      * @param isRecover whether this task is resuming from a previous state
      */
     public StreamingTaskHandle(String taskId, String taskDesc, String sessionId, String userId, Sinks.Many<String> sink, boolean isRecover) {
@@ -324,7 +324,7 @@ public class StreamingTaskHandle {
         }
 
         /**
-         * Builds and returns a new StreamingTaskHandle instance with the configured properties.
+         * Returns a new StreamingTaskHandle instance with the configured properties.
          *
          * @return a new StreamingTaskHandle instance.
          */

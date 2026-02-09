@@ -265,7 +265,7 @@ public class AgentService {
     /**
      * Re-establishes a streaming chat session for a given user and session ID.
      *
-     * @param userId    the unique identifier of the user.
+     * @param userId the unique identifier of the user.
      * @param sessionId the unique identifier of the chat session.
      * @return a {@link Flux<String>} emitting stream data or a completion message.
      */
@@ -295,8 +295,8 @@ public class AgentService {
     /**
      * Binds the specified sink to each task in the task list.
      *
-     * @param taskInfoList List of task information containing tasks to bind the sink to.
-     * @param sink         The sink object to be bound to the tasks.
+     * @param taskInfoList list of task information containing tasks to bind the sink to.
+     * @param sink The sink object to be bound to the tasks.
      */
     private void bindSinkToTasks(List<TaskInfo> taskInfoList, Sinks.Many<String> sink) {
         for (TaskInfo taskInfo : taskInfoList) {

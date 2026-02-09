@@ -334,14 +334,7 @@ public class RocketMQTransportConfig extends ClientTransportConfig<RocketMQTrans
      * Builder class for RocketMQTransportConfig.
      */
     public static class Builder {
-        private RocketMQTransportConfig config;
-
-        /**
-         * Default constructor that initializes the config object.
-         */
-        public Builder() {
-            this.config = new RocketMQTransportConfig();
-        }
+        private final RocketMQTransportConfig config = new RocketMQTransportConfig();
 
         /**
          * Sets the access key.

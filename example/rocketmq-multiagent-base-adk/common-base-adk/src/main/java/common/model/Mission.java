@@ -195,7 +195,7 @@ public class Mission {
         }
 
         /**
-         * returns a new Mission instance with the configured properties.
+         * Returns a new Mission instance with the configured properties.
          *
          * @return a new Mission instance.
          */

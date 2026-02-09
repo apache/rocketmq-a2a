@@ -259,7 +259,7 @@ public class RocketMQResponse {
         }
 
         /**
-         * Builds and returns a new RocketMQResponse instance.
+         * Returns a new RocketMQResponse instance.
          */
         public RocketMQResponse build() {
             return rocketMQResponse;
