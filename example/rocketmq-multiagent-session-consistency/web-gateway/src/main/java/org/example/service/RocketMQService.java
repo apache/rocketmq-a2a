@@ -250,8 +250,8 @@ public class RocketMQService {
      * Processes the received response message and emits it to the appropriate sink.
      * Handles task completion logic based on response flags.
      *
-     * @param response The response message from RocketMQ.
-     * @param offset The offset of the message in the topic.
+     * @param response the response message from RocketMQ.
+     * @param offset the offset of the message in the topic.
      */
     private void processResponseResult(RocketMQResponse response, Long offset) {
         if (null == response) {

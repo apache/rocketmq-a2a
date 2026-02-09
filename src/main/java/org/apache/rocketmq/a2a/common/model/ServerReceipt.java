@@ -37,8 +37,8 @@ public class ServerReceipt {
     /**
      * Constructs a ServerReceipt instance with the specified response topic and lite topic.
      *
-     * @param serverWorkAgentResponseTopic The response topic for server communication.
-     * @param serverLiteTopic              The lite topic associated with the response topic.
+     * @param serverWorkAgentResponseTopic the response topic for server communication.
+     * @param serverLiteTopic the lite topic associated with the response topic.
      */
     public ServerReceipt(String serverWorkAgentResponseTopic, String serverLiteTopic) {
         this.serverWorkAgentResponseTopic = serverWorkAgentResponseTopic;
@@ -48,7 +48,7 @@ public class ServerReceipt {
     /**
      * Returns the server work agent response topic.
      *
-     * @return The response topic used for server communication.
+     * @return the response topic used for server communication.
      */
     public String getServerWorkAgentResponseTopic() {
         return serverWorkAgentResponseTopic;
@@ -57,7 +57,7 @@ public class ServerReceipt {
     /**
      * Returns the server lite topic.
      *
-     * @return The lite topic associated with the response topic.
+     * @return the lite topic associated with the response topic.
      */
     public String getServerLiteTopic() {
         return serverLiteTopic;
@@ -66,7 +66,7 @@ public class ServerReceipt {
     /**
      * Creates a new Builder instance for constructing ServerReceipt objects.
      *
-     * @return A new Builder instance.
+     * @return a new Builder instance.
      */
     public static Builder builder() {
         return new Builder();
@@ -82,8 +82,8 @@ public class ServerReceipt {
         /**
          * Sets the server work agent response topic for the ServerReceipt being built.
          *
-         * @param serverWorkAgentResponseTopic The response topic for server communication.
-         * @return This Builder instance for method chaining.
+         * @param serverWorkAgentResponseTopic the response topic for server communication.
+         * @return this Builder instance for method chaining.
          */
         public Builder serverWorkAgentResponseTopic(String serverWorkAgentResponseTopic) {
             this.serverWorkAgentResponseTopic = serverWorkAgentResponseTopic;
@@ -93,8 +93,8 @@ public class ServerReceipt {
         /**
          * Sets the server lite topic for the ServerReceipt being built.
          *
-         * @param serverLiteTopic The lite topic associated with the response topic.
-         * @return This Builder instance for method chaining.
+         * @param serverLiteTopic the lite topic associated with the response topic.
+         * @return this Builder instance for method chaining.
          */
         public Builder serverLiteTopic(String serverLiteTopic) {
             this.serverLiteTopic = serverLiteTopic;
@@ -104,7 +104,7 @@ public class ServerReceipt {
         /**
          * Builds and returns a new ServerReceipt instance with the configured properties.
          *
-         * @return A new ServerReceipt instance.
+         * @return a new ServerReceipt instance.
          */
         public ServerReceipt build() {
             return new ServerReceipt(serverWorkAgentResponseTopic, serverLiteTopic);
