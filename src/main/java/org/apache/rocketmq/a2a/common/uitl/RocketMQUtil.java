@@ -207,7 +207,7 @@ public class RocketMQUtil {
      * @param secretKey the secret key for authenticating with the RocketMQ service.
      * @param workAgentResponseTopic the lightweight topic used to receive asynchronous replies.
      * @param workAgentResponseGroupID the consumer group ID (CID) for subscribing to the response topic {@code workAgentResponseTopic}.
-     * @param liteTopic Typically, a liteTopic that is bound to {@code #workAgentResponseTopic}.
+     * @param liteTopic typically, a liteTopic that is bound to {@code #workAgentResponseTopic}.
      * LiteTopic is a session identifier, similar to a SessionId, dynamically created at runtime for data storage and isolation.
      * @return a LitePushConsumer instance.
      */
@@ -381,7 +381,7 @@ public class RocketMQUtil {
      *
      * @param payloadAndHeaders the request payload and metadata (e.g., auth headers)
      * @param agentTopic the default destination topic bound to the target agent.
-     * @param liteTopic Typically, a liteTopic that is bound to {@code #workAgentResponseTopic}.
+     * @param liteTopic typically, a liteTopic that is bound to {@code #workAgentResponseTopic}.
      * LiteTopic is a session identifier, similar to a SessionId, dynamically created at runtime for data storage and isolation.
      * @param workAgentResponseTopic the lightweight topic used to receive asynchronous replies.
      * @param producer the RocketMQ producer used to send the message.
@@ -448,7 +448,7 @@ public class RocketMQUtil {
      **
      * @param response the incoming A2A streaming response.
      * @param namespace logical isolation unit.
-     * @param liteTopic Typically, LiteTopic is a session identifier, similar to a SessionId,
+     * @param liteTopic typically, LiteTopic is a session identifier, similar to a SessionId,
      * dynamically created at runtime for data storage and isolation.
      * @return {@link ConsumeResult#SUCCESS} if processed (even if skipped), {@link ConsumeResult#FAILURE} on error.
      */
@@ -697,7 +697,7 @@ public class RocketMQUtil {
      * Parses RocketMQ-related information from an AgentCard.
      *
      * @param agentCard the AgentCard containing transport endpoints.
-     * @return RocketMQResource, or {@code null} if parsing fails or no RocketMQ interface found.
+     * @return rocketMQResource, or {@code null} if parsing fails or no RocketMQ interface found.
      */
     public static RocketMQResource parseAgentCardAddition(AgentCard agentCard) {
         if (null == agentCard || StringUtils.isEmpty(agentCard.preferredTransport()) || StringUtils.isEmpty(agentCard.url()) || CollectionUtils.isEmpty(agentCard.additionalInterfaces())) {

@@ -30,12 +30,12 @@ public class StreamRecoveryContext {
      * A multi-emitter sink that allows sending multiple string events to subscribers.
      * Used during session recovery to push incremental updates, status messages, or data replays.
      */
-    private Sinks.Many<String> sink;
+    private final Sinks.Many<String> sink;
 
     /**
      * A CompletableFuture that represents the asynchronous result of the recovery operation.
      */
-    private CompletableFuture<Boolean> completableFuture;
+    private final CompletableFuture<Boolean> completableFuture;
 
     /**
      * Constructs a new StreamRecoveryContext with the specified sink and CompletableFuture.
@@ -46,12 +46,6 @@ public class StreamRecoveryContext {
     public StreamRecoveryContext(Many<String> sink, CompletableFuture<Boolean> completableFuture) {
         this.sink = sink;
         this.completableFuture = completableFuture;
-    }
-
-    /**
-     * Default constructor for StreamRecoveryContext.
-     */
-    public StreamRecoveryContext() {
     }
 
     /**
@@ -73,15 +67,6 @@ public class StreamRecoveryContext {
     }
 
     /**
-     * Sets the multi-emitter sink.
-     *
-     * @param sink the sink to set.
-     */
-    public void setSink(Many<String> sink) {
-        this.sink = sink;
-    }
-
-    /**
      * Gets the CompletableFuture representing the recovery result.
      *
      * @return the CompletableFuture.
@@ -90,14 +75,6 @@ public class StreamRecoveryContext {
         return completableFuture;
     }
 
-    /**
-     * Sets the CompletableFuture representing the recovery result.
-     *
-     * @param completableFuture the CompletableFuture to set.
-     */
-    public void setCompletableFuture(CompletableFuture<Boolean> completableFuture) {
-        this.completableFuture = completableFuture;
-    }
 
     /**
      * Builder class for constructing StreamRecoveryContext instances.

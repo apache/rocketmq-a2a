@@ -34,7 +34,6 @@
 
 3. 在百炼平台中创建天气助手应用与创建行程助手应用
 
-
 4. 创建天气助手Agent
 - 在阿里云百炼的应用管理页面，单击创建应用按钮。
 ![img_6.png](docs/images/img_6.png)
@@ -194,7 +193,7 @@ java -DrocketMQNamespace= -DworkAgentResponseTopic=WorkerAgentResponse -DworkAge
 ```
 ![img_5.png](docs/images/img_5.png)
 
-6.运行supervisor-agent-web
+#### 6.运行supervisor-agent-web
 
 ```shell
 cd supervisor-agent-web/target
@@ -203,7 +202,7 @@ cd supervisor-agent-web/target
 ```shell
 java -DrocketMQNamespace= -DworkAgentResponseTopic=WorkerAgentResponse -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE -DapiKey= -DrocketMQAK= -DrocketMQSK= -jar supervisor-agent-web-2.1.1-SNAPSHOT.jar
 ```
-- 打开浏览器，访问 localhost:9090
+- 打开浏览器，访问 http://localhost:9090
 - 下面的示例展示了以RocketMQ作为底层Transport过程中实现异步通信以及断点重传功能
 - 咨询杭州明天天气怎么样的过程中，点击中断按钮模拟网络中断，点击重连实现网络重连，数据流恢复重传
 

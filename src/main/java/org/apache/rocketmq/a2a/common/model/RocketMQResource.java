@@ -144,9 +144,9 @@ public class RocketMQResource {
         }
 
         /**
-         * Builds and returns the constructed RocketMQResource instance.
+         * Returns a new RocketMQResource instance with the configured properties.
          *
-         * @return the constructed RocketMQResource instance.
+         * @return a new RocketMQResource instance.
          */
         public RocketMQResource build() {
             return info;

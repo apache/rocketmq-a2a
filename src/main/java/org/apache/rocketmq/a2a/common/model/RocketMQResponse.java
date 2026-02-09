@@ -334,9 +334,9 @@ public class RocketMQResponse {
         }
 
         /**
-         * Builds and returns the constructed {@code RocketMQResponse} object.
+         * Returns a new {@code RocketMQResponse} object with the configured properties.
          *
-         * @return the built {@code RocketMQResponse} instance.
+         * @return a new RocketMQResponse instance.
          */
         public RocketMQResponse build() {
             return response;
