@@ -34,7 +34,6 @@
 
 3. 在百炼平台中创建天气助手应用与创建行程助手应用
 
-
 4. 创建天气助手Agent
 - 在阿里云百炼的应用管理页面，单击创建应用按钮。
 ![img_6.png](docs/images/img_6.png)
@@ -194,7 +193,7 @@ java -DrocketMQNamespace= -DworkAgentResponseTopic=WorkerAgentResponse -DworkAge
 ```
 ![img_5.png](docs/images/img_5.png)
 
-6.运行supervisor-agent-web
+#### 6.运行supervisor-agent-web
 
 ```shell
 cd supervisor-agent-web/target

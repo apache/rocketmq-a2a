@@ -42,7 +42,6 @@ mvn clean package -Dmaven.test.skip=true -Dcheckstyle.skip=true
 | rocketMQAK | rocketmq账号       | 否    |
 | rocketMQSK | rocketmq密码       | 否    |
 | apiKey | 百炼平台调用apiKey     | 是    |
-| appId | 对应百炼智能应用appId    | 是    |
 | workAgentResponseTopic | LiteTopic        | 是    |
 | workAgentResponseGroupID | LiteConsumer CID | 是    |
 
@@ -50,20 +49,21 @@ mvn clean package -Dmaven.test.skip=true -Dcheckstyle.skip=true
 
 #### 3.运行agentscope-server
 ```shell
-cd agentscope-server
+cd agentscope-server/target
 ```
 ```shell
-mvn exec:java -Dexec.mainClass=io.agentscope.AgentScopeDeployRocketMQExample -DrocketMQEndpoint= -DrocketMQNamespace= -DbizTopic=LLM_TOPIC -DbizConsumerGroup=LLM_CID -DrocketMQAK= -DrocketMQSK= -DapiKey=
+java -DrocketMQEndpoint= -DrocketMQNamespace= -DbizTopic=LLM_TOPIC -DbizConsumerGroup=LLM_CID -DrocketMQAK= -DrocketMQSK= -DapiKey= -jar agentscope-server-2.1.1-SNAPSHOT-jar-with-dependencies.jar
 ```
+
 #### 4.运行agentscope-client
-
 ```shell
-cd agentscope-client
+cd agentscope-client/target 
 ```
 ```shell
-mvn compile exec:java -Dexec.mainClass=io.agentscope.A2aAgentCallerExample -DrocketMQNamespace= -DworkAgentResponseTopic=WorkerAgentResponse -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE -DrocketMQAK= -DrocketMQSK= 
+java -DrocketMQNamespace= -DworkAgentResponseTopic=WorkerAgentResponse -DworkAgentResponseGroupID=CID_HOST_AGENT_LITE -DrocketMQAK= -DrocketMQSK= -jar agentscope-client-2.1.1-SNAPSHOT-jar-with-dependencies.jar
 ```
 
+#### 5.开始体验
 启动后可在终端与agentscope构建的agent进行会话
 
 <img src="docs/img.png" alt="Architecture Diagram" width="600"/>
