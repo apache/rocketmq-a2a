@@ -327,12 +327,9 @@ public class RocketMQService {
         if (null != streamRecoveryContext && null != streamRecoveryContext.getCompletableFuture()) {
             streamRecoveryContext.getCompletableFuture().complete(true);
         }
-        if (!streamingTaskHandle.isRecover()) {
-            log.debug("handleTaskCompletion sink try complete");
-            sink.tryEmitComplete();
-        }
         streamingTaskHandle.setComplete(true);
         taskInfoMap.remove(taskId);
+        sink.tryEmitComplete();
         log.debug("handleTaskCompletion compete task taskId: [{}]", taskId);
     }
 
