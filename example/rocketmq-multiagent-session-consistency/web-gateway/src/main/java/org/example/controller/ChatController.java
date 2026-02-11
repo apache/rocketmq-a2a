@@ -41,7 +41,7 @@ import reactor.core.publisher.Flux;
  */
 @RestController
 @RequestMapping("/")
-@CrossOrigin(origins = {"http://localhost:9090"})
+@CrossOrigin(origins = "*")
 public class ChatController {
     private static final Logger log = LoggerFactory.getLogger(ChatController.class);
 

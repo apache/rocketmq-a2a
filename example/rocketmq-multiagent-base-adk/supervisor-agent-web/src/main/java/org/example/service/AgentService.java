@@ -265,7 +265,7 @@ public class AgentService {
     /**
      * Re-establishes a streaming chat session for a given user and session ID.
      *
-     * @param userId    the unique identifier of the user.
+     * @param userId the unique identifier of the user.
      * @param sessionId the unique identifier of the chat session.
      * @return a {@link Flux<String>} emitting stream data or a completion message.
      */
