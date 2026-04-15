@@ -27,7 +27,8 @@ import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.ROCKET
  * <p>
  * This class implements the {@link ClientTransportProvider} interface to support
  * RocketMQ-based message transport between A2A clients and remote agents.
- * It is responsible for instantiating transports with the appropriate configuration, agent identity, and endpoint information.
+ * It is responsible for instantiating transports with the appropriate configuration, agent identity, and endpoint
+ * information.
  */
 public class RocketMQTransportProvider implements ClientTransportProvider<RocketMQTransport, RocketMQTransportConfig> {
 
@@ -45,7 +46,7 @@ public class RocketMQTransportProvider implements ClientTransportProvider<Rocket
     public RocketMQTransport create(RocketMQTransportConfig clientTransportConfig, AgentCard agentCard, String agentUrl)
         throws A2AClientException {
         if (clientTransportConfig == null) {
-            throw new IllegalArgumentException("RocketMQTransportProvider create RocketMQTransport param error, clientTransportConfig is null");
+            throw new IllegalArgumentException("RocketMQTransportProvider create RocketMQTransport param is invalid, clientTransportConfig is null");
         }
         return new RocketMQTransport(clientTransportConfig, agentCard);
     }
