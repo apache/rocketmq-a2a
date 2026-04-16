@@ -1,0 +1,2 @@
+[venv]
+location = "project"  # 强制在项目内创建 .venv

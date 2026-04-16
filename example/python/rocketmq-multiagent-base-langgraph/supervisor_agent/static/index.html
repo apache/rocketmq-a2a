@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Agent Chat - Streaming</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        h2 {
+            color: white;
+            text-align: center;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        #chat-box {
+            background: white;
+            height: 600px;
+            overflow-y: auto;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            margin-bottom: 20px;
+        }
+        .msg {
+            margin: 12px 0;
+            padding: 12px 18px;
+            border-radius: 18px;
+            max-width: 85%;
+            line-height: 1.6;
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .user {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-left: auto;
+            text-align: right;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+        .agent {
+            background: #f8f9fa;
+            color: #333;
+            margin-right: auto;
+            border: 1px solid #e9ecef;
+        }
+        .status {
+            text-align: center;
+            color: #6c757d;
+            font-size: 0.9em;
+            margin: 8px 0;
+            font-style: italic;
+            padding: 8px;
+            background: #fff3cd;
+            border-radius: 8px;
+            border-left: 4px solid #ffc107;
+        }
+        .error {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            color: #721c24;
+        }
+        .agent-label {
+            font-size: 0.85em;
+            color: #667eea;
+            margin-bottom: 6px;
+            display: block;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .agent-content {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .typing-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1em;
+            background: #667eea;
+            animation: blink 1s infinite;
+            margin-left: 2px;
+            vertical-align: text-bottom;
+        }
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        .input-area {
+            display: flex;
+            gap: 12px;
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: border-color 0.3s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        button {
+            padding: 12px 28px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .trace-info {
+            font-size: 0.75em;
+            color: #999;
+            margin-top: 4px;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+<h2>🤖 LangGraph Supervisor + RocketMQ Streaming</h2>
+<div id="chat-box"></div>
+<div class="input-area">
+    <input type="text" id="user-input" placeholder="例如：杭州明天天气？ 或 帮我做杭州下周六自驾游规划" onkeypress="if(event.key==='Enter') sendMessage()">
+    <button id="send-btn" onclick="sendMessage()">发送</button>
+</div>
+
+<script>
+    const chatBox = document.getElementById('chat-box');
+    const sendBtn = document.getElementById('send-btn');
+
+    // Track active message elements for streaming updates
+    let activeMessageElements = {};
+
+    function appendMessage(role, content, label = null, isStatus = false, isError = false) {
+        if (isStatus) {
+            const div = document.createElement('div');
+            div.className = `status ${isError ? 'error' : ''}`;
+            div.innerText = content;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            return div;
+        }
+
+        const div = document.createElement('div');
+        div.className = `msg ${role}`;
+
+        if (label) {
+            const span = document.createElement('span');
+            span.className = 'agent-label';
+            span.innerText = label;
+            div.appendChild(span);
+        }
+
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'agent-content';
+        contentDiv.innerHTML = content.replace(/\n/g, '<br>');
+        div.appendChild(contentDiv);
+
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+        return contentDiv;
+    }
+
+    function updateMessageContent(contentDiv, newContent) {
+        if (contentDiv) {
+            contentDiv.innerHTML = newContent.replace(/\n/g, '<br>');
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    }
+
+    async function sendMessage() {
+        const input = document.getElementById('user-input');
+        const text = input.value.trim();
+        if (!text) return;
+
+        // Disable input during processing
+        input.disabled = true;
+        sendBtn.disabled = true;
+
+        // Clear previous active messages
+        activeMessageElements = {};
+
+        appendMessage('user', text);
+        input.value = '';
+
+        let statusDiv = null;
+        let currentAgentDiv = null;
+        let currentAgentKey = null;
+        let accumulatedContent = {};
+
+        try {
+            const response = await fetch('/chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ message: text })
+            });
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value);
+                const lines = chunk.split('\n');
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const data = line.slice(6);
+
+                        if (data === '[DONE]') {
+                            if (statusDiv) {
+                                statusDiv.remove();
+                                statusDiv = null;
+                            }
+                            // Remove typing cursor from all messages
+                            Object.values(activeMessageElements).forEach(div => {
+                                const cursor = div.querySelector('.typing-cursor');
+                                if (cursor) cursor.remove();
+                            });
+                            continue;
+                        }
+
+                        try {
+                            const obj = JSON.parse(data);
+
+                            if (obj.type === 'start') {
+                                if (statusDiv) statusDiv.remove();
+                                statusDiv = appendMessage('', '⏳ 正在处理您的请求...', null, true);
+                                console.log('Started with trace_id:', obj.trace_id);
+
+                            } else if (obj.type === 'chunk') {
+                                if (statusDiv) {
+                                    statusDiv.remove();
+                                    statusDiv = null;
+                                }
+
+                                const labels = {
+                                    'weather': '🌤️ Weather Agent',
+                                    'travel': '✈️ Travel Agent',
+                                    'supervisor': '👮 Supervisor'
+                                };
+
+                                const agentKey = `${obj.role}_${obj.sub_trace_id || 'default'}`;
+
+                                // Create new message element if doesn't exist
+                                if (!activeMessageElements[agentKey]) {
+                                    const label = labels[obj.role] || obj.role;
+                                    currentAgentDiv = appendMessage('agent', '', label);
+                                    activeMessageElements[agentKey] = currentAgentDiv;
+                                    accumulatedContent[agentKey] = '';
+
+                                    // Add typing cursor
+                                    const cursor = document.createElement('span');
+                                    cursor.className = 'typing-cursor';
+                                    currentAgentDiv.appendChild(cursor);
+                                }
+
+                                // Accumulate incremental content
+                                accumulatedContent[agentKey] += obj.content;
+
+                                // Update display with accumulated content
+                                updateMessageContent(
+                                    activeMessageElements[agentKey],
+                                    accumulatedContent[agentKey]
+                                );
+
+                                // Log chunk info for debugging
+                                console.log(`Chunk received [${obj.role}] index:${obj.chunk_index} final:${obj.is_final}`, obj.content);
+
+                            } else if (obj.type === 'error') {
+                                if (statusDiv) {
+                                    statusDiv.remove();
+                                    statusDiv = null;
+                                }
+
+                                const errorDiv = appendMessage(
+                                    'agent',
+                                    `❌ 错误: ${obj.content}`,
+                                    obj.role ? `Error from ${obj.role}` : 'Error',
+                                    false,
+                                    true
+                                );
+                                console.error('Stream error:', obj);
+                            }
+
+                        } catch (e) {
+                            console.error('Parse error:', e, 'Data:', data);
+                        }
+                    }
+                }
+            }
+
+        } catch (error) {
+            console.error('Request failed:', error);
+            if (statusDiv) statusDiv.remove();
+            appendMessage('agent', '❌ 请求失败: ' + error.message, 'System', false, true);
+        } finally {
+            // Re-enable input
+            input.disabled = false;
+            sendBtn.disabled = false;
+            input.focus();
+
+            // Clean up
+            activeMessageElements = {};
+            accumulatedContent = {};
+        }
+    }
+</script>
+</body>
+</html>
