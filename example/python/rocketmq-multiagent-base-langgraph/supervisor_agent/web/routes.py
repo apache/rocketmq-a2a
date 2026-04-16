@@ -10,8 +10,8 @@ from fastapi.responses import HTMLResponse
 from sse_starlette.sse import EventSourceResponse
 
 from common.mq_toos import logger
-from supervisor_agent_optimize.utils.stream.stream_manager import stream_queue_manager
-from supervisor_agent_optimize.utils.workflow.workflow_graph import build_workflow
+from supervisor_agent.utils.stream.stream_manager import stream_queue_manager
+from supervisor_agent.utils.workflow.workflow_graph import build_workflow
 
 router = APIRouter()
 app_graph = build_workflow()

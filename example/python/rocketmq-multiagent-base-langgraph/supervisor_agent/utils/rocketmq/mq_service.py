@@ -6,8 +6,8 @@ from rocketmq import MessageListener, ConsumeResult, Message
 
 from common.models import MessagePayload
 from common.mq_toos import logger, build_producer, build_message, build_lite_push_consumer
-from supervisor_agent_optimize.utils.stream.stream_manager import stream_queue_manager
-from supervisor_agent_optimize.utils.config.config import (
+from supervisor_agent.utils.stream.stream_manager import stream_queue_manager
+from supervisor_agent.utils.config.config import (
     ROCKETMQ_ENDPOINT,
     ROCKETMQ_ACCESS_KEY,
     ROCKETMQ_SECRET_KEY,
@@ -30,7 +30,7 @@ class WorkerAgentMessageListener(MessageListener):
             payload = MessagePayload.from_json(body)
 
             # Store in result_store for background aggregation
-            from supervisor_agent_optimize.utils.workflow.workflow_nodes import result_store, lock
+            from supervisor_agent.utils.workflow.workflow_nodes import result_store, lock
             with lock:
                 if payload.trace_id not in result_store:
                     result_store[payload.trace_id] = []

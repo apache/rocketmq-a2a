@@ -4,9 +4,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from common.mq_toos import logger
-from supervisor_agent_optimize.utils.stream.stream_manager import stream_queue_manager
-from supervisor_agent_optimize.utils.rocketmq.mq_service import init_rocketmq
-from supervisor_agent_optimize.web.routes import router
+from supervisor_agent.utils.stream.stream_manager import stream_queue_manager
+from supervisor_agent.utils.rocketmq.mq_service import init_rocketmq
+from web.routes import router
 
 
 @asynccontextmanager
@@ -35,8 +35,3 @@ if __name__ == "__main__":
     init_rocketmq()
     logger.info("Start supervisor agent successfully")
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
-
-
-
-

@@ -12,16 +12,16 @@ from langgraph.graph import END
 
 from common.models import MessagePayload, AgentRole
 from common.mq_toos import logger
-from supervisor_agent_optimize.utils.config.config import (
+from supervisor_agent.utils.config.config import (
     DASHSCOPE_API_KEY,
     WEATHER_AGENT_TOPIC,
     TRAVEL_AGENT_TOPIC,
     SESSION_ID,
     WORK_AGENT_RESPONSE_TOPIC
 )
-from supervisor_agent_optimize.utils.models.models import AgentState
-from supervisor_agent_optimize.utils.stream.stream_manager import stream_queue_manager
-from supervisor_agent_optimize.utils.rocketmq.mq_service import send_message_new
+from supervisor_agent.utils.models.models import AgentState
+from supervisor_agent.utils.stream.stream_manager import stream_queue_manager
+from supervisor_agent.utils.rocketmq.mq_service import send_message_new
 
 # Initialize LLM
 llm_supervisor = ChatTongyi(

@@ -1,7 +1,7 @@
 """LangGraph workflow graph builder"""
 from langgraph.graph import StateGraph, END
-from supervisor_agent_optimize.utils.models.models import AgentState
-from supervisor_agent_optimize.utils.workflow.workflow_nodes import router_node, weather_node, travel_node, chat_node, \
+from supervisor_agent.utils.models.models import AgentState
+from supervisor_agent.utils.workflow.workflow_nodes import router_node, weather_node, travel_node, chat_node, \
     route_after_router, route_after_weather
 
 
