@@ -90,6 +90,11 @@
             border-left: 4px solid #dc3545;
             color: #721c24;
         }
+        .success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            color: #155724;
+        }
         .agent-label {
             font-size: 0.85em;
             color: #667eea;
@@ -115,6 +120,35 @@
         @keyframes blink {
             0%, 50% { opacity: 1; }
             51%, 100% { opacity: 0; }
+        }
+        .loading-dots {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-left: 8px;
+        }
+        .loading-dots span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #667eea;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .loading-dots span:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+        .loading-dots span:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+        @keyframes bounce {
+            0%, 80%, 100% {
+                transform: scale(0);
+                opacity: 0.5;
+            }
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
         }
         .input-area {
             display: flex;
@@ -202,12 +236,14 @@
 
     // Track active message elements for streaming updates
     let activeMessageElements = {};
+    let isProcessing = false;
+    let statusDiv = null;
 
-    function appendMessage(role, content, label = null, isStatus = false, isError = false) {
+    function appendMessage(role, content, label = null, isStatus = false, isError = false, isSuccess = false) {
         if (isStatus) {
             const div = document.createElement('div');
-            div.className = `status ${isError ? 'error' : ''}`;
-            div.innerText = content;
+            div.className = `status ${isError ? 'error' : isSuccess ? 'success' : ''}`;
+            div.innerHTML = content;
             chatBox.appendChild(div);
             chatBox.scrollTop = chatBox.scrollHeight;
             return div;
@@ -240,6 +276,22 @@
         }
     }
 
+    function showLoading(message = '⏳ 智能体正在思考中') {
+        if (statusDiv) {
+            statusDiv.remove();
+        }
+        statusDiv = appendMessage('',
+            `${message}<div class="loading-dots"><span></span><span></span><span></span></div>`,
+            null, true);
+    }
+
+    function hideLoading() {
+        if (statusDiv) {
+            statusDiv.remove();
+            statusDiv = null;
+        }
+    }
+
     async function sendMessage() {
         const input = document.getElementById('user-input');
         const text = input.value.trim();
@@ -248,19 +300,24 @@
         // Disable input during processing
         input.disabled = true;
         sendBtn.disabled = true;
+        isProcessing = true;
 
-        // Clear previous active messages
+        // Clear previous state
         activeMessageElements = {};
+        statusDiv = null;
 
         appendMessage('user', text);
         input.value = '';
 
-        let statusDiv = null;
-        let currentAgentDiv = null;
-        let currentAgentKey = null;
         let accumulatedContent = {};
+        let hasReceivedResponse = false;
+        let lastAgentRole = null;
 
         try {
+            // Show initial loading immediately
+            showLoading('⏳ 智能体正在思考中');
+            console.log('[UI] Loading shown');
+
             const response = await fetch('/chat', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -285,15 +342,19 @@
                         const data = line.slice(6);
 
                         if (data === '[DONE]') {
-                            if (statusDiv) {
-                                statusDiv.remove();
-                                statusDiv = null;
-                            }
+                            console.log('[UI] Received [DONE]');
+                            hideLoading();
+
                             // Remove typing cursor from all messages
                             Object.values(activeMessageElements).forEach(div => {
                                 const cursor = div.querySelector('.typing-cursor');
                                 if (cursor) cursor.remove();
                             });
+
+                            // Show completion message
+                            if (hasReceivedResponse) {
+                                appendMessage('', '✅ 回复完毕', null, true, false, true);
+                            }
                             continue;
                         }
 
@@ -301,28 +362,33 @@
                             const obj = JSON.parse(data);
 
                             if (obj.type === 'start') {
-                                if (statusDiv) statusDiv.remove();
-                                statusDiv = appendMessage('', '⏳ 正在处理您的请求...', null, true);
-                                console.log('Started with trace_id:', obj.trace_id, 'session_id:', sessionId);
+                                console.log('[UI] Start event:', obj.trace_id);
 
                             } else if (obj.type === 'chunk') {
-                                if (statusDiv) {
-                                    statusDiv.remove();
-                                    statusDiv = null;
-                                }
+                                hasReceivedResponse = true;
 
                                 const labels = {
                                     'weather': '🌤️ Weather Agent',
                                     'travel': '✈️ Travel Agent',
+                                    'assistant': '🤖 Assistant',
                                     'supervisor': '👮 Supervisor'
                                 };
 
                                 const agentKey = `${obj.role}_${obj.sub_trace_id || 'default'}`;
 
+                                // If this is a different agent than the last one, show transition loading
+                                if (lastAgentRole && lastAgentRole !== obj.role && !activeMessageElements[agentKey]) {
+                                    console.log(`[UI] Agent transition: ${lastAgentRole} -> ${obj.role}`);
+                                    showLoading(`⏳ ${labels[obj.role] || obj.role} 正在生成回复`);
+                                }
+
                                 // Create new message element if doesn't exist
                                 if (!activeMessageElements[agentKey]) {
+                                    // Hide loading before showing message
+                                    hideLoading();
+
                                     const label = labels[obj.role] || obj.role;
-                                    currentAgentDiv = appendMessage('agent', '', label);
+                                    const currentAgentDiv = appendMessage('agent', '', label);
                                     activeMessageElements[agentKey] = currentAgentDiv;
                                     accumulatedContent[agentKey] = '';
 
@@ -330,7 +396,11 @@
                                     const cursor = document.createElement('span');
                                     cursor.className = 'typing-cursor';
                                     currentAgentDiv.appendChild(cursor);
+
+                                    console.log(`[UI] Created message for ${label}`);
                                 }
+
+                                lastAgentRole = obj.role;
 
                                 // Accumulate incremental content
                                 accumulatedContent[agentKey] += obj.content;
@@ -341,14 +411,9 @@
                                     accumulatedContent[agentKey]
                                 );
 
-                                // Log chunk info for debugging
-                                console.log(`Chunk received [${obj.role}] index:${obj.chunk_index} final:${obj.is_final}`, obj.content);
-
                             } else if (obj.type === 'error') {
-                                if (statusDiv) {
-                                    statusDiv.remove();
-                                    statusDiv = null;
-                                }
+                                console.error('[UI] Error event:', obj);
+                                hideLoading();
 
                                 const errorDiv = appendMessage(
                                     'agent',
@@ -357,29 +422,32 @@
                                     false,
                                     true
                                 );
-                                console.error('Stream error:', obj);
                             }
 
                         } catch (e) {
-                            console.error('Parse error:', e, 'Data:', data);
+                            console.error('[UI] Parse error:', e, 'Data:', data);
                         }
                     }
                 }
             }
 
         } catch (error) {
-            console.error('Request failed:', error);
-            if (statusDiv) statusDiv.remove();
+            console.error('[UI] Request failed:', error);
+            hideLoading();
             appendMessage('agent', '❌ 请求失败: ' + error.message, 'System', false, true);
         } finally {
             // Re-enable input
             input.disabled = false;
             sendBtn.disabled = false;
+            isProcessing = false;
             input.focus();
 
             // Clean up
             activeMessageElements = {};
             accumulatedContent = {};
+            statusDiv = null;
+
+            console.log('[UI] Cleanup done');
         }
     }
 </script>
