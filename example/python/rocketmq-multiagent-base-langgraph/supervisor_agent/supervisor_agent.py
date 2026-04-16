@@ -9,21 +9,19 @@ from asyncio import Queue
 from collections import defaultdict
 from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import TypedDict, Literal, Optional, Annotated
+from typing import TypedDict, Literal, Optional
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from rocketmq import MessageListener, ConsumeResult, Message
 from sse_starlette.sse import EventSourceResponse
 from dotenv import load_dotenv
-import operator
 
 # LangChain for Direct LLM Call (No App ID needed for Supervisor)
 from langchain_community.chat_models import ChatTongyi
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from langgraph.graph import StateGraph, END
-from langgraph.checkpoint.memory import MemorySaver
 
 from common.mq_toos import build_producer, build_message, build_lite_push_consumer, logger
 from common.models import MessagePayload, AgentRole
@@ -154,9 +152,6 @@ class StreamQueueManager:
 
 stream_queue_manager = StreamQueueManager()
 
-# Initialize LangGraph memory saver for persistent state across requests
-memory = MemorySaver()
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -229,11 +224,6 @@ class AgentState(TypedDict):
     travel_trace_id: Optional[str]
     weather_complete: bool
 
-    # Context memory fields managed by LangGraph state
-    conversation_history: list
-    weather_cache: dict
-    session_id: str
-
 
 result_store = {}
 lock = threading.Lock()
@@ -258,100 +248,14 @@ def wait_for_result_sync(trace_id: str, timeout: int):
     return None
 
 
-def check_weather_cache(state: AgentState) -> AgentState:
-    """Check if weather data is already in cache before calling Weather Agent."""
-    city = state.get("city", "")
-    date_info = state.get("date_info", "今天")
-    weather_cache = state.get("weather_cache", {})
-
-    logger.info(
-        f"[Cache Check] city={city}, date={date_info}, cache_size={len(weather_cache)}, cache_keys={list(weather_cache.keys())}")
-
-    cache_key = f"{city}_{date_info}"
-
-    if cache_key in weather_cache:
-        cached_data = weather_cache[cache_key]
-        cache_age = time.time() - cached_data.get("timestamp", 0)
-
-        if cache_age < 3600:
-            logger.info(f"✅ Cache hit for {cache_key}")
-
-            async def send_cached_streaming():
-                trace_id = state["trace_id"]
-                cached_weather = cached_data["data"]
-                chunks = [cached_weather[i:i + 50] for i in range(0, len(cached_weather), 50)]
-
-                for idx, chunk in enumerate(chunks):
-                    payload = MessagePayload(
-                        trace_id=trace_id,
-                        role=AgentRole.WEATHER,
-                        content=chunk,
-                        bind_topic="",
-                        lite_topic="",
-                        metadata={
-                            "chunk_index": idx,
-                            "is_final": idx == len(chunks) - 1,
-                            "error": False,
-                            "from_cache": True
-                        }
-                    )
-                    try:
-                        loop = asyncio.get_running_loop()
-                        asyncio.create_task(stream_queue_manager.put_payload(payload))
-                    except RuntimeError:
-                        if stream_queue_manager.loop:
-                            import threading
-                            def put_in_thread():
-                                asyncio.run_coroutine_threadsafe(
-                                    stream_queue_manager.put_payload(payload),
-                                    stream_queue_manager.loop
-                                )
-
-                            threading.Thread(target=put_in_thread, daemon=True).start()
-                    await asyncio.sleep(0.05)
-
-            try:
-                loop = asyncio.get_running_loop()
-                asyncio.create_task(send_cached_streaming())
-            except RuntimeError:
-                if stream_queue_manager.loop:
-                    import threading
-                    def run_stream():
-                        asyncio.run_coroutine_threadsafe(
-                            send_cached_streaming(),
-                            stream_queue_manager.loop
-                        )
-
-                    threading.Thread(target=run_stream, daemon=True).start()
-
-            return {
-                "weather_data": cached_weather,
-                "weather_complete": True,
-                "weather_trace_id": state["trace_id"]
-            }
-
-    logger.info(f"❌ Cache miss for {cache_key}, will call Weather Agent")
-    return {"weather_complete": False}
-
-
 def router_node(state: AgentState):
     """
     Supervisor logic: Use Qwen model for intent recognition and time extraction
     """
     current_time_str = datetime.now().strftime("%Y年%m月%d日 %A")
 
-    conversation_history = state.get("conversation_history", [])
-    history_context = ""
-    if conversation_history:
-        recent_convos = conversation_history[-6:]
-        history_context = "\n对话历史:\n" + "\n".join([
-            f"{'用户' if c['role'] == 'user' else '助手'}: {c['content']}"
-            for c in recent_convos
-        ])
-
     system_prompt = f"""
     当前系统时间: {current_time_str}
-    {history_context}
     
     你是一个智能路由主管。分析用户输入，提取关键信息，返回严格的 JSON 格式：
     1. 查天气: {{"intent": "weather", "city": "城市名", "date": "具体日期描述"}}
@@ -360,7 +264,6 @@ def router_node(state: AgentState):
     
     规则：
     - 如果用户未提及日期，weather 默认填"今天"，travel 默认填"近期"。
-    - 如果用户说"同样的"、"再查一次"等，使用上一次的城市和日期。
     - 只返回 JSON，不要包含 Markdown 标记或其他文字。
     """
 
@@ -376,30 +279,10 @@ def router_node(state: AgentState):
         clean = response.content.replace("", "").strip()
         data = json.loads(clean)
 
-        city = data.get("city", "")
-        date_info = data.get("date", "今天")
-
-        if not city and conversation_history:
-            last_city = None
-            last_date = None
-            for conv in reversed(conversation_history):
-                if conv.get("city"):
-                    last_city = conv["city"]
-                    break
-            for conv in reversed(conversation_history):
-                if conv.get("date_info"):
-                    last_date = conv["date_info"]
-                    break
-
-            if not city and last_city:
-                city = last_city
-            if date_info == "今天" and last_date and "再" in state['user_input']:
-                date_info = last_date
-
         return {
             "intent": data.get("intent", "chat"),
-            "city": city,
-            "date_info": date_info
+            "city": data.get("city", ""),
+            "date_info": data.get("date", "今天")
         }
     except Exception as e:
         print(f"Router Error: {e}")
@@ -408,16 +291,13 @@ def router_node(state: AgentState):
 
 def weather_node(state: AgentState):
     """
-    Send MQ task to Weather Agent (only if not cached).
-    Background thread aggregates complete weather data.
+    Send MQ task to Weather Agent:
+    1. Streaming messages automatically flow to frontend via RocketMQ → StreamQueueManager
+    2. Background thread aggregates complete weather data for TravelAgent
     """
     city = state.get("city", "")
     date_info = state.get("date_info", "今天")
     intent = state.get("intent", "")
-
-    if state.get("weather_complete", False):
-        logger.info("Weather data already available from cache, skipping Weather Agent")
-        return {}
 
     if not city:
         return {"weather_data": "未识别到城市", "final_response": "请提供城市名称", "weather_complete": True}
@@ -439,22 +319,22 @@ def weather_node(state: AgentState):
         """Background thread to collect complete weather data"""
         weather_chunks = []
         start_time = time.time()
-        timeout = 120.0
+        timeout = 30.0
 
         while time.time() - start_time < timeout:
             payload = wait_for_result_sync(weather_trace_id, timeout=1)
             if payload:
                 weather_chunks.append(payload.content)
                 if payload.metadata and payload.metadata.get("is_final", False):
-                    complete_weather = "".join(weather_chunks)
                     logger.info(
-                        f"Weather collection complete for {weather_trace_id}: {len(complete_weather)} chars")
-
-                    with lock:
-                        result_store[f"{weather_trace_id}_complete"] = complete_weather
-                        logger.info(f"[Aggregation] Weather data stored for {weather_trace_id}")
+                        f"Weather collection complete for {weather_trace_id}: {len(''.join(weather_chunks))} chars")
                     break
             time.sleep(0.1)
+
+        complete_weather = "".join(weather_chunks)
+        with lock:
+            result_store[f"{weather_trace_id}_complete"] = complete_weather
+            logger.info(f"[Aggregation] Weather data stored for {weather_trace_id}")
 
     collector_thread = threading.Thread(target=collect_weather_result, daemon=True)
     collector_thread.start()
@@ -466,98 +346,33 @@ def weather_node(state: AgentState):
     }
 
 
-def update_weather_cache_node(state: AgentState) -> AgentState:
-    """After weather_node completes, update the weather_cache in state."""
+def travel_node(state: AgentState):
+    """
+    Wait for weather data aggregation, then send MQ task to Travel Agent with weather info
+    """
     weather_trace_id = state.get("weather_trace_id", "")
-    city = state.get("city", "")
-    date_info = state.get("date_info", "今天")
-
-    if not weather_trace_id or state.get("weather_complete", False):
-        return {}
 
     complete_key = f"{weather_trace_id}_complete"
     weather_data = ""
     start_time = time.time()
-    timeout = 120.0
+    timeout = 35.0
 
-    logger.info(f"[Cache Update] Waiting for weather data...")
+    print(f"[Web] Waiting for weather data to complete before sending travel task...")
 
     while time.time() - start_time < timeout:
         with lock:
             if complete_key in result_store:
                 weather_data = result_store[complete_key]
-                logger.info(f"[Cache Update] Weather data collected: {len(weather_data)} chars")
+                logger.info(f"[Web] Weather data collected: {len(weather_data)} chars")
                 break
         time.sleep(0.2)
 
-    if weather_data:
-        cache_key = f"{city}_{date_info}"
-
-        # Merge with existing cache instead of replacing
-        existing_cache = state.get("weather_cache", {})
-        new_cache_entry = {
-            **existing_cache,
-            cache_key: {
-                "city": city,
-                "date": date_info,
-                "data": weather_data,
-                "timestamp": time.time()
-            }
-        }
-
-        logger.info(f"[Cache Update] ✅ Cached weather for {cache_key}, total cache entries: {len(new_cache_entry)}")
-
-        # Append to existing conversation history
-        existing_history = state.get("conversation_history", [])
-        updated_history = existing_history + [{
-            "role": "assistant",
-            "content": f"查询到{city}{date_info}的天气：{weather_data}",
-            "city": city,
-            "date_info": date_info
-        }]
-
-        logger.info(f"[Cache Update] Updated conversation history: {len(updated_history)} entries")
-
-        return {
-            "weather_data": weather_data,
-            "weather_cache": new_cache_entry,
-            "conversation_history": updated_history
-        }
-
-    return {}
-
-
-def travel_node(state: AgentState):
-    """
-    Wait for weather data, then send MQ task to Travel Agent.
-    Uses weather_data from state (either from cache or fresh query).
-    """
-    weather_trace_id = state.get("weather_trace_id", "")
-    city = state.get("city", "")
-    date_info = state.get("date_info", "近期")
-
-    weather_data = state.get("weather_data", "")
-
-    if not weather_data and weather_trace_id:
-        complete_key = f"{weather_trace_id}_complete"
-        start_time = time.time()
-        timeout = 120.0
-
-        logger.info(f"[Travel Node] Waiting for weather data...")
-
-        while time.time() - start_time < timeout:
-            with lock:
-                if complete_key in result_store:
-                    weather_data = result_store[complete_key]
-                    logger.info(f"[Travel Node] Weather data collected: {len(weather_data)} chars")
-                    break
-            time.sleep(0.2)
-
     if not weather_data:
-        logger.warning(f"[Travel Node] No weather data available")
+        logger.warning(f"[Web] Weather data timeout, proceeding without it")
         weather_data = "天气信息获取超时,请基于一般情况规划行程"
 
     travel_trace_id = str(uuid.uuid4())
+    date_info = state.get("date_info", "近期")
     user_input = state["user_input"]
 
     print(f"[Web] Sending Travel Task with weather info ({len(weather_data)} chars)")
@@ -582,26 +397,18 @@ def travel_node(state: AgentState):
 def chat_node(state: AgentState):
     """
     Directly call LLM for chat responses with streaming support.
-    Includes conversation history from state for better context.
+    The streaming chunks are sent to frontend via StreamQueueManager.
     """
     trace_id = state["trace_id"]
     user_input = state["user_input"]
-    conversation_history = state.get("conversation_history", [])
 
-    system_prompt = """你是一个友好助手，可以进行日常闲聊。请用自然、友好的语气与用户交流。
-如果用户之前询问过天气或行程信息，你可以参考这些信息进行回复。"""
+    system_prompt = """你是一个友好助手，可以进行日常闲聊。请用自然、友好的语气与用户交流。"""
 
     try:
-        messages = [SystemMessage(content=system_prompt)]
-
-        recent_history = conversation_history[-10:]
-        for conv in recent_history:
-            if conv["role"] == "user":
-                messages.append(HumanMessage(content=conv["content"]))
-            elif conv["role"] == "assistant":
-                messages.append(SystemMessage(content=f"助手之前的回复: {conv['content']}"))
-
-        messages.append(HumanMessage(content=user_input))
+        messages = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=user_input)
+        ]
 
         chunk_index = 0
         full_response = []
@@ -635,7 +442,6 @@ def chat_node(state: AgentState):
                                 stream_queue_manager.put_payload(payload),
                                 stream_queue_manager.loop
                             )
-
                         threading.Thread(target=put_in_thread, daemon=True).start()
 
                 chunk_index += 1
@@ -666,22 +472,11 @@ def chat_node(state: AgentState):
                         stream_queue_manager.put_payload(final_payload),
                         stream_queue_manager.loop
                     )
-
                 threading.Thread(target=put_final_in_thread, daemon=True).start()
 
         logger.info(f"Chat response completed for trace_id: {trace_id}, length: {len(complete_response)}")
 
-        # Append to existing conversation history
-        existing_history = state.get("conversation_history", [])
-        updated_history = existing_history + [
-            {"role": "user", "content": user_input},
-            {"role": "assistant", "content": complete_response}
-        ]
-
-        return {
-            "final_response": complete_response,
-            "conversation_history": updated_history
-        }
+        return {"final_response": complete_response}
 
     except Exception as e:
         logger.error(f"Chat node error: {e}", exc_info=True)
@@ -710,38 +505,22 @@ def chat_node(state: AgentState):
                         stream_queue_manager.put_payload(error_payload),
                         stream_queue_manager.loop
                     )
-
                 threading.Thread(target=put_error_in_thread, daemon=True).start()
 
         return {"final_response": f"Error: {str(e)}"}
 
 
-def route_after_router(state: AgentState) -> Literal["check_weather_cache", "chat_node"]:
+def route_after_router(state: AgentState) -> Literal["weather_node", "travel_node", "chat_node"]:
     intent = state.get("intent")
-    if intent in ["weather", "travel"]:
-        return "check_weather_cache"
+    if intent == "weather":
+        return "weather_node"
+    elif intent == "travel":
+        return "weather_node"
     else:
         return "chat_node"
 
 
-def route_after_cache_check(state: AgentState) -> Literal["weather_node", "travel_node", "update_weather_cache_node"]:
-    intent = state.get("intent")
-    weather_complete = state.get("weather_complete", False)
-
-    if weather_complete:
-        if intent == "travel":
-            return "travel_node"
-        else:
-            return "update_weather_cache_node"
-    else:
-        return "weather_node"
-
-
-def route_after_weather(state: AgentState) -> Literal["update_weather_cache_node"]:
-    return "update_weather_cache_node"
-
-
-def route_after_cache_update(state: AgentState) -> Literal["travel_node", END]:
+def route_after_weather(state: AgentState) -> Literal["travel_node", END]:
     intent = state.get("intent")
     if intent == "travel":
         return "travel_node"
@@ -751,9 +530,7 @@ def route_after_cache_update(state: AgentState) -> Literal["travel_node", END]:
 
 workflow = StateGraph(AgentState)
 workflow.add_node("router", router_node)
-workflow.add_node("check_weather_cache", check_weather_cache)
 workflow.add_node("weather_node", weather_node)
-workflow.add_node("update_weather_cache_node", update_weather_cache_node)
 workflow.add_node("travel_node", travel_node)
 workflow.add_node("chat_node", chat_node)
 
@@ -763,26 +540,15 @@ workflow.add_conditional_edges(
     "router",
     route_after_router,
     {
-        "check_weather_cache": "check_weather_cache",
+        "weather_node": "weather_node",
+        "travel_node": "weather_node",
         "chat_node": "chat_node",
     }
 )
 
 workflow.add_conditional_edges(
-    "check_weather_cache",
-    route_after_cache_check,
-    {
-        "weather_node": "weather_node",
-        "travel_node": "travel_node",
-        "update_weather_cache_node": "update_weather_cache_node",
-    }
-)
-
-workflow.add_edge("weather_node", "update_weather_cache_node")
-
-workflow.add_conditional_edges(
-    "update_weather_cache_node",
-    route_after_cache_update,
+    "weather_node",
+    route_after_weather,
     {
         "travel_node": "travel_node",
         END: END
@@ -792,8 +558,7 @@ workflow.add_conditional_edges(
 workflow.add_edge("travel_node", END)
 workflow.add_edge("chat_node", END)
 
-# Compile with memory checkpointer to persist state across requests
-app_graph = workflow.compile(checkpointer=memory)
+app_graph = workflow.compile()
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -802,60 +567,23 @@ def read_root():
         return f.read()
 
 
-
 @app.post("/chat")
 async def chat(request: dict):
     user_input = request.get("message")
     main_trace_id = str(uuid.uuid4())
 
-    session_id_from_request = request.get("session_id", session_id)
-
-    logger.info(f"[Session] Request received - session_id: {session_id_from_request}, trace_id: {main_trace_id}")
-
-    # Configure LangGraph to use session_id as thread_id for state persistence
-    config = {"configurable": {"thread_id": session_id_from_request}}
-
-    # Manually retrieve previous state from MemorySaver
-    previous_state_snapshot = memory.get(config)
-
-    if previous_state_snapshot and previous_state_snapshot.get("values"):
-        previous_values = previous_state_snapshot["values"]
-        cached_keys = list(previous_values.get("weather_cache", {}).keys())
-        history_count = len(previous_values.get("conversation_history", []))
-        logger.info(f"[Memory] ✅ Found previous state - cache keys: {cached_keys}, history entries: {history_count}")
-
-        # Merge previous persistent state with new request data
-        initial_state = {
-            **previous_values,  # Load all previous state (cache, history, etc.)
-            "trace_id": main_trace_id,  # Override with new trace_id
-            "user_input": user_input,   # Override with new input
-            "intent": "",               # Reset per-request fields
-            "city": "",
-            "date_info": "",
-            "weather_data": "",
-            "final_response": "",
-            "weather_trace_id": None,
-            "travel_trace_id": None,
-            "weather_complete": False,
-        }
-    else:
-        logger.info(f"[Memory] ❌ No previous state found for session {session_id_from_request}")
-        # First request, start with empty state
-        initial_state = {
-            "trace_id": main_trace_id,
-            "user_input": user_input,
-            "intent": "",
-            "city": "",
-            "date_info": "",
-            "weather_data": "",
-            "final_response": "",
-            "weather_trace_id": None,
-            "travel_trace_id": None,
-            "weather_complete": False,
-            "conversation_history": [],
-            "weather_cache": {},
-            "session_id": session_id_from_request
-        }
+    initial_state = {
+        "trace_id": main_trace_id,
+        "user_input": user_input,
+        "intent": "",
+        "city": "",
+        "date_info": "",
+        "weather_data": "",
+        "final_response": "",
+        "weather_trace_id": None,
+        "travel_trace_id": None,
+        "weather_complete": False
+    }
 
     response_queue = stream_queue_manager.register_trace(main_trace_id)
 
@@ -866,41 +594,29 @@ async def chat(request: dict):
             active_traces = set()
             completed_traces = set()
             is_chat_mode = False
-            final_state = None
 
             async def run_graph():
-                nonlocal is_chat_mode, final_state
+                nonlocal is_chat_mode
                 try:
-                    # Pass config to enable state persistence via MemorySaver
-                    async for event in app_graph.astream(initial_state, config=config):
+                    async for event in app_graph.astream(initial_state):
                         for node_name, output in event.items():
-                            logger.info(f"Graph node executed: {node_name}")
+                            logger.info(f"Graph node executed: {node_name}, output: {output}")
 
                             if node_name == "chat_node":
                                 is_chat_mode = True
                                 logger.info("Detected chat mode, will wait for streaming completion")
 
-                            if isinstance(output, dict):
-                                logger.info(f"Output keys: {output.keys()}")
-                                if "conversation_history" in output:
-                                    logger.info(
-                                        f"Updated conversation history: {len(output['conversation_history'])} entries")
-                                if "weather_cache" in output:
-                                    logger.info(f"Updated weather cache: {list(output['weather_cache'].keys())}")
-                                final_state = output
+                            if "weather_trace_id" in output and output["weather_trace_id"]:
+                                weather_tid = output["weather_trace_id"]
+                                active_traces.add(weather_tid)
+                                stream_queue_manager.register_sub_trace(weather_tid, main_trace_id)
+                                logger.info(f"Registered weather trace: {weather_tid} -> {main_trace_id}")
 
-                            if output and isinstance(output, dict):
-                                if "weather_trace_id" in output and output["weather_trace_id"]:
-                                    weather_tid = output["weather_trace_id"]
-                                    active_traces.add(weather_tid)
-                                    stream_queue_manager.register_sub_trace(weather_tid, main_trace_id)
-                                    logger.info(f"Registered weather trace: {weather_tid} -> {main_trace_id}")
-
-                                if "travel_trace_id" in output and output["travel_trace_id"]:
-                                    travel_tid = output["travel_trace_id"]
-                                    active_traces.add(travel_tid)
-                                    stream_queue_manager.register_sub_trace(travel_tid, main_trace_id)
-                                    logger.info(f"Registered travel trace: {travel_tid} -> {main_trace_id}")
+                            if "travel_trace_id" in output and output["travel_trace_id"]:
+                                travel_tid = output["travel_trace_id"]
+                                active_traces.add(travel_tid)
+                                stream_queue_manager.register_sub_trace(travel_tid, main_trace_id)
+                                logger.info(f"Registered travel trace: {travel_tid} -> {main_trace_id}")
 
                 except Exception as e:
                     logger.error(f"Graph execution error: {e}", exc_info=True)
@@ -1005,7 +721,7 @@ async def chat(request: dict):
                         break
 
             try:
-                await asyncio.wait_for(graph_task, timeout=120.0)
+                await asyncio.wait_for(graph_task, timeout=10.0)
             except asyncio.TimeoutError:
                 logger.warning("Graph task timeout, continuing...")
 

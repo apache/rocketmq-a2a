@@ -27,7 +27,7 @@ ACCESS_KEY = os.getenv("ROCKETMQ_ACCESS_KEY")
 SECRET_KEY = os.getenv("ROCKETMQ_SECRET_KEY")
 
 # Global RocketMQ client instances
-push_consumer = None
+lite_push_consumer = None
 producer = None
 
 # Configure logging
@@ -69,7 +69,7 @@ def init_rocketmq():
     Raises:
         Exception: If initialization fails due to invalid credentials or connection issues
     """
-    global push_consumer, producer
+    global lite_push_consumer, producer
 
     try:
         # Initialize consumer to listen for travel tasks
@@ -271,9 +271,9 @@ def shutdown():
     """Gracefully shutdown RocketMQ clients."""
     logger.info("Shutting down RocketMQ clients...")
 
-    if push_consumer:
+    if lite_push_consumer:
         try:
-            push_consumer.shutdown()
+            lite_push_consumer.shutdown()
             logger.info("Push consumer shutdown successfully")
         except Exception as e:
             logger.error(f"Error shutting down consumer: {e}")

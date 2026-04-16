@@ -12,10 +12,33 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
         }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
         h2 {
             color: white;
-            text-align: center;
             text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            margin: 0 0 8px 0;
+        }
+        .session-info {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 12px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+        .session-label {
+            font-size: 0.75em;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+        }
+        .session-id {
+            font-family: 'Courier New', monospace;
+            font-size: 0.7em;
+            color: white;
+            margin-left: 6px;
+            opacity: 0.9;
         }
         #chat-box {
             background: white;
@@ -145,7 +168,13 @@
     </style>
 </head>
 <body>
-<h2>🤖 LangGraph Supervisor + RocketMQ Streaming</h2>
+<div class="header">
+    <h2>🤖 LangGraph Supervisor + RocketMQ Streaming</h2>
+    <div class="session-info">
+        <span class="session-label">Session:</span>
+        <span class="session-id" id="session-id-display"></span>
+    </div>
+</div>
 <div id="chat-box"></div>
 <div class="input-area">
     <input type="text" id="user-input" placeholder="例如：杭州明天天气？ 或 帮我做杭州下周六自驾游规划" onkeypress="if(event.key==='Enter') sendMessage()">
@@ -155,6 +184,21 @@
 <script>
     const chatBox = document.getElementById('chat-box');
     const sendBtn = document.getElementById('send-btn');
+
+    // Generate session ID when page loads
+    const sessionId = generateUUID();
+
+    // Display session ID on page
+    document.getElementById('session-id-display').textContent = sessionId;
+
+    // Function to generate UUID v4
+    function generateUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
 
     // Track active message elements for streaming updates
     let activeMessageElements = {};
@@ -220,7 +264,10 @@
             const response = await fetch('/chat', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ message: text })
+                body: JSON.stringify({
+                    message: text,
+                    session_id: sessionId
+                })
             });
 
             const reader = response.body.getReader();
@@ -256,7 +303,7 @@
                             if (obj.type === 'start') {
                                 if (statusDiv) statusDiv.remove();
                                 statusDiv = appendMessage('', '⏳ 正在处理您的请求...', null, true);
-                                console.log('Started with trace_id:', obj.trace_id);
+                                console.log('Started with trace_id:', obj.trace_id, 'session_id:', sessionId);
 
                             } else if (obj.type === 'chunk') {
                                 if (statusDiv) {
