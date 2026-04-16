@@ -158,7 +158,7 @@ def travel_node(state: AgentState):
         logger.warning(f"[Web] Weather data not found in state, trying to retrieve from store")
         complete_key = f"{weather_trace_id}_complete"
         start_time = time.time()
-        timeout = 5.0
+        timeout = 120.0
 
         while time.time() - start_time < timeout:
             with lock:
