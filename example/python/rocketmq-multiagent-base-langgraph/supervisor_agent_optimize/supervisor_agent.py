@@ -4,8 +4,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from common.mq_toos import logger
-from supervisor_agent_optimize.my_common.stream.stream_manager import stream_queue_manager
-from supervisor_agent_optimize.rocketmq.mq_service import init_rocketmq
+from supervisor_agent_optimize.utils.stream.stream_manager import stream_queue_manager
+from supervisor_agent_optimize.utils.rocketmq.mq_service import init_rocketmq
 from supervisor_agent_optimize.web.routes import router
 
 

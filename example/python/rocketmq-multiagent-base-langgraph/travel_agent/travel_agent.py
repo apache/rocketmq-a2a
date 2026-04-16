@@ -4,6 +4,7 @@ import os
 import json
 import signal
 import threading
+import time
 
 from dotenv import load_dotenv
 
@@ -169,7 +170,7 @@ def call_bailian_travel_app_streaming(request: str, date_info: str, weather_info
                     chunk_count += 1
                     logger.info(f"Stream chunk {chunk_count} received (incremental): {incremental_text}")
 
-                    # Send only the incremental text via RocketMQ
+                    # Create chunk payload
                     chunk_payload = MessagePayload(
                         trace_id=payload.trace_id,
                         role=AgentRole.TRAVEL,
@@ -178,7 +179,22 @@ def call_bailian_travel_app_streaming(request: str, date_info: str, weather_info
                         lite_topic=None,
                         metadata={"chunk_index": chunk_count, "is_final": False}
                     )
-                    send_message(payload.bind_topic, chunk_payload, payload.lite_topic)
+
+                    # Send with retry mechanism (max 3 attempts)
+                    send_success = False
+                    for attempt in range(3):
+                        try:
+                            send_message(payload.bind_topic, chunk_payload, payload.lite_topic)
+                            send_success = True
+                            logger.debug(f"Chunk {chunk_count} sent successfully on attempt {attempt + 1}")
+                            break
+                        except Exception as e:
+                            logger.warning(f"Failed to send chunk {chunk_count} (attempt {attempt + 1}/3): {str(e)}")
+                            if attempt < 2:  # Not the last attempt
+                                time.sleep(0.5)  # Wait before retry
+
+                    if not send_success:
+                        logger.error(f"Failed to send chunk {chunk_count} after 3 attempts, skipping to next chunk")
 
                 # Update previous text for next comparison
                 previous_text = current_text
@@ -195,7 +211,18 @@ def call_bailian_travel_app_streaming(request: str, date_info: str, weather_info
                     lite_topic=None,
                     metadata={"chunk_index": chunk_count, "is_final": True, "error": True}
                 )
-                send_message(payload.bind_topic, error_payload, payload.lite_topic)
+
+                # Send error with retry
+                for attempt in range(3):
+                    try:
+                        send_message(payload.bind_topic, error_payload, payload.lite_topic)
+                        logger.debug(f"Error payload sent successfully on attempt {attempt + 1}")
+                        break
+                    except Exception as e:
+                        logger.warning(f"Failed to send error payload (attempt {attempt + 1}/3): {str(e)}")
+                        if attempt < 2:
+                            time.sleep(0.5)
+
                 return
 
         logger.info(f"Streaming completed. Total chunks sent: {chunk_count}")
@@ -209,7 +236,17 @@ def call_bailian_travel_app_streaming(request: str, date_info: str, weather_info
             lite_topic=None,
             metadata={"chunk_index": chunk_count, "is_final": True}
         )
-        send_message(payload.bind_topic, final_payload, payload.lite_topic)
+
+        # Send final marker with retry
+        for attempt in range(3):
+            try:
+                send_message(payload.bind_topic, final_payload, payload.lite_topic)
+                logger.debug(f"Final marker sent successfully on attempt {attempt + 1}")
+                break
+            except Exception as e:
+                logger.warning(f"Failed to send final marker (attempt {attempt + 1}/3): {str(e)}")
+                if attempt < 2:
+                    time.sleep(0.5)
 
     except Exception as e:
         error_msg = f"Exception occurred while calling Bailian API: {str(e)}"
@@ -223,7 +260,17 @@ def call_bailian_travel_app_streaming(request: str, date_info: str, weather_info
             lite_topic=None,
             metadata={"chunk_index": 0, "is_final": True, "error": True}
         )
-        send_message(payload.bind_topic, error_payload, payload.lite_topic)
+
+        # Send exception error with retry
+        for attempt in range(3):
+            try:
+                send_message(payload.bind_topic, error_payload, payload.lite_topic)
+                logger.debug(f"Exception error payload sent successfully on attempt {attempt + 1}")
+                break
+            except Exception as send_e:
+                logger.warning(f"Failed to send exception error payload (attempt {attempt + 1}/3): {str(send_e)}")
+                if attempt < 2:
+                    time.sleep(0.5)
 
 
 def handle_message(payload: MessagePayload):

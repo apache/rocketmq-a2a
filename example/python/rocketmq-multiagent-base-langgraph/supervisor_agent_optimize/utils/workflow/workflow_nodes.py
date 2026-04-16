@@ -12,16 +12,16 @@ from langgraph.graph import END
 
 from common.models import MessagePayload, AgentRole
 from common.mq_toos import logger
-from supervisor_agent_optimize.my_common.config.config import (
+from supervisor_agent_optimize.utils.config.config import (
     DASHSCOPE_API_KEY,
     WEATHER_AGENT_TOPIC,
     TRAVEL_AGENT_TOPIC,
     SESSION_ID,
     WORK_AGENT_RESPONSE_TOPIC
 )
-from supervisor_agent_optimize.my_common.models.models import AgentState
-from supervisor_agent_optimize.my_common.stream.stream_manager import stream_queue_manager
-from supervisor_agent_optimize.rocketmq.mq_service import send_message_new
+from supervisor_agent_optimize.utils.models.models import AgentState
+from supervisor_agent_optimize.utils.stream.stream_manager import stream_queue_manager
+from supervisor_agent_optimize.utils.rocketmq.mq_service import send_message_new
 
 # Initialize LLM
 llm_supervisor = ChatTongyi(
@@ -90,6 +90,7 @@ def weather_node(state: AgentState):
     city = state.get("city", "")
     date_info = state.get("date_info", "今天")
     intent = state.get("intent", "")
+    main_trace_id = state.get("trace_id", "")
 
     if not city:
         return {"weather_data": "未识别到城市", "final_response": "请提供城市名称", "weather_complete": True}
@@ -99,6 +100,10 @@ def weather_node(state: AgentState):
     content_json = json.dumps({"city": city, "date": date_info})
     weather_trace_id = str(uuid.uuid4())
 
+    # Register sub-trace immediately so frontend can receive streaming messages
+    stream_queue_manager.register_sub_trace(weather_trace_id, main_trace_id)
+    logger.info(f"Registered weather sub-trace: {weather_trace_id} -> {main_trace_id}")
+
     send_message_new(WEATHER_AGENT_TOPIC, MessagePayload(
         trace_id=weather_trace_id,
         role=AgentRole.WEATHER,
@@ -107,59 +112,64 @@ def weather_node(state: AgentState):
         lite_topic=SESSION_ID
     ))
 
-    def collect_weather_result():
-        """Background thread to collect complete weather data"""
-        weather_chunks = []
-        start_time = time.time()
-        timeout = 30.0
+    # Collect weather data synchronously (blocking)
+    weather_chunks = []
+    start_time = time.time()
+    timeout = 30.0
 
-        while time.time() - start_time < timeout:
-            payload = wait_for_result_sync(weather_trace_id, timeout=1)
-            if payload:
-                weather_chunks.append(payload.content)
-                if payload.metadata and payload.metadata.get("is_final", False):
-                    logger.info(
-                        f"Weather collection complete for {weather_trace_id}: {len(''.join(weather_chunks))} chars")
-                    break
-            time.sleep(0.1)
+    print(f"[Web] Waiting for weather data collection...")
 
-        complete_weather = "".join(weather_chunks)
-        with lock:
-            result_store[f"{weather_trace_id}_complete"] = complete_weather
-            logger.info(f"[Aggregation] Weather data stored for {weather_trace_id}")
+    while time.time() - start_time < timeout:
+        payload = wait_for_result_sync(weather_trace_id, timeout=1)
+        if payload:
+            weather_chunks.append(payload.content)
+            if payload.metadata and payload.metadata.get("is_final", False):
+                logger.info(
+                    f"Weather collection complete for {weather_trace_id}: {len(''.join(weather_chunks))} chars")
+                break
+        time.sleep(0.1)
 
-    collector_thread = threading.Thread(target=collect_weather_result, daemon=True)
-    collector_thread.start()
+    complete_weather = "".join(weather_chunks)
+
+    if not complete_weather:
+        logger.warning(f"[Web] Weather data timeout")
+        complete_weather = "天气信息获取超时,请基于一般情况规划行程"
+
+    # Store complete weather data for travel node
+    with lock:
+        result_store[f"{weather_trace_id}_complete"] = complete_weather
+        logger.info(f"[Aggregation] Weather data stored for {weather_trace_id}")
 
     return {
         "weather_trace_id": weather_trace_id,
         "intent": intent,
-        "weather_complete": False
+        "weather_data": complete_weather,
+        "weather_complete": True
     }
 
 
 def travel_node(state: AgentState):
-    """Travel node: Wait for weather data, then send task to Travel Agent"""
+    """Travel node: Send task to Travel Agent with weather info"""
     weather_trace_id = state.get("weather_trace_id", "")
+    weather_data = state.get("weather_data", "")
 
-    complete_key = f"{weather_trace_id}_complete"
-    weather_data = ""
-    start_time = time.time()
-    timeout = 35.0
-
-    print(f"[Web] Waiting for weather data to complete before sending travel task...")
-
-    while time.time() - start_time < timeout:
-        with lock:
-            if complete_key in result_store:
-                weather_data = result_store[complete_key]
-                logger.info(f"[Web] Weather data collected: {len(weather_data)} chars")
-                break
-        time.sleep(0.2)
-
+    # Weather data should already be collected by weather_node
     if not weather_data:
-        logger.warning(f"[Web] Weather data timeout, proceeding without it")
-        weather_data = "天气信息获取超时,请基于一般情况规划行程"
+        logger.warning(f"[Web] Weather data not found in state, trying to retrieve from store")
+        complete_key = f"{weather_trace_id}_complete"
+        start_time = time.time()
+        timeout = 5.0
+
+        while time.time() - start_time < timeout:
+            with lock:
+                if complete_key in result_store:
+                    weather_data = result_store[complete_key]
+                    break
+            time.sleep(0.1)
+
+        if not weather_data:
+            logger.warning(f"[Web] Weather data still not available, using default")
+            weather_data = "天气信息获取超时,请基于一般情况规划行程"
 
     travel_trace_id = str(uuid.uuid4())
     date_info = state.get("date_info", "近期")
