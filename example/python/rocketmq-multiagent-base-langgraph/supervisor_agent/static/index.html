@@ -40,6 +40,30 @@
             margin-left: 6px;
             opacity: 0.9;
         }
+        .connection-status {
+            text-align: center;
+            padding: 6px 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            font-size: 0.85em;
+            font-weight: 500;
+            backdrop-filter: blur(10px);
+        }
+        .status-connected {
+            background: rgba(81, 207, 102, 0.2);
+            color: white;
+            border: 1px solid rgba(81, 207, 102, 0.5);
+        }
+        .status-disconnected {
+            background: rgba(255, 107, 107, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 107, 107, 0.5);
+        }
+        .status-connecting {
+            background: rgba(255, 193, 7, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 193, 7, 0.5);
+        }
         #chat-box {
             background: white;
             height: 600px;
@@ -157,6 +181,7 @@
             padding: 15px;
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            align-items: center;
         }
         input {
             flex: 1;
@@ -170,7 +195,7 @@
             outline: none;
             border-color: #667eea;
         }
-        button {
+        .btn-primary {
             padding: 12px 28px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -180,18 +205,60 @@
             font-size: 15px;
             font-weight: 600;
             transition: transform 0.2s, box-shadow 0.2s;
+            white-space: nowrap;
         }
-        button:hover {
+        .btn-primary:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
         }
-        button:active {
+        .btn-primary:active {
             transform: translateY(0);
         }
-        button:disabled {
+        .btn-primary:disabled {
             background: #ccc;
             cursor: not-allowed;
             transform: none;
+        }
+        .btn-secondary {
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #667eea;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .btn-secondary:hover:not(:disabled) {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        .btn-secondary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-danger {
+            color: #ff6b6b;
+            border-color: #ff6b6b;
+        }
+        .btn-danger:hover:not(:disabled) {
+            background: #ff6b6b;
+            color: white;
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+        }
+        .btn-success {
+            color: #51cf66;
+            border-color: #51cf66;
+        }
+        .btn-success:hover:not(:disabled) {
+            background: #51cf66;
+            color: white;
+            box-shadow: 0 4px 12px rgba(81, 207, 102, 0.3);
         }
         .trace-info {
             font-size: 0.75em;
@@ -209,15 +276,29 @@
         <span class="session-id" id="session-id-display"></span>
     </div>
 </div>
+
+<div class="connection-status status-connected" id="connection-status">
+    ✅ 已连接
+</div>
+
 <div id="chat-box"></div>
 <div class="input-area">
     <input type="text" id="user-input" placeholder="例如：杭州明天天气？ 或 帮我做杭州下周六自驾游规划" onkeypress="if(event.key==='Enter') sendMessage()">
-    <button id="send-btn" onclick="sendMessage()">发送</button>
+    <button id="send-btn" class="btn-primary" onclick="sendMessage()">发送</button>
+    <button class="btn-secondary btn-danger" id="disconnect-btn" onclick="disconnectStream()">
+        🔌 断开
+    </button>
+    <button class="btn-secondary btn-success" id="reconnect-btn" onclick="reconnectStream()">
+        🔄 重连
+    </button>
 </div>
 
 <script>
     const chatBox = document.getElementById('chat-box');
     const sendBtn = document.getElementById('send-btn');
+    const disconnectBtn = document.getElementById('disconnect-btn');
+    const reconnectBtn = document.getElementById('reconnect-btn');
+    const connectionStatus = document.getElementById('connection-status');
 
     // Generate session ID when page loads
     const sessionId = generateUUID();
@@ -238,6 +319,34 @@
     let activeMessageElements = {};
     let isProcessing = false;
     let statusDiv = null;
+
+    // Connection state management
+    let currentReader = null;
+    let isConnected = true;
+    let isReconnecting = false;
+
+    // Update connection status display
+    function updateConnectionStatus(status, message) {
+        const statusClasses = {
+            'connected': 'status-connected',
+            'disconnected': 'status-disconnected',
+            'connecting': 'status-connecting'
+        };
+
+        connectionStatus.className = `connection-status ${statusClasses[status] || ''}`;
+
+        const icons = {
+            'connected': '✅',
+            'disconnected': '❌',
+            'connecting': '⏳'
+        };
+
+        connectionStatus.innerHTML = `${icons[status] || ''} ${message}`;
+
+        // Update button states
+        disconnectBtn.disabled = status !== 'connected';
+        reconnectBtn.disabled = status === 'connecting' || status === 'connected';
+    }
 
     function appendMessage(role, content, label = null, isStatus = false, isError = false, isSuccess = false) {
         if (isStatus) {
@@ -297,6 +406,12 @@
         const text = input.value.trim();
         if (!text) return;
 
+        // Check connection state
+        if (!isConnected) {
+            appendMessage('agent', '❌ 连接已断开，请先重新连接', 'System', false, true);
+            return;
+        }
+
         // Disable input during processing
         input.disabled = true;
         sendBtn.disabled = true;
@@ -328,6 +443,7 @@
             });
 
             const reader = response.body.getReader();
+            currentReader = reader;
             const decoder = new TextDecoder();
 
             while (true) {
@@ -434,7 +550,13 @@
         } catch (error) {
             console.error('[UI] Request failed:', error);
             hideLoading();
-            appendMessage('agent', '❌ 请求失败: ' + error.message, 'System', false, true);
+
+            // Don't show error if it's due to disconnection
+            if (error.name === 'AbortError' || error.message.includes('disconnected')) {
+                appendMessage('agent', '⚠️ 连接已断开', 'System', false, false);
+            } else {
+                appendMessage('agent', '❌ 请求失败: ' + error.message, 'System', false, true);
+            }
         } finally {
             // Re-enable input
             input.disabled = false;
@@ -446,10 +568,80 @@
             activeMessageElements = {};
             accumulatedContent = {};
             statusDiv = null;
+            currentReader = null;
 
             console.log('[UI] Cleanup done');
         }
     }
+
+    // Disconnect stream function
+    async function disconnectStream() {
+        console.log('[UI] Disconnecting stream...');
+
+        try {
+            // Cancel current reader if exists
+            if (currentReader) {
+                await currentReader.cancel();
+                currentReader = null;
+            }
+
+            isConnected = false;
+            updateConnectionStatus('disconnected', '已断开连接');
+
+            appendMessage('agent', '🔌 连接已手动断开', 'System', false, false, true);
+            console.log('[UI] Stream disconnected successfully');
+
+        } catch (error) {
+            console.error('[UI] Disconnect error:', error);
+            appendMessage('agent', '❌ 断开连接失败: ' + error.message, 'System', false, true);
+        }
+    }
+
+    // Reconnect stream function
+    async function reconnectStream() {
+        if (isReconnecting) {
+            console.log('[UI] Already reconnecting...');
+            return;
+        }
+
+        console.log('[UI] Reconnecting stream with session_id:', sessionId);
+
+        isReconnecting = true;
+        updateConnectionStatus('connecting', '正在重新连接...');
+
+        try {
+            // Send reconnect request with session_id
+            const response = await fetch('/reconnect', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    session_id: sessionId
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            isConnected = true;
+            isReconnecting = false;
+            updateConnectionStatus('connected', '已连接');
+
+            appendMessage('agent', `✅ 重新连接成功 (Session: ${sessionId})`, 'System', false, false, true);
+            console.log('[UI] Stream reconnected successfully');
+
+        } catch (error) {
+            console.error('[UI] Reconnect error:', error);
+            isReconnecting = false;
+            updateConnectionStatus('disconnected', '连接失败');
+            appendMessage('agent', '❌ 重新连接失败: ' + error.message, 'System', false, true);
+        }
+    }
+
+    // Initialize connection status
+    updateConnectionStatus('connected', '已连接');
 </script>
 </body>
 </html>

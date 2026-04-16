@@ -6,7 +6,7 @@ import asyncio
 from pathlib import Path
 
 from fastapi import APIRouter
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from sse_starlette.sse import EventSourceResponse
 
 from common.mq_toos import logger
@@ -195,3 +195,29 @@ async def chat(request: dict):
             yield {"data": "[DONE]"}
 
     return EventSourceResponse(event_generator())
+
+
+@router.post("/disconnect")
+async def disconnect(request: dict):
+    """Disconnect SSE stream endpoint"""
+    session_id = request.get("session_id", "")
+    logger.info(f"[Disconnect] Session ID: {session_id}")
+
+    return JSONResponse(content={
+        "status": "success",
+        "message": "Disconnected successfully",
+        "session_id": session_id
+    })
+
+
+@router.post("/reconnect")
+async def reconnect(request: dict):
+    """Reconnect SSE stream endpoint"""
+    session_id = request.get("session_id", "")
+    logger.info(f"[Reconnect] Session ID: {session_id}")
+
+    return JSONResponse(content={
+        "status": "success",
+        "message": "Reconnected successfully",
+        "session_id": session_id
+    })
