@@ -44,35 +44,7 @@ push_consumer = None
 producer = None
 
 
-class LiteTopicTestMessageListener(MessageListener):
-
-    def consume(self, message: Message) -> ConsumeResult:
-        try:
-            logger.info("receive msg")
-            body = message.body.decode('utf-8')
-            payload = MessagePayload.from_json(body)
-
-            # Put payload into async queue for streaming to frontend
-            try:
-                loop = asyncio.get_running_loop()
-                asyncio.create_task(stream_queue_manager.put_payload(payload))
-            except RuntimeError:
-                if stream_queue_manager.loop:
-                    asyncio.run_coroutine_threadsafe(
-                        stream_queue_manager.put_payload(payload),
-                        stream_queue_manager.loop
-                    )
-                else:
-                    logger.error("No event loop available to process payload")
-                    return ConsumeResult.FAILURE
-
-            logging.info("Receive the msginfo " + body)
-            return ConsumeResult.SUCCESS
-        except Exception as e:
-            logger.error(f"Failed to consume message: {e}", exc_info=True)
-            return ConsumeResult.FAILURE
-
-
+# 时间流队列
 class StreamQueueManager:
     """Manages async queues for streaming RocketMQ messages to SSE clients."""
 
@@ -149,23 +121,56 @@ class StreamQueueManager:
 
         logger.info(f"Unregistered queue for trace_id: {trace_id}")
 
-
+# 构造一个 流队列管理器
 stream_queue_manager = StreamQueueManager()
+
+
+# 定义LitePushConsumer的消费逻辑
+class LiteTopicTestMessageListener(MessageListener):
+
+    def consume(self, message: Message) -> ConsumeResult:
+        try:
+            logger.info("receive msg")
+            body = message.body.decode('utf-8')
+            payload = MessagePayload.from_json(body)
+            # 将payLoad数据放入异步队列，用于前端展示
+            # Put payload into async queue for streaming to frontend
+            try:
+                loop = asyncio.get_running_loop()
+                asyncio.create_task(stream_queue_manager.put_payload(payload))
+            except RuntimeError:
+                if stream_queue_manager.loop:
+                    asyncio.run_coroutine_threadsafe(
+                        stream_queue_manager.put_payload(payload),
+                        stream_queue_manager.loop
+                    )
+                else:
+                    logger.error("No event loop available to process payload")
+                    return ConsumeResult.FAILURE
+
+            logging.info("Receive the msginfo " + body)
+            return ConsumeResult.SUCCESS
+        except Exception as e:
+            logger.error(f"Failed to consume message: {e}", exc_info=True)
+            return ConsumeResult.FAILURE
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage event loop for stream queue manager."""
+    # 获取当前时间循环
     loop = asyncio.get_running_loop()
+    # 对流式队列管理器 设置时间循环，安全地执行异步操作
     stream_queue_manager.set_loop(loop)
     logger.info("Event loop configured for stream queue manager")
     yield
 
-
+# 启动web服务，并进行跨域访问的配置
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 
+# 发送rocketmq 服务
 def send_message_new(topic: str, payload: MessagePayload):
     """Send message synchronously"""
     try:
@@ -176,7 +181,7 @@ def send_message_new(topic: str, payload: MessagePayload):
     except Exception as e:
         logger.error(f"[MQ Error] Send failed: {e}")
 
-
+# 初始化 rocketmq服务
 def init_rocketmq():
     """
     Initialize RocketMQ consumer and producer clients.
@@ -205,6 +210,7 @@ def init_rocketmq():
         raise
 
 
+# 初始化langChain中 通义千问API
 llm_supervisor = ChatTongyi(
     model="qwen-turbo",
     dashscope_api_key=os.getenv("DASHSCOPE_API_KEY"),
@@ -212,6 +218,7 @@ llm_supervisor = ChatTongyi(
 )
 
 
+# 工作流中进行状态传递的 Agent结构体
 class AgentState(TypedDict):
     trace_id: str
     user_input: str
@@ -224,11 +231,12 @@ class AgentState(TypedDict):
     travel_trace_id: Optional[str]
     weather_complete: bool
 
-
+# 空字典，聚合来自RocketMQ的消息片段
 result_store = {}
+# 添加了一把互斥锁
 lock = threading.Lock()
 
-
+#  todo 老代码，考虑可以干掉
 def on_result_received(payload: MessagePayload):
     """Store received payloads for aggregation"""
     with lock:
@@ -237,6 +245,7 @@ def on_result_received(payload: MessagePayload):
         result_store[payload.trace_id].append(payload)
 
 
+# 不断的进行轮训 从result_store中获取 trace_id 对应的结果
 def wait_for_result_sync(trace_id: str, timeout: int):
     """Wait for next payload chunk for given trace_id"""
     start = time.time()
@@ -248,6 +257,7 @@ def wait_for_result_sync(trace_id: str, timeout: int):
     return None
 
 
+# 路由节点
 def router_node(state: AgentState):
     """
     Supervisor logic: Use Qwen model for intent recognition and time extraction
@@ -288,7 +298,7 @@ def router_node(state: AgentState):
         print(f"Router Error: {e}")
         return {"intent": "chat"}
 
-
+# 天气节点
 def weather_node(state: AgentState):
     """
     Send MQ task to Weather Agent:
@@ -346,6 +356,7 @@ def weather_node(state: AgentState):
     }
 
 
+# 行程规划节点
 def travel_node(state: AgentState):
     """
     Wait for weather data aggregation, then send MQ task to Travel Agent with weather info
@@ -394,6 +405,7 @@ def travel_node(state: AgentState):
     return {"travel_trace_id": travel_trace_id}
 
 
+# 聊天节点
 def chat_node(state: AgentState):
     """
     Directly call LLM for chat responses with streaming support.
