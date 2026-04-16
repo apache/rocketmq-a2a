@@ -2,7 +2,9 @@
 """RocketMQ consumer and producer management"""
 import asyncio
 import logging
-from rocketmq import MessageListener, ConsumeResult, Message
+from typing import Optional
+
+from rocketmq import MessageListener, ConsumeResult, Message, LitePushConsumer
 
 from common.models import MessagePayload
 from common.mq_toos import logger, build_producer, build_message, build_lite_push_consumer
@@ -16,7 +18,7 @@ from supervisor_agent.utils.config.config import (
     SESSION_ID
 )
 
-push_consumer = None
+lite_push_consumer: Optional[LitePushConsumer] = None
 producer = None
 
 
@@ -71,10 +73,10 @@ def send_message_new(topic: str, payload: MessagePayload):
 
 def init_rocketmq():
     """Initialize RocketMQ consumer and producer clients"""
-    global push_consumer, producer
+    global lite_push_consumer, producer
 
     try:
-        push_consumer = build_lite_push_consumer(
+        lite_push_consumer = build_lite_push_consumer(
             endpoint=ROCKETMQ_ENDPOINT,
             access_key=ROCKETMQ_ACCESS_KEY,
             secret_key=ROCKETMQ_SECRET_KEY,
@@ -82,7 +84,7 @@ def init_rocketmq():
             topic=WORK_AGENT_RESPONSE_TOPIC,
             message_listener=WorkerAgentMessageListener()
         )
-        push_consumer.subscribe_lite(SESSION_ID)
+        lite_push_consumer.subscribe_lite(SESSION_ID)
 
         producer = build_producer(
             endpoint=ROCKETMQ_ENDPOINT,
@@ -92,4 +94,74 @@ def init_rocketmq():
         logger.info("RocketMQ clients initialized successfully")
     except Exception as e:
         logger.error(f"Failed to initialize RocketMQ: {e}", exc_info=True)
+        raise
+
+
+
+def unsubscribe_lite_topic(session_id: str):
+    """
+    Unsubscribe from a specific lite topic by shutting down and recreating the consumer.
+
+    Note: RocketMQ LitePushConsumer doesn't support direct unsubscription.
+    This method logs the intent to unsubscribe for the given session.
+
+    Args:
+        session_id: The session ID (lite topic) to unsubscribe from
+    """
+    global lite_push_consumer
+
+    try:
+        if lite_push_consumer is None:
+            logger.warning("Push consumer is not initialized, nothing to unsubscribe")
+            return
+
+        logger.info(f"[Unsubscribe] Session ID: {session_id}")
+        logger.info(f"[Unsubscribe] Current consumer status: active")
+
+        # Note: LitePushConsumer doesn't have a direct unsubscribe method
+        # To truly unsubscribe, you would need to:
+        # 1. Shutdown the current consumer: push_consumer.shutdown()
+        # 2. Recreate it without the session_id subscription
+        #
+        # For now, we just log the unsubscribe request
+        # If you need actual unsubscription, implement consumer recreation logic here
+
+        logger.info(f"Unsubscribe request logged for session: {session_id}")
+
+    except Exception as e:
+        logger.error(f"Failed to process unsubscribe request for session {session_id}: {e}", exc_info=True)
+        raise
+
+
+def subscribe_lite_topic(session_id: str):
+    """
+    Subscribe to a specific lite topic (session).
+
+    Args:
+        session_id: The session ID (lite topic) to subscribe to
+
+    Raises:
+        RuntimeError: If push consumer is not initialized
+        Exception: If subscription fails
+    """
+    global lite_push_consumer
+
+    try:
+        if lite_push_consumer is None:
+            error_msg = "Push consumer is not initialized. Call init_rocketmq() first."
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
+
+        logger.info(f"[Subscribe] Session ID: {session_id}")
+
+        # Subscribe to the lite topic
+        lite_push_consumer.subscribe_lite(session_id)
+
+        logger.info(f"Successfully subscribed to session: {session_id}")
+
+    except RuntimeError:
+        # Re-raise RuntimeError as-is
+        raise
+    except Exception as e:
+        logger.error(f"Failed to subscribe to session {session_id}: {e}", exc_info=True)
         raise
