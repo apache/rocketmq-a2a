@@ -14,10 +14,10 @@ from supervisor_agent.utils.config.config import (
     ROCKETMQ_ACCESS_KEY,
     ROCKETMQ_SECRET_KEY,
     WORK_AGENT_RESPONSE_GROUP_ID,
-    WORK_AGENT_RESPONSE_TOPIC,
-    SESSION_ID
+    WORK_AGENT_RESPONSE_TOPIC
 )
 
+# Global RocketMQ client instances
 lite_push_consumer: Optional[LitePushConsumer] = None
 producer = None
 
@@ -26,23 +26,25 @@ class WorkerAgentMessageListener(MessageListener):
     """RocketMQ message listener for Worker Agent responses"""
 
     def consume(self, message: Message) -> ConsumeResult:
+        """Process incoming messages from Worker Agents"""
         try:
             logger.info("receive msg")
             body = message.body.decode('utf-8')
             payload = MessagePayload.from_json(body)
-
-            # Store in result_store for background aggregation
+            # 注意 这里的trace_id 为 每次发出的请求 生成的trace_id
+            # Store payload in result_store for synchronous aggregation in workflow nodes
             from supervisor_agent.utils.workflow.workflow_nodes import result_store, lock
             with lock:
                 if payload.trace_id not in result_store:
                     result_store[payload.trace_id] = []
                 result_store[payload.trace_id].append(payload)
 
-            # Put payload into async queue for streaming to frontend
+            # Forward payload to async queue for real-time SSE streaming to frontend
             try:
                 loop = asyncio.get_running_loop()
                 asyncio.create_task(stream_queue_manager.put_payload(payload))
             except RuntimeError:
+                # Fallback: run coroutine in existing event loop from another thread
                 if stream_queue_manager.loop:
                     asyncio.run_coroutine_threadsafe(
                         stream_queue_manager.put_payload(payload),
@@ -59,8 +61,8 @@ class WorkerAgentMessageListener(MessageListener):
             return ConsumeResult.FAILURE
 
 
-def send_message_new(topic: str, payload: MessagePayload):
-    """Send message synchronously"""
+def send_message(topic: str, payload: MessagePayload):
+    """Send message to RocketMQ topic synchronously"""
     global producer
     try:
         body = payload.to_json()
@@ -76,6 +78,7 @@ def init_rocketmq():
     global lite_push_consumer, producer
 
     try:
+        # Build and configure LitePushConsumer with message listener
         lite_push_consumer = build_lite_push_consumer(
             endpoint=ROCKETMQ_ENDPOINT,
             access_key=ROCKETMQ_ACCESS_KEY,
@@ -84,8 +87,9 @@ def init_rocketmq():
             topic=WORK_AGENT_RESPONSE_TOPIC,
             message_listener=WorkerAgentMessageListener()
         )
-        lite_push_consumer.subscribe_lite(SESSION_ID)
+        # Note: Session-specific subscriptions are added dynamically via subscribe_lite_topic()
 
+        # Build and configure message producer
         producer = build_producer(
             endpoint=ROCKETMQ_ENDPOINT,
             access_key=ROCKETMQ_ACCESS_KEY,
@@ -97,10 +101,9 @@ def init_rocketmq():
         raise
 
 
-
 def unsubscribe_lite_topic(session_id: str):
     """
-    Unsubscribe from a specific lite topic by shutting down and recreating the consumer.
+    Unsubscribe from a specific lite topic (session).
 
     Note: RocketMQ LitePushConsumer doesn't support direct unsubscription.
     This method logs the intent to unsubscribe for the given session.
@@ -135,7 +138,7 @@ def unsubscribe_lite_topic(session_id: str):
 
 def subscribe_lite_topic(session_id: str):
     """
-    Subscribe to a specific lite topic (session).
+    Subscribe to a specific lite topic (session) for real-time message delivery.
 
     Args:
         session_id: The session ID (lite topic) to subscribe to
@@ -154,7 +157,7 @@ def subscribe_lite_topic(session_id: str):
 
         logger.info(f"[Subscribe] Session ID: {session_id}")
 
-        # Subscribe to the lite topic
+        # Subscribe to the lite topic for this session
         lite_push_consumer.subscribe_lite(session_id)
 
         logger.info(f"Successfully subscribed to session: {session_id}")

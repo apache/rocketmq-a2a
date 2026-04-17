@@ -4,13 +4,13 @@ from typing import TypedDict, Optional
 
 class AgentState(TypedDict):
     """Agent state definition for LangGraph workflow"""
-    trace_id: str
-    user_input: str
-    intent: str
-    city: str
-    date_info: str
-    weather_data: str
-    final_response: str
-    weather_trace_id: Optional[str]
-    travel_trace_id: Optional[str]
-    weather_complete: bool
+    trace_id: str  # Unique identifier for tracking the request flow
+    user_input: str  # Original user query or message
+    intent: str  # Detected user intent (e.g., "travel", "weather", "chat")
+    city: str  # Target city extracted from user input
+    date_info: str  # Travel or query date information
+    weather_data: str  # Weather information retrieved from weather agent
+    final_response: str  # Final aggregated response to send to user
+    weather_trace_id: Optional[str]  # Trace ID for async weather agent task
+    travel_trace_id: Optional[str]  # Trace ID for async travel agent task
+    weather_complete: bool  # Flag indicating if weather data collection is complete
