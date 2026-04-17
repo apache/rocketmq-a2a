@@ -99,6 +99,7 @@ def weather_node(state: AgentState):
     date_info = state.get("date_info", "今天")
     intent = state.get("intent", "")
     main_trace_id = state.get("trace_id", "")
+    session_id = state.get("session_id", SESSION_ID)
 
     if not city:
         return {"weather_data": "未识别到城市", "final_response": "请提供城市名称", "weather_complete": True}
@@ -113,12 +114,13 @@ def weather_node(state: AgentState):
     logger.info(f"Registered weather sub-trace: {weather_trace_id} -> {main_trace_id}")
 
     # Send weather query to Weather Agent via RocketMQ
+    # todo
     send_message(WEATHER_AGENT_TOPIC, MessagePayload(
         trace_id=weather_trace_id,
         role=AgentRole.WEATHER,
         content=content_json,
         bind_topic=WORK_AGENT_RESPONSE_TOPIC,
-        lite_topic=SESSION_ID
+        lite_topic=session_id
     ))
 
     # Synchronously collect streaming weather chunks (blocking operation)
@@ -162,6 +164,7 @@ def travel_node(state: AgentState):
     """Travel node: Send planning request to Travel Agent with weather context"""
     weather_trace_id = state.get("weather_trace_id", "")
     weather_data = state.get("weather_data", "")
+    session_id = state.get("session_id", SESSION_ID)
 
     # Fallback: retrieve weather data from result_store if not in state
     if not weather_data:
@@ -199,7 +202,7 @@ def travel_node(state: AgentState):
         role=AgentRole.TRAVEL,
         content=content_json,
         bind_topic=WORK_AGENT_RESPONSE_TOPIC,
-        lite_topic=SESSION_ID
+        lite_topic=session_id
     ))
 
     return {"travel_trace_id": travel_trace_id}

@@ -44,10 +44,11 @@ async def chat(request: dict):
         "created_at": time.time()
     })
     logger.info(f"[Chat] Session registered: {session_id}, trace_id: {main_trace_id}")
-
+    subscribe_lite_topic(session_id)
     # Initialize workflow state
     initial_state = {
         "trace_id": main_trace_id,
+        "session_id": session_id,  # ← 添加 session_id
         "user_input": user_input,
         "intent": "",
         "city": "",
