@@ -21,6 +21,7 @@ from supervisor_agent.utils.config.config import (
     WORK_AGENT_RESPONSE_TOPIC
 )
 from supervisor_agent.utils.models.models import AgentState
+from supervisor_agent.utils.session.session_manger import session_manager
 from supervisor_agent.utils.stream.stream_manager import stream_queue_manager
 from supervisor_agent.utils.rocketmq.mq_service import send_message
 
@@ -107,11 +108,16 @@ def weather_node(state: AgentState):
     print(f"[Web] Sending Weather Task: {city} @ {date_info}")
 
     content_json = json.dumps({"city": city, "date": date_info})
-    weather_trace_id = str(uuid.uuid4())
+    weather_trace_id = "weather" + str(uuid.uuid4())
 
     # Register sub-trace mapping for routing messages to main trace's SSE stream
     stream_queue_manager.register_sub_trace(weather_trace_id, main_trace_id)
     logger.info(f"Registered weather sub-trace: {weather_trace_id} -> {main_trace_id}")
+
+    metadata = session_manager.get_session_metadata(session_id)
+    if metadata:
+        metadata["weather_trace_id"] = weather_trace_id
+
 
     # Send weather query to Weather Agent via RocketMQ
     # todo
@@ -184,9 +190,13 @@ def travel_node(state: AgentState):
             logger.warning(f"[Web] Weather data still not available, using default")
             weather_data = "天气信息获取超时,请基于一般情况规划行程"
 
-    travel_trace_id = str(uuid.uuid4())
+    travel_trace_id = "travel" + str(uuid.uuid4())
     date_info = state.get("date_info", "近期")
     user_input = state["user_input"]
+
+    metadata = session_manager.get_session_metadata(session_id)
+    if metadata:
+        metadata["travel_trace_id"] = travel_trace_id
 
     print(f"[Web] Sending Travel Task with weather info ({len(weather_data)} chars)")
 

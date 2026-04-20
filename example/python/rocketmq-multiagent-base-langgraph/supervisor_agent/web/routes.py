@@ -35,7 +35,7 @@ async def chat(request: dict):
     """Chat endpoint with SSE streaming support"""
     user_input = request.get("message")
     session_id = request.get("session_id", "")
-    main_trace_id = str(uuid.uuid4())
+    main_trace_id = "main" + str(uuid.uuid4())
 
     # Register session with metadata
     session_manager.add_session(session_id, {
@@ -397,15 +397,7 @@ async def reconnect(request: dict):
             logger.error(f"[Reconnect] Stream error: {e}", exc_info=True)
             yield {"data": json.dumps({"type": "error", "content": str(e)})}
         finally:
-            # Unsubscribe from RocketMQ when connection closes
-            try:
-                unsubscribe_lite_topic(session_id)
-                logger.info(f"[Reconnect] Unsubscribed from session: {session_id}")
-            except Exception as e:
-                logger.error(f"[Reconnect] Unsubscribe failed: {e}", exc_info=True)
-
-            stream_queue_manager.unregister_trace(main_trace_id, response_queue)
-            logger.info(f"[Reconnect] Unregistered response queue for trace_id: {main_trace_id}")
+            logger.info(f"[Reconnect] receive response queue for trace_id: {main_trace_id}")
             yield {"data": "[DONE]"}
 
     return EventSourceResponse(event_generator())

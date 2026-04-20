@@ -694,7 +694,6 @@
             const decoder = new TextDecoder();
 
             let hasReceivedConfirmation = false;
-            let accumulatedContent = {};
             let lastAgentRole = null;
 
             console.log('[UI] Reconnect - Current active elements:', Object.keys(activeMessageElements));
@@ -718,9 +717,7 @@
                                 if (cursor) cursor.remove();
                             });
 
-                            if (Object.keys(accumulatedContent).length > 0) {
-                                appendMessage('', '✅ 回复完毕', null, true, false, true);
-                            }
+                            appendMessage('', '✅ 回复完毕', null, true, false, true);
 
                             // Clear preserved state after successful reconnection
                             preservedMessageElements = {};
@@ -799,9 +796,9 @@
                                     const label = labels[obj.role] || obj.role;
                                     const currentAgentDiv = appendMessage('agent', '', label);
                                     activeMessageElements[targetAgentKey] = currentAgentDiv;
-                                    accumulatedContent[targetAgentKey] = '';
                                     lastActiveAgentKey = targetAgentKey;
 
+                                    // Add typing cursor when creating new message box
                                     const cursor = document.createElement('span');
                                     cursor.className = 'typing-cursor';
                                     currentAgentDiv.appendChild(cursor);
@@ -814,23 +811,25 @@
 
                                 lastAgentRole = obj.role;
 
-                                // Accumulate content
-                                if (!accumulatedContent[targetAgentKey]) {
-                                    accumulatedContent[targetAgentKey] = '';
-                                    console.log(`[UI] Initialized accumulatedContent for ${targetAgentKey}`);
+                                // 🔑 KEY FIX: Directly append content without manipulating cursor DOM
+                                const contentDiv = activeMessageElements[targetAgentKey];
+
+                                // Temporarily hide cursor, append content, then show cursor again
+                                const cursor = contentDiv.querySelector('.typing-cursor');
+                                if (cursor) {
+                                    cursor.style.display = 'none';
                                 }
 
-                                const oldLength = accumulatedContent[targetAgentKey].length;
-                                accumulatedContent[targetAgentKey] += obj.content;
-                                const newLength = accumulatedContent[targetAgentKey].length;
-                                console.log(`[UI] Content accumulated: ${oldLength} -> ${newLength} (+${obj.content.length} chars)`);
+                                // Append new content directly
+                                contentDiv.innerHTML += obj.content.replace(/\n/g, '<br>');
 
-                                // Update display
-                                updateMessageContent(
-                                    activeMessageElements[targetAgentKey],
-                                    accumulatedContent[targetAgentKey]
-                                );
-                                console.log(`[UI] Display updated for ${targetAgentKey}, total length: ${accumulatedContent[targetAgentKey].length}`);
+                                // Show cursor again
+                                if (cursor) {
+                                    cursor.style.display = 'inline-block';
+                                }
+
+                                chatBox.scrollTop = chatBox.scrollHeight;
+                                console.log(`[UI] Content appended to ${targetAgentKey}`);
                             }
 
                             if (obj.type === 'error') {
