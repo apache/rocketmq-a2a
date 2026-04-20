@@ -92,12 +92,26 @@ async def chat(request: dict):
                                 stream_queue_manager.register_sub_trace(weather_tid, main_trace_id)
                                 logger.info(f"Registered weather trace: {weather_tid} -> {main_trace_id}")
 
+                                # Save to session metadata for reconnection
+                                metadata = session_manager.get_session_metadata(session_id)
+                                if metadata:
+                                    metadata["weather_trace_id"] = weather_tid
+                                    session_manager.add_session(session_id, metadata)
+                                    logger.info(f"[Session] Saved weather_trace_id to metadata: {weather_tid}")
+
                             # Register travel sub-trace for streaming
                             if "travel_trace_id" in output and output["travel_trace_id"]:
                                 travel_tid = output["travel_trace_id"]
                                 active_traces.add(travel_tid)
                                 stream_queue_manager.register_sub_trace(travel_tid, main_trace_id)
                                 logger.info(f"Registered travel trace: {travel_tid} -> {main_trace_id}")
+
+                                # Save to session metadata for reconnection
+                                metadata = session_manager.get_session_metadata(session_id)
+                                if metadata:
+                                    metadata["travel_trace_id"] = travel_tid
+                                    session_manager.add_session(session_id, metadata)
+                                    logger.info(f"[Session] Saved travel_trace_id to metadata: {travel_tid}")
 
                 except Exception as e:
                     logger.error(f"Graph execution error: {e}", exc_info=True)
@@ -309,6 +323,18 @@ async def reconnect(request: dict):
     response_queue = stream_queue_manager.register_trace(main_trace_id)
     logger.info(f"[Reconnect] Registered response queue for trace_id: {main_trace_id}")
 
+    # ✅ Step 1.5: Re-register any known sub-traces from session metadata
+    weather_trace_id = metadata.get("weather_trace_id")
+    travel_trace_id = metadata.get("travel_trace_id")
+
+    if weather_trace_id:
+        stream_queue_manager.register_sub_trace(weather_trace_id, main_trace_id)
+        logger.info(f"[Reconnect] Re-registered weather sub-trace: {weather_trace_id} -> {main_trace_id}")
+
+    if travel_trace_id:
+        stream_queue_manager.register_sub_trace(travel_trace_id, main_trace_id)
+        logger.info(f"[Reconnect] Re-registered travel sub-trace: {travel_trace_id} -> {main_trace_id}")
+
     async def event_generator():
         """Resume SSE streaming for reconnected client"""
 
@@ -383,7 +409,6 @@ async def reconnect(request: dict):
             yield {"data": "[DONE]"}
 
     return EventSourceResponse(event_generator())
-
 
 
 @router.get("/sessions")
