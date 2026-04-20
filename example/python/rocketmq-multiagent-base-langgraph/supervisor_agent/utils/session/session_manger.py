@@ -2,6 +2,7 @@
 import threading
 from typing import Set, Optional
 from datetime import datetime
+import time
 
 from common.mq_toos import logger
 
@@ -9,10 +10,11 @@ from common.mq_toos import logger
 class SessionManager:
     """Manages active session lifecycle"""
 
-    def __init__(self):
+    def __init__(self, session_timeout: int = 3600):
         self._active_sessions: Set[str] = set()
         self._session_metadata: dict = {}
         self._lock = threading.Lock()
+        self._session_timeout = session_timeout  # Default 1 hour
 
     def add_session(self, session_id: str, metadata: Optional[dict] = None) -> None:
         """
@@ -37,14 +39,15 @@ class SessionManager:
                 if session_id not in self._session_metadata:
                     self._session_metadata[session_id] = {
                         "created_at": datetime.now().isoformat(),
-                        "last_active": datetime.now().isoformat()
+                        "last_active": datetime.now().isoformat(),
+                        "status": "active"
                     }
                 else:
                     self._session_metadata[session_id]["last_active"] = datetime.now().isoformat()
 
     def remove_session(self, session_id: str) -> bool:
         """
-        Remove a session
+        Remove a session completely
 
         Args:
             session_id: The session identifier to remove
@@ -109,6 +112,29 @@ class SessionManager:
         with self._lock:
             return self._session_metadata.get(session_id)
 
+    def cleanup_expired_sessions(self) -> int:
+        """
+        Remove sessions that have been disconnected for too long
+
+        Returns:
+            Number of sessions cleaned up
+        """
+        current_time = time.time()
+        expired_sessions = []
+
+        with self._lock:
+            for session_id, metadata in self._session_metadata.items():
+                disconnected_at = metadata.get("disconnected_at")
+                if disconnected_at and (current_time - disconnected_at) > self._session_timeout:
+                    expired_sessions.append(session_id)
+
+            for session_id in expired_sessions:
+                self._active_sessions.discard(session_id)
+                del self._session_metadata[session_id]
+                logger.info(f"Cleaned up expired session: {session_id}")
+
+        return len(expired_sessions)
+
     def clear_all_sessions(self) -> None:
         """Clear all active sessions"""
         with self._lock:
@@ -118,5 +144,5 @@ class SessionManager:
             logger.info(f"All sessions cleared: {count} sessions removed")
 
 
-# Global session manager instance
-session_manager = SessionManager()
+# Global session manager instance (1 hour timeout)
+session_manager = SessionManager(session_timeout=3600)

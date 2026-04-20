@@ -48,7 +48,7 @@ async def chat(request: dict):
     # Initialize workflow state
     initial_state = {
         "trace_id": main_trace_id,
-        "session_id": session_id,  # ← 添加 session_id
+        "session_id": session_id,
         "user_input": user_input,
         "intent": "",
         "city": "",
@@ -232,24 +232,53 @@ async def chat(request: dict):
 
 @router.post("/disconnect")
 async def disconnect(request: dict):
-    """Disconnect SSE stream and remove session"""
+    """Pause session: unsubscribe from RocketMQ but keep session for potential reconnection"""
     session_id = request.get("session_id", "")
     logger.info(f"[Disconnect] Session ID: {session_id}")
 
-    # Remove session from session manager
-    removed = session_manager.remove_session(session_id)
+    # Unsubscribe from RocketMQ topic (pause message delivery)
+    try:
+        unsubscribe_lite_topic(session_id)
+        logger.info(f"[Disconnect] Unsubscribed from session: {session_id}")
+    except Exception as e:
+        logger.error(f"[Disconnect] Failed to unsubscribe: {e}", exc_info=True)
 
-    # Unsubscribe from RocketMQ topic if session existed
-    if removed:
-        try:
-            unsubscribe_lite_topic(session_id)
-            logger.info(f"[Disconnect] Unsubscribed from session: {session_id}")
-        except Exception as e:
-            logger.error(f"[Disconnect] Failed to unsubscribe: {e}", exc_info=True)
+    # Note: Keep session in session_manager for potential reconnection
+    # Session will be auto-cleaned by timeout or explicit cleanup endpoint
+
+    # Update session status to inactive
+    metadata = session_manager.get_session_metadata(session_id)
+    if metadata:
+        metadata["status"] = "disconnected"
+        metadata["disconnected_at"] = time.time()
+        session_manager.add_session(session_id, metadata)  # Update metadata
 
     return JSONResponse(content={
         "status": "success",
-        "message": "Disconnected successfully",
+        "message": "Disconnected. Session kept for reconnection.",
+        "session_id": session_id
+    })
+
+@router.post("/end-session")
+async def end_session(request: dict):
+    """Completely end session: remove from session_manager and unsubscribe"""
+    session_id = request.get("session_id", "")
+    logger.info(f"[End Session] Session ID: {session_id}")
+
+    # Remove session completely
+    removed = session_manager.remove_session(session_id)
+
+    # Unsubscribe from RocketMQ
+    if removed:
+        try:
+            unsubscribe_lite_topic(session_id)
+            logger.info(f"[End Session] Unsubscribed and removed: {session_id}")
+        except Exception as e:
+            logger.error(f"[End Session] Failed to unsubscribe: {e}", exc_info=True)
+
+    return JSONResponse(content={
+        "status": "success",
+        "message": "Session ended and cleaned up",
         "session_id": session_id,
         "removed": removed
     })
@@ -257,26 +286,104 @@ async def disconnect(request: dict):
 
 @router.post("/reconnect")
 async def reconnect(request: dict):
-    """Reconnect SSE stream and re-subscribe to session"""
+    """Reconnect SSE stream and resume message delivery from RocketMQ"""
     session_id = request.get("session_id", "")
     logger.info(f"[Reconnect] Session ID: {session_id}")
 
     # Re-register session (update last_active timestamp)
     session_manager.add_session(session_id)
-    logger.info(f"[Reconnect] Session re-registered: {session_id}")
 
-    # Subscribe to RocketMQ topic for this session
-    subscribe_lite_topic(session_id)
-
-    # Get session metadata if available
+    # Get main_trace_id from session metadata
     metadata = session_manager.get_session_metadata(session_id)
+    main_trace_id = metadata.get("trace_id") if metadata else None
 
-    return JSONResponse(content={
-        "status": "success",
-        "message": "Reconnected successfully",
-        "session_id": session_id,
-        "metadata": metadata
-    })
+    if not main_trace_id:
+        logger.warning(f"[Reconnect] No active trace found for session: {session_id}")
+        return JSONResponse(content={
+            "status": "error",
+            "message": "No active session found. Please start a new chat.",
+            "session_id": session_id
+        }, status_code=404)
+
+    # ✅ Step 1: Register response queue FIRST (before subscribing)
+    response_queue = stream_queue_manager.register_trace(main_trace_id)
+    logger.info(f"[Reconnect] Registered response queue for trace_id: {main_trace_id}")
+
+    async def event_generator():
+        """Resume SSE streaming for reconnected client"""
+
+        # ✅ Step 2: Send reconnection confirmation to frontend
+        yield {"data": json.dumps({
+            "type": "reconnected",
+            "session_id": session_id,
+            "trace_id": main_trace_id
+        })}
+
+        # ✅ Step 3: NOW subscribe to RocketMQ (queue is ready)
+        try:
+            subscribe_lite_topic(session_id)
+            logger.info(f"[Reconnect] Re-subscribed to session: {session_id}")
+        except Exception as e:
+            logger.error(f"[Reconnect] Subscribe failed: {e}", exc_info=True)
+            yield {"data": json.dumps({
+                "type": "error",
+                "content": f"Failed to subscribe: {str(e)}"
+            })}
+            yield {"data": "[DONE]"}
+            return
+
+        try:
+            max_timeout = 120.0
+            start_time = time.time()
+
+            while time.time() - start_time < max_timeout:
+                try:
+                    # Wait for messages from RocketMQ consumer
+                    payload = await asyncio.wait_for(response_queue.get(), timeout=5.0)
+
+                    msg_metadata = payload.metadata or {}
+                    is_final = msg_metadata.get("is_final", False)
+                    is_error = msg_metadata.get("error", False)
+                    chunk_index = msg_metadata.get("chunk_index", 0)
+
+                    role = payload.role.value if hasattr(payload.role, 'value') else str(payload.role)
+
+                    # Send payload to frontend
+                    yield {"data": json.dumps({
+                        "type": "error" if is_error else "chunk",
+                        "role": role,
+                        "content": payload.content,
+                        "chunk_index": chunk_index,
+                        "is_final": is_final,
+                        "sub_trace_id": payload.trace_id
+                    })}
+
+                    # Stop if final message received
+                    if is_final:
+                        logger.info(f"[Reconnect] Final message received for trace: {main_trace_id}")
+                        break
+
+                except asyncio.TimeoutError:
+                    # Continue waiting for messages
+                    continue
+
+        except Exception as e:
+            logger.error(f"[Reconnect] Stream error: {e}", exc_info=True)
+            yield {"data": json.dumps({"type": "error", "content": str(e)})}
+        finally:
+            # Unsubscribe from RocketMQ when connection closes
+            try:
+                unsubscribe_lite_topic(session_id)
+                logger.info(f"[Reconnect] Unsubscribed from session: {session_id}")
+            except Exception as e:
+                logger.error(f"[Reconnect] Unsubscribe failed: {e}", exc_info=True)
+
+            stream_queue_manager.unregister_trace(main_trace_id, response_queue)
+            logger.info(f"[Reconnect] Unregistered response queue for trace_id: {main_trace_id}")
+            yield {"data": "[DONE]"}
+
+    return EventSourceResponse(event_generator())
+
 
 
 @router.get("/sessions")

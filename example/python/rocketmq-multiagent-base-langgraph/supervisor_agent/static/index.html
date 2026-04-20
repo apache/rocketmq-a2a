@@ -585,6 +585,19 @@
                 currentReader = null;
             }
 
+            // Send disconnect request to backend with session_id
+            const response = await fetch('/disconnect', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    session_id: sessionId
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
             isConnected = false;
             updateConnectionStatus('disconnected', '已断开连接');
 
@@ -596,6 +609,7 @@
             appendMessage('agent', '❌ 断开连接失败: ' + error.message, 'System', false, true);
         }
     }
+
 
     // Reconnect stream function
     async function reconnectStream() {
@@ -610,7 +624,7 @@
         updateConnectionStatus('connecting', '正在重新连接...');
 
         try {
-            // Send reconnect request with session_id
+            // Send reconnect request and handle SSE stream
             const response = await fetch('/reconnect', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -623,22 +637,133 @@
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            const result = await response.json();
+            // Handle SSE stream for reconnection
+            const reader = response.body.getReader();
+            currentReader = reader;
+            const decoder = new TextDecoder();
 
-            isConnected = true;
-            isReconnecting = false;
-            updateConnectionStatus('connected', '已连接');
+            let hasReceivedConfirmation = false;
+            let accumulatedContent = {};
+            let lastAgentRole = null;
 
-            appendMessage('agent', `✅ 重新连接成功 (Session: ${sessionId})`, 'System', false, false, true);
-            console.log('[UI] Stream reconnected successfully');
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value);
+                const lines = chunk.split('\n');
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const data = line.slice(6);
+
+                        if (data === '[DONE]') {
+                            console.log('[UI] Reconnect stream completed');
+
+                            // Remove typing cursors
+                            Object.values(activeMessageElements).forEach(div => {
+                                const cursor = div.querySelector('.typing-cursor');
+                                if (cursor) cursor.remove();
+                            });
+
+                            // Show completion message
+                            if (Object.keys(accumulatedContent).length > 0) {
+                                appendMessage('', '✅ 回复完毕', null, true, false, true);
+                            }
+                            break;
+                        }
+
+                        try {
+                            const obj = JSON.parse(data);
+
+                            // Handle reconnection confirmation
+                            if (obj.type === 'reconnected') {
+                                hasReceivedConfirmation = true;
+                                isConnected = true;
+                                isReconnecting = false;
+                                updateConnectionStatus('connected', '已连接');
+                                appendMessage('agent', `✅ 重新连接成功 (Session: ${sessionId})`, 'System', false, false, true);
+                                console.log('[UI] Stream reconnected successfully');
+                            }
+
+                            // Handle streaming chunks during reconnection
+                            if (obj.type === 'chunk') {
+                                const labels = {
+                                    'weather': '🌤️ Weather Agent',
+                                    'travel': '✈️ Travel Agent',
+                                    'assistant': '🤖 Assistant',
+                                    'supervisor': '👮 Supervisor'
+                                };
+
+                                const agentKey = `${obj.role}_${obj.sub_trace_id || 'default'}`;
+
+                                // If this is a different agent than the last one, show transition loading
+                                if (lastAgentRole && lastAgentRole !== obj.role && !activeMessageElements[agentKey]) {
+                                    console.log(`[UI] Agent transition: ${lastAgentRole} -> ${obj.role}`);
+                                    showLoading(`⏳ ${labels[obj.role] || obj.role} 正在生成回复`);
+                                }
+
+                                // Create new message element if doesn't exist
+                                if (!activeMessageElements[agentKey]) {
+                                    hideLoading();
+
+                                    const label = labels[obj.role] || obj.role;
+                                    const currentAgentDiv = appendMessage('agent', '', label);
+                                    activeMessageElements[agentKey] = currentAgentDiv;
+                                    accumulatedContent[agentKey] = '';
+
+                                    // Add typing cursor
+                                    const cursor = document.createElement('span');
+                                    cursor.className = 'typing-cursor';
+                                    currentAgentDiv.appendChild(cursor);
+
+                                    console.log(`[UI] Created message for ${label}`);
+                                }
+
+                                lastAgentRole = obj.role;
+
+                                // Accumulate incremental content (same as sendMessage)
+                                accumulatedContent[agentKey] += obj.content;
+
+                                // Update display with accumulated content
+                                updateMessageContent(
+                                    activeMessageElements[agentKey],
+                                    accumulatedContent[agentKey]
+                                );
+                            }
+
+                            // Handle errors
+                            if (obj.type === 'error') {
+                                console.error('[UI] Error during reconnection:', obj);
+                                hideLoading();
+                                appendMessage('agent', `❌ 错误: ${obj.content}`, 'Error', false, true);
+                            }
+
+                        } catch (e) {
+                            console.error('[UI] Parse error during reconnect:', e, 'Data:', data);
+                        }
+                    }
+                }
+            }
+
+            // If we didn't receive confirmation but stream ended normally
+            if (!hasReceivedConfirmation) {
+                isConnected = true;
+                isReconnecting = false;
+                updateConnectionStatus('connected', '已连接');
+                appendMessage('agent', `✅ 重新连接成功 (Session: ${sessionId})`, 'System', false, false, true);
+            }
 
         } catch (error) {
             console.error('[UI] Reconnect error:', error);
             isReconnecting = false;
             updateConnectionStatus('disconnected', '连接失败');
             appendMessage('agent', '❌ 重新连接失败: ' + error.message, 'System', false, true);
+        } finally {
+            currentReader = null;
         }
     }
+
 
     // Initialize connection status
     updateConnectionStatus('connected', '已连接');
