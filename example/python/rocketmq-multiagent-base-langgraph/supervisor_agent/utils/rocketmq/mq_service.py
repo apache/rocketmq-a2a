@@ -54,7 +54,7 @@ class WorkerAgentMessageListener(MessageListener):
                     logger.error("No event loop available to process payload")
                     return ConsumeResult.FAILURE
 
-            logging.info("Receive the msginfo " + body)
+            # logging.info("Receive the msginfo " + body)
             return ConsumeResult.SUCCESS
         except Exception as e:
             logger.error(f"Failed to consume message: {e}", exc_info=True)

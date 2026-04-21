@@ -108,7 +108,7 @@ def weather_node(state: AgentState):
     print(f"[Web] Sending Weather Task: {city} @ {date_info}")
 
     content_json = json.dumps({"city": city, "date": date_info})
-    weather_trace_id = "weather_" + str(uuid.uuid4())
+    weather_trace_id = "weather_" + main_trace_id
 
     # Register sub-trace mapping for routing messages to main trace's SSE stream
     stream_queue_manager.register_sub_trace(weather_trace_id, main_trace_id)
@@ -117,7 +117,8 @@ def weather_node(state: AgentState):
     metadata = session_manager.get_session_metadata(session_id)
     if metadata:
         metadata["weather_trace_id"] = weather_trace_id
-
+        metadata["intent"] = intent
+        session_manager.add_session(session_id, metadata)
 
     # Send weather query to Weather Agent via RocketMQ
     # todo
@@ -132,7 +133,7 @@ def weather_node(state: AgentState):
     # Synchronously collect streaming weather chunks (blocking operation)
     weather_chunks = []
     start_time = time.time()
-    timeout = 30.0
+    timeout = 300.0
 
     print(f"[Web] Waiting for weather data collection...")
 
@@ -171,13 +172,14 @@ def travel_node(state: AgentState):
     weather_trace_id = state.get("weather_trace_id", "")
     weather_data = state.get("weather_data", "")
     session_id = state.get("session_id", SESSION_ID)
+    main_trace_id = state.get("trace_id", "")
 
-    # Fallback: retrieve weather data from result_store if not in state
+# Fallback: retrieve weather data from result_store if not in state
     if not weather_data:
         logger.warning(f"[Web] Weather data not found in state, trying to retrieve from store")
         complete_key = f"{weather_trace_id}_complete"
         start_time = time.time()
-        timeout = 120.0
+        timeout = 300.0
 
         while time.time() - start_time < timeout:
             with lock:
@@ -190,14 +192,15 @@ def travel_node(state: AgentState):
             logger.warning(f"[Web] Weather data still not available, using default")
             weather_data = "天气信息获取超时,请基于一般情况规划行程"
 
-    travel_trace_id = "travel_" + str(uuid.uuid4())
+    travel_trace_id = "travel_" + main_trace_id
     date_info = state.get("date_info", "近期")
     user_input = state["user_input"]
 
     metadata = session_manager.get_session_metadata(session_id)
     if metadata:
         metadata["travel_trace_id"] = travel_trace_id
-
+        session_manager.add_session(session_id, metadata)
+        logger.info(f"[Session] Saved travel_trace_id to metadata: {travel_trace_id}")
     print(f"[Web] Sending Travel Task with weather info ({len(weather_data)} chars)")
 
     content_json = json.dumps({

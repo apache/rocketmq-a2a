@@ -310,6 +310,7 @@ async def reconnect(request: dict):
     # Get main_trace_id from session metadata
     metadata = session_manager.get_session_metadata(session_id)
     main_trace_id = metadata.get("trace_id") if metadata else None
+    intent = metadata.get("intent")
 
     if not main_trace_id:
         logger.warning(f"[Reconnect] No active trace found for session: {session_id}")
@@ -324,8 +325,8 @@ async def reconnect(request: dict):
     logger.info(f"[Reconnect] Registered response queue for trace_id: {main_trace_id}")
 
     # ✅ Step 1.5: Re-register any known sub-traces from session metadata
-    weather_trace_id = metadata.get("weather_trace_id")
-    travel_trace_id = metadata.get("travel_trace_id")
+    weather_trace_id = "weather_" + main_trace_id
+    travel_trace_id = "travel_" + main_trace_id
 
     if weather_trace_id:
         stream_queue_manager.register_sub_trace(weather_trace_id, main_trace_id)
@@ -362,6 +363,7 @@ async def reconnect(request: dict):
             max_timeout = 120.0
             start_time = time.time()
 
+
             while time.time() - start_time < max_timeout:
                 try:
                     # Wait for messages from RocketMQ consumer
@@ -371,6 +373,8 @@ async def reconnect(request: dict):
                     is_final = msg_metadata.get("is_final", False)
                     is_error = msg_metadata.get("error", False)
                     chunk_index = msg_metadata.get("chunk_index", 0)
+                    trace_id = payload.trace_id
+                    islast = trace_id.startswith(intent)
 
                     role = payload.role.value if hasattr(payload.role, 'value') else str(payload.role)
 
@@ -385,7 +389,7 @@ async def reconnect(request: dict):
                     })}
 
                     # Stop if final message received
-                    if is_final:
+                    if is_final and islast:
                         logger.info(f"[Reconnect] Final message received for trace: {main_trace_id}")
                         break
 

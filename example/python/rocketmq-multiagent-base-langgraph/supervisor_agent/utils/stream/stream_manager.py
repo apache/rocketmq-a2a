@@ -55,6 +55,7 @@ class StreamQueueManager:
     async def put_payload(self, payload: MessagePayload):
         """Put payload into registered queues, routing sub-traces to main trace if needed"""
         trace_id = payload.trace_id
+        logger.info("put_payload trace_id " + str(trace_id))
 
         with self.lock:
             # Try to find queues directly by trace_id
