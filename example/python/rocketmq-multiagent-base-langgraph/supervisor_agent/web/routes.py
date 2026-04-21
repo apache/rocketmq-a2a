@@ -35,7 +35,7 @@ async def chat(request: dict):
     """Chat endpoint with SSE streaming support"""
     user_input = request.get("message")
     session_id = request.get("session_id", "")
-    main_trace_id = "main" + str(uuid.uuid4())
+    main_trace_id = "main_" + str(uuid.uuid4())
 
     # Register session with metadata
     session_manager.add_session(session_id, {

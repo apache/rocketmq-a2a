@@ -108,7 +108,7 @@ def weather_node(state: AgentState):
     print(f"[Web] Sending Weather Task: {city} @ {date_info}")
 
     content_json = json.dumps({"city": city, "date": date_info})
-    weather_trace_id = "weather" + str(uuid.uuid4())
+    weather_trace_id = "weather_" + str(uuid.uuid4())
 
     # Register sub-trace mapping for routing messages to main trace's SSE stream
     stream_queue_manager.register_sub_trace(weather_trace_id, main_trace_id)
@@ -190,7 +190,7 @@ def travel_node(state: AgentState):
             logger.warning(f"[Web] Weather data still not available, using default")
             weather_data = "天气信息获取超时,请基于一般情况规划行程"
 
-    travel_trace_id = "travel" + str(uuid.uuid4())
+    travel_trace_id = "travel_" + str(uuid.uuid4())
     date_info = state.get("date_info", "近期")
     user_input = state["user_input"]
 
