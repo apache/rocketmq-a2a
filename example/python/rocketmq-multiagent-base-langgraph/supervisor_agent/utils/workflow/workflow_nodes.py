@@ -11,7 +11,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END
 
 from common.models import MessagePayload, AgentRole
-from common.mq_toos import logger
+from common.rocketmq_utils import logger
 from supervisor_agent.utils.config.config import (
     DASHSCOPE_API_KEY,
     WEATHER_AGENT_TOPIC,

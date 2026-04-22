@@ -4,7 +4,7 @@ from typing import Set, Optional
 from datetime import datetime
 import time
 
-from common.mq_toos import logger
+from common.rocketmq_utils import logger
 
 
 class SessionManager:

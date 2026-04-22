@@ -11,7 +11,7 @@ import dashscope
 from rocketmq import MessageListener as RocketMQMessageListener, Message, ConsumeResult
 
 from common.models import MessagePayload, AgentRole
-from common.mq_toos import build_push_consumer, build_producer, build_message
+from common.rocketmq_utils import build_push_consumer, build_producer, build_message
 
 # Load environment variables from .env file
 load_dotenv()

@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from common.mq_toos import logger
+from common.rocketmq_utils import logger
 from supervisor_agent.utils.session.session_manger import session_manager
 from supervisor_agent.utils.stream.stream_manager import stream_queue_manager
 from supervisor_agent.utils.rocketmq.mq_service import init_rocketmq

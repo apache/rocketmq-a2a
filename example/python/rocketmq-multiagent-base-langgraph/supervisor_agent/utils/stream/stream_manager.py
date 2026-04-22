@@ -5,7 +5,7 @@ from collections import defaultdict
 from typing import Optional
 
 from common.models import MessagePayload
-from common.mq_toos import logger
+from common.rocketmq_utils import logger
 
 
 class StreamQueueManager:
