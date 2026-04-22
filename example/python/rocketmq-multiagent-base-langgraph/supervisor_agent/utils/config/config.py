@@ -19,5 +19,5 @@ WORK_AGENT_RESPONSE_TOPIC = "WorkerAgentResponse"
 # LLM Configuration
 DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY")
 
-# Session todo need change
+# Global Default Session
 SESSION_ID = str(uuid.uuid4())

@@ -13,7 +13,7 @@ from supervisor_agent.utils.config.config import (
     ROCKETMQ_ACCESS_KEY,
     ROCKETMQ_SECRET_KEY,
     WORK_AGENT_RESPONSE_GROUP_ID,
-    WORK_AGENT_RESPONSE_TOPIC
+    WORK_AGENT_RESPONSE_TOPIC, SESSION_ID
 )
 
 # Global RocketMQ client instances
@@ -87,7 +87,7 @@ def init_rocketmq():
             message_listener=WorkerAgentMessageListener()
         )
         # Note: Session-specific subscriptions are added dynamically via subscribe_lite_topic()
-
+        lite_push_consumer.subscribe_lite(SESSION_ID)
         # Build and configure message producer
         producer = build_producer(
             endpoint=ROCKETMQ_ENDPOINT,
