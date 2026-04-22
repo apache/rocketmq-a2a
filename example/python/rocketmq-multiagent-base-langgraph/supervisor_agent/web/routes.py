@@ -14,7 +14,7 @@ from common.rocketmq_utils import logger
 from supervisor_agent.utils.rocketmq.mq_service import subscribe_lite_topic, unsubscribe_lite_topic
 from supervisor_agent.utils.stream.stream_manager import stream_queue_manager
 from supervisor_agent.utils.workflow.workflow_graph import build_workflow
-from supervisor_agent.utils.session.session_manger import session_manager
+from supervisor_agent.utils.session.session_manager import session_manager
 
 router = APIRouter()
 app_graph = build_workflow()

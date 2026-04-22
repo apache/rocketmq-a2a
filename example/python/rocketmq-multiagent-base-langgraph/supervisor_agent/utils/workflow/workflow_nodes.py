@@ -20,7 +20,7 @@ from supervisor_agent.utils.config.config import (
     WORK_AGENT_RESPONSE_TOPIC
 )
 from supervisor_agent.utils.models.models import AgentState
-from supervisor_agent.utils.session.session_manger import session_manager
+from supervisor_agent.utils.session.session_manager import session_manager
 from supervisor_agent.utils.stream.stream_manager import stream_queue_manager
 from supervisor_agent.utils.rocketmq.mq_service import send_message
 
