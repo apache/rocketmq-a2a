@@ -9,7 +9,7 @@ from common.rocketmq_utils import logger
 from supervisor_agent.utils.session.session_manager import session_manager
 from supervisor_agent.utils.stream.stream_manager import stream_queue_manager
 from supervisor_agent.utils.rocketmq.mq_service import init_rocketmq
-from web.routes import router
+from api.routes import router
 
 
 def session_cleanup_worker(interval: int = 300):

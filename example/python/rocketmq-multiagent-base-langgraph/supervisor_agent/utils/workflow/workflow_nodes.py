@@ -5,7 +5,8 @@ import threading
 import time
 import asyncio
 from datetime import datetime
-from typing import Literal
+from typing import Literal, Optional
+
 from langchain_community.chat_models import ChatTongyi
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END
@@ -19,6 +20,8 @@ from supervisor_agent.utils.config.config import (
     SESSION_ID,
     WORK_AGENT_RESPONSE_TOPIC
 )
+from supervisor_agent.utils.constants.constants import NODE_WEATHER, NODE_TRAVEL, NODE_CHAT, LLM_MODEL_NAME, INTENT, \
+    WEATHER_INTENT, TRAVEL_INTENT
 from supervisor_agent.utils.models.models import AgentState
 from supervisor_agent.utils.session.session_manager import session_manager
 from supervisor_agent.utils.stream.stream_manager import stream_queue_manager
@@ -26,18 +29,27 @@ from supervisor_agent.utils.rocketmq.mq_service import send_message
 
 # Initialize Qwen LLM for intent recognition and chat
 llm_supervisor = ChatTongyi(
-    model="qwen-turbo",
+    model=LLM_MODEL_NAME,
     dashscope_api_key=DASHSCOPE_API_KEY,
     temperature=0.1
 )
 
 # Shared storage for aggregating streaming results from Worker Agents
-result_store = {}
+result_store: dict = {}
 lock = threading.Lock()
 
 
-def wait_for_result_sync(trace_id: str, timeout: int):
-    """Blocking wait for next payload chunk from result_store by trace_id"""
+def wait_for_result_sync(trace_id: str, timeout: int = 30) -> Optional[MessagePayload]:
+    """
+    Blocking wait for next payload chunk from result_store by trace_id.
+
+    Args:
+        trace_id: Trace identifier to wait for
+        timeout: Maximum wait time in seconds
+
+    Returns:
+        MessagePayload if found, None if timeout
+    """
     start = time.time()
     while time.time() - start < timeout:
         with lock:
@@ -47,8 +59,16 @@ def wait_for_result_sync(trace_id: str, timeout: int):
     return None
 
 
-def router_node(state: AgentState):
-    """Router node: Intent recognition and entity extraction using Qwen LLM"""
+def router_node(state: AgentState) -> dict:
+    """
+    Router node: Intent recognition and entity extraction using Qwen LLM.
+
+    Args:
+        state: Current workflow state containing user input
+
+    Returns:
+        Updated state with intent, city, and date_info
+    """
     current_time_str = datetime.now().strftime("%Y年%m月%d日 %A")
 
     system_prompt = f"""
@@ -73,8 +93,11 @@ def router_node(state: AgentState):
         ]
         response = llm_supervisor.invoke(messages)
         raw_content = response.content
+
+        # Clean markdown code blocks if present
         cleaned_content = re.sub(r'^```json\s*|\s*```$', '', raw_content.strip(), flags=re.MULTILINE)
 
+        # Extract JSON object if embedded in text
         if not cleaned_content.startswith('{'):
             start_idx = cleaned_content.find('{')
             end_idx = cleaned_content.rfind('}')
@@ -89,12 +112,20 @@ def router_node(state: AgentState):
             "date_info": data.get("date", "今天")
         }
     except Exception as e:
-        print(f"Router Error: {e}")
+        logger.error(f"Router Error: {e}", exc_info=True)
         return {"intent": "chat"}
 
 
-def weather_node(state: AgentState):
-    """Weather node: Send query to Weather Agent and synchronously collect results"""
+def weather_node(state: AgentState) -> dict:
+    """
+    Weather node: Send query to Weather Agent and synchronously collect results.
+
+    Args:
+        state: Current workflow state with city and date info
+
+    Returns:
+        Updated state with weather_data and weather_trace_id
+    """
     city = state.get("city", "")
     date_info = state.get("date_info", "今天")
     intent = state.get("intent", "")
@@ -102,17 +133,23 @@ def weather_node(state: AgentState):
     session_id = state.get("session_id", SESSION_ID)
 
     if not city:
-        return {"weather_data": "未识别到城市", "final_response": "请提供城市名称", "weather_complete": True}
+        logger.warning("No city identified in user input")
+        return {
+            "weather_data": "未识别到城市",
+            "final_response": "请提供城市名称",
+            "weather_complete": True
+        }
 
-    print(f"[Web] Sending Weather Task: {city} @ {date_info}")
+    logger.info(f"[Weather] Sending task - City: {city}, Date: {date_info}")
 
     content_json = json.dumps({"city": city, "date": date_info})
     weather_trace_id = "weather_" + main_trace_id
 
     # Register sub-trace mapping for routing messages to main trace's SSE stream
     stream_queue_manager.register_sub_trace(weather_trace_id, main_trace_id)
-    logger.info(f"Registered weather sub-trace: {weather_trace_id} -> {main_trace_id}")
+    logger.debug(f"Registered weather sub-trace: {weather_trace_id} -> {main_trace_id}")
 
+    # Save weather_trace_id to session metadata for reconnection support
     metadata = session_manager.get_session_metadata(session_id)
     if metadata:
         metadata["weather_trace_id"] = weather_trace_id
@@ -120,7 +157,6 @@ def weather_node(state: AgentState):
         session_manager.add_session(session_id, metadata)
 
     # Send weather query to Weather Agent via RocketMQ
-    # todo
     send_message(WEATHER_AGENT_TOPIC, MessagePayload(
         trace_id=weather_trace_id,
         role=AgentRole.WEATHER,
@@ -134,7 +170,7 @@ def weather_node(state: AgentState):
     start_time = time.time()
     timeout = 300.0
 
-    print(f"[Web] Waiting for weather data collection...")
+    logger.info(f"[Weather] Waiting for data collection...")
 
     while time.time() - start_time < timeout:
         payload = wait_for_result_sync(weather_trace_id, timeout=1)
@@ -142,21 +178,21 @@ def weather_node(state: AgentState):
             weather_chunks.append(payload.content)
             # Stop when receiving final chunk marker
             if payload.metadata and payload.metadata.get("is_final", False):
-                logger.info(
-                    f"Weather collection complete for {weather_trace_id}: {len(''.join(weather_chunks))} chars")
+                total_chars = len(''.join(weather_chunks))
+                logger.info(f"[Weather] Collection complete - TraceID: {weather_trace_id}, Size: {total_chars} chars")
                 break
         time.sleep(0.1)
 
     complete_weather = "".join(weather_chunks)
 
     if not complete_weather:
-        logger.warning(f"[Web] Weather data timeout")
+        logger.warning(f"[Weather] Data timeout for trace_id: {weather_trace_id}")
         complete_weather = "天气信息获取超时,请基于一般情况规划行程"
 
     # Cache complete weather data for travel_node fallback retrieval
     with lock:
         result_store[f"{weather_trace_id}_complete"] = complete_weather
-        logger.info(f"[Aggregation] Weather data stored for {weather_trace_id}")
+        logger.debug(f"[Aggregation] Weather data cached for {weather_trace_id}")
 
     return {
         "weather_trace_id": weather_trace_id,
@@ -166,16 +202,24 @@ def weather_node(state: AgentState):
     }
 
 
-def travel_node(state: AgentState):
-    """Travel node: Send planning request to Travel Agent with weather context"""
+def travel_node(state: AgentState) -> dict:
+    """
+    Travel node: Send planning request to Travel Agent with weather context.
+
+    Args:
+        state: Current workflow state with weather data
+
+    Returns:
+        Updated state with travel_trace_id
+    """
     weather_trace_id = state.get("weather_trace_id", "")
     weather_data = state.get("weather_data", "")
     session_id = state.get("session_id", SESSION_ID)
     main_trace_id = state.get("trace_id", "")
 
-# Fallback: retrieve weather data from result_store if not in state
+    # Fallback: retrieve weather data from result_store if not in state
     if not weather_data:
-        logger.warning(f"[Web] Weather data not found in state, trying to retrieve from store")
+        logger.warning(f"[Travel] Weather data not in state, retrieving from store")
         complete_key = f"{weather_trace_id}_complete"
         start_time = time.time()
         timeout = 300.0
@@ -188,19 +232,21 @@ def travel_node(state: AgentState):
             time.sleep(0.1)
 
         if not weather_data:
-            logger.warning(f"[Web] Weather data still not available, using default")
+            logger.warning(f"[Travel] Weather data unavailable, using default")
             weather_data = "天气信息获取超时,请基于一般情况规划行程"
 
     travel_trace_id = "travel_" + main_trace_id
     date_info = state.get("date_info", "近期")
     user_input = state["user_input"]
 
+    # Save travel_trace_id to session metadata for reconnection support
     metadata = session_manager.get_session_metadata(session_id)
     if metadata:
         metadata["travel_trace_id"] = travel_trace_id
         session_manager.add_session(session_id, metadata)
-        logger.info(f"[Session] Saved travel_trace_id to metadata: {travel_trace_id}")
-    print(f"[Web] Sending Travel Task with weather info ({len(weather_data)} chars)")
+        logger.debug(f"[Session] Saved travel_trace_id: {travel_trace_id}")
+
+    logger.info(f"[Travel] Sending task - Weather data size: {len(weather_data)} chars")
 
     content_json = json.dumps({
         "request": user_input,
@@ -220,8 +266,16 @@ def travel_node(state: AgentState):
     return {"travel_trace_id": travel_trace_id}
 
 
-def chat_node(state: AgentState):
-    """Chat node: Direct LLM conversation with real-time streaming to frontend"""
+def chat_node(state: AgentState) -> dict:
+    """
+    Chat node: Direct LLM conversation with real-time streaming to frontend.
+
+    Args:
+        state: Current workflow state with user input
+
+    Returns:
+        Updated state with final_response
+    """
     trace_id = state["trace_id"]
     user_input = state["user_input"]
 
@@ -256,18 +310,7 @@ def chat_node(state: AgentState):
                 )
 
                 # Forward chunk to SSE stream queue
-                try:
-                    loop = asyncio.get_running_loop()
-                    asyncio.create_task(stream_queue_manager.put_payload(payload))
-                except RuntimeError:
-                    if stream_queue_manager.loop:
-                        def put_in_thread():
-                            asyncio.run_coroutine_threadsafe(
-                                stream_queue_manager.put_payload(payload),
-                                stream_queue_manager.loop
-                            )
-                        threading.Thread(target=put_in_thread, daemon=True).start()
-
+                _forward_payload_to_stream(payload)
                 chunk_index += 1
 
         complete_response = "".join(full_response)
@@ -286,24 +329,14 @@ def chat_node(state: AgentState):
             }
         )
 
-        try:
-            loop = asyncio.get_running_loop()
-            asyncio.create_task(stream_queue_manager.put_payload(final_payload))
-        except RuntimeError:
-            if stream_queue_manager.loop:
-                def put_final_in_thread():
-                    asyncio.run_coroutine_threadsafe(
-                        stream_queue_manager.put_payload(final_payload),
-                        stream_queue_manager.loop
-                    )
-                threading.Thread(target=put_final_in_thread, daemon=True).start()
+        _forward_payload_to_stream(final_payload)
 
-        logger.info(f"Chat response completed for trace_id: {trace_id}, length: {len(complete_response)}")
+        logger.info(f"[Chat] Response completed - TraceID: {trace_id}, Length: {len(complete_response)}")
 
         return {"final_response": complete_response}
 
     except Exception as e:
-        logger.error(f"Chat node error: {e}", exc_info=True)
+        logger.error(f"[Chat] Node error: {e}", exc_info=True)
 
         # Send error payload to frontend
         error_payload = MessagePayload(
@@ -319,36 +352,66 @@ def chat_node(state: AgentState):
             }
         )
 
-        try:
-            loop = asyncio.get_running_loop()
-            asyncio.create_task(stream_queue_manager.put_payload(error_payload))
-        except RuntimeError:
-            if stream_queue_manager.loop:
-                def put_error_in_thread():
-                    asyncio.run_coroutine_threadsafe(
-                        stream_queue_manager.put_payload(error_payload),
-                        stream_queue_manager.loop
-                    )
-                threading.Thread(target=put_error_in_thread, daemon=True).start()
+        _forward_payload_to_stream(error_payload)
 
         return {"final_response": f"Error: {str(e)}"}
 
 
-def route_after_router(state: AgentState) -> Literal["weather_node", "travel_node", "chat_node"]:
-    """Routing logic after router node: determine next node based on intent"""
-    intent = state.get("intent")
-    if intent == "weather":
-        return "weather_node"
-    elif intent == "travel":
-        return "weather_node"  # Travel also starts with weather check
+def _forward_payload_to_stream(payload: MessagePayload) -> None:
+    """
+    Forward message payload to SSE stream queue with event loop handling.
+
+    Args:
+        payload: Message payload to forward
+    """
+    try:
+        loop = asyncio.get_running_loop()
+        asyncio.create_task(stream_queue_manager.put_payload(payload))
+    except RuntimeError:
+        # No running loop, use stream manager's loop in background thread
+        if stream_queue_manager.loop:
+            def put_in_thread():
+                asyncio.run_coroutine_threadsafe(
+                    stream_queue_manager.put_payload(payload),
+                    stream_queue_manager.loop
+                )
+            threading.Thread(target=put_in_thread, daemon=True).start()
+        else:
+            logger.error("No event loop available to forward payload")
+
+
+def route_after_router(state: AgentState) -> Literal[NODE_WEATHER, NODE_TRAVEL, NODE_CHAT]:
+    """
+    Routing logic after router node: determine next node based on intent.
+
+    Args:
+        state: Current workflow state with detected intent
+
+    Returns:
+        Next node name to execute
+    """
+    intent = state.get(INTENT)
+    if intent == WEATHER_INTENT:
+        return NODE_WEATHER
+    elif intent == TRAVEL_INTENT:
+        return NODE_WEATHER  # Travel also starts with weather check
     else:
-        return "chat_node"
+        return NODE_CHAT
 
 
-def route_after_weather(state: AgentState) -> Literal["travel_node", END]:
-    """Routing logic after weather node: proceed to travel or end based on intent"""
-    intent = state.get("intent")
-    if intent == "travel":
-        return "travel_node"  # Continue to travel planning
+def route_after_weather(state: AgentState) -> Literal[NODE_TRAVEL, END]:
+    """
+    Routing logic after weather node: proceed to travel or end based on intent.
+
+    Args:
+        state: Current workflow state with intent
+
+    Returns:
+        Next node name or END
+    """
+    intent = state.get(INTENT)
+    if intent == TRAVEL_INTENT:
+        return NODE_TRAVEL  # Continue to travel planning
     else:
         return END  # End workflow for weather-only queries
+

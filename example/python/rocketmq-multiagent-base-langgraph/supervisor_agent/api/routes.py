@@ -4,13 +4,40 @@ import uuid
 import time
 import asyncio
 from pathlib import Path
-from typing import Optional, AsyncGenerator, Dict, Any
+from typing import AsyncGenerator, Dict, Any
 
 from fastapi import APIRouter
 from fastapi.responses import HTMLResponse, JSONResponse
 from sse_starlette.sse import EventSourceResponse
 
 from common.rocketmq_utils import logger
+from supervisor_agent.utils.constants.constants import (
+    INTENT,
+    SESSION_KEY_TRACE_ID,
+    SESSION_KEY_USER_INPUT,
+    SESSION_KEY_CREATED_AT,
+    SESSION_KEY_STATUS,
+    SESSION_KEY_DISCONNECTED_AT,
+    SESSION_KEY_WEATHER_TRACE_ID,
+    SESSION_KEY_TRAVEL_TRACE_ID,
+    SESSION_KEY_INTENT,
+    SESSION_STATUS_ACTIVE,
+    SESSION_STATUS_DISCONNECTED,
+    SESSION_STATUS_COMPLETED,
+    STATE_KEY_WEATHER_TRACE_ID,
+    STATE_KEY_TRAVEL_TRACE_ID,
+    MSG_METADATA_IS_FINAL,
+    MSG_METADATA_ERROR,
+    MSG_METADATA_CHUNK_INDEX,
+    SSE_EVENT_TYPE_START,
+    SSE_EVENT_TYPE_CHUNK,
+    SSE_EVENT_TYPE_ERROR,
+    SSE_EVENT_TYPE_RECONNECTED,
+    SSE_EVENT_DONE,
+    TRACE_PREFIX_MAIN,
+    NODE_CHAT, STATE_KEY_TRACE_ID, STATE_KEY_SESSION_ID, STATE_KEY_USER_INPUT, STATE_KEY_INTENT, STATE_KEY_CITY,
+    STATE_KEY_DATE_INFO, STATE_KEY_WEATHER_DATA, STATE_KEY_FINAL_RESPONSE, STATE_KEY_WEATHER_COMPLETE
+)
 from supervisor_agent.utils.rocketmq.mq_service import subscribe_lite_topic, unsubscribe_lite_topic
 from supervisor_agent.utils.stream.stream_manager import stream_queue_manager
 from supervisor_agent.utils.workflow.workflow_graph import build_workflow
@@ -46,17 +73,17 @@ async def execute_langgraph_workflow(session_id: str, user_input: str, main_trac
         Workflow execution result metadata
     """
     initial_state = {
-        "trace_id": main_trace_id,
-        "session_id": session_id,
-        "user_input": user_input,
-        "intent": "",
-        "city": "",
-        "date_info": "",
-        "weather_data": "",
-        "final_response": "",
-        "weather_trace_id": None,
-        "travel_trace_id": None,
-        "weather_complete": False
+        STATE_KEY_TRACE_ID: main_trace_id,
+        STATE_KEY_SESSION_ID: session_id,
+        STATE_KEY_USER_INPUT: user_input,
+        STATE_KEY_INTENT: "",
+        STATE_KEY_CITY: "",
+        STATE_KEY_DATE_INFO: "",
+        STATE_KEY_WEATHER_DATA: "",
+        STATE_KEY_FINAL_RESPONSE: "",
+        STATE_KEY_WEATHER_TRACE_ID: None,
+        STATE_KEY_TRAVEL_TRACE_ID: None,
+        STATE_KEY_WEATHER_COMPLETE: False
     }
 
     active_traces = set()
@@ -68,13 +95,13 @@ async def execute_langgraph_workflow(session_id: str, user_input: str, main_trac
                 logger.info(f"Graph node executed: {node_name}, output: {output}")
 
                 # Detect chat mode
-                if node_name == "chat_node":
+                if node_name == NODE_CHAT:
                     is_chat_mode = True
                     logger.info("Detected chat mode, will wait for streaming completion")
 
                 # Register weather sub-trace for streaming
-                if "weather_trace_id" in output and output["weather_trace_id"]:
-                    weather_tid = output["weather_trace_id"]
+                if STATE_KEY_WEATHER_TRACE_ID in output and output[STATE_KEY_WEATHER_TRACE_ID]:
+                    weather_tid = output[STATE_KEY_WEATHER_TRACE_ID]
                     active_traces.add(weather_tid)
                     stream_queue_manager.register_sub_trace(weather_tid, main_trace_id)
                     logger.info(f"Registered weather trace: {weather_tid} -> {main_trace_id}")
@@ -82,13 +109,13 @@ async def execute_langgraph_workflow(session_id: str, user_input: str, main_trac
                     # Save to session metadata for reconnection
                     metadata = session_manager.get_session_metadata(session_id)
                     if metadata:
-                        metadata["weather_trace_id"] = weather_tid
+                        metadata[SESSION_KEY_WEATHER_TRACE_ID] = weather_tid
                         session_manager.add_session(session_id, metadata)
                         logger.info(f"[Session] Saved weather_trace_id to metadata: {weather_tid}")
 
                 # Register travel sub-trace for streaming
-                if "travel_trace_id" in output and output["travel_trace_id"]:
-                    travel_tid = output["travel_trace_id"]
+                if STATE_KEY_TRAVEL_TRACE_ID in output and output[STATE_KEY_TRAVEL_TRACE_ID]:
+                    travel_tid = output[STATE_KEY_TRAVEL_TRACE_ID]
                     active_traces.add(travel_tid)
                     stream_queue_manager.register_sub_trace(travel_tid, main_trace_id)
                     logger.info(f"Registered travel trace: {travel_tid} -> {main_trace_id}")
@@ -96,7 +123,7 @@ async def execute_langgraph_workflow(session_id: str, user_input: str, main_trac
                     # Save to session metadata for reconnection
                     metadata = session_manager.get_session_metadata(session_id)
                     if metadata:
-                        metadata["travel_trace_id"] = travel_tid
+                        metadata[SESSION_KEY_TRAVEL_TRACE_ID] = travel_tid
                         session_manager.add_session(session_id, metadata)
                         logger.info(f"[Session] Saved travel_trace_id to metadata: {travel_tid}")
 
@@ -137,7 +164,7 @@ async def stream_messages_to_client(
         if chat_response:
             logger.info(f"Sending chat response: {chat_response}")
             yield {"data": json.dumps({
-                "type": "chunk",
+                "type": SSE_EVENT_TYPE_CHUNK,
                 "role": "assistant",
                 "content": chat_response,
                 "chunk_index": 0,
@@ -151,7 +178,7 @@ async def stream_messages_to_client(
             remaining_timeout = max_timeout - (time.time() - stream_start_time)
             if remaining_timeout <= 0:
                 logger.warning(f"Overall timeout reached for trace_id: {main_trace_id}")
-                yield {"data": json.dumps({"type": "error", "content": "响应超时"})}
+                yield {"data": json.dumps({"type": SSE_EVENT_TYPE_ERROR, "content": "响应超时"})}
                 break
 
             # Wait for message payload from queue
@@ -159,9 +186,9 @@ async def stream_messages_to_client(
 
             # Extract metadata
             msg_metadata = payload.metadata or {}
-            is_final = msg_metadata.get("is_final", False)
-            is_error = msg_metadata.get("error", False)
-            chunk_index = msg_metadata.get("chunk_index", 0)
+            is_final = msg_metadata.get(MSG_METADATA_IS_FINAL, False)
+            is_error = msg_metadata.get(MSG_METADATA_ERROR, False)
+            chunk_index = msg_metadata.get(MSG_METADATA_CHUNK_INDEX, 0)
 
             sub_trace_id = payload.trace_id
             role = payload.role.value if hasattr(payload.role, 'value') else str(payload.role)
@@ -169,7 +196,7 @@ async def stream_messages_to_client(
             # Handle error messages
             if is_error:
                 yield {"data": json.dumps({
-                    "type": "error",
+                    "type": SSE_EVENT_TYPE_ERROR,
                     "role": role,
                     "content": payload.content,
                     "chunk_index": chunk_index,
@@ -181,7 +208,7 @@ async def stream_messages_to_client(
             # Stream content chunks
             if payload.content:
                 yield {"data": json.dumps({
-                    "type": "chunk",
+                    "type": SSE_EVENT_TYPE_CHUNK,
                     "role": role,
                     "content": payload.content,
                     "chunk_index": chunk_index,
@@ -212,7 +239,7 @@ async def stream_messages_to_client(
             chat_response = stream_queue_manager.get_chat_response(main_trace_id)
             if chat_response:
                 yield {"data": json.dumps({
-                    "type": "chunk",
+                    "type": SSE_EVENT_TYPE_CHUNK,
                     "role": "assistant",
                     "content": chat_response,
                     "chunk_index": 0,
@@ -231,7 +258,7 @@ async def stream_messages_to_client(
                 break
             elif time.time() - stream_start_time > max_timeout:
                 logger.warning(f"Timeout waiting for messages for trace_id: {main_trace_id}")
-                yield {"data": json.dumps({"type": "error", "content": "响应超时"})}
+                yield {"data": json.dumps({"type": SSE_EVENT_TYPE_ERROR, "content": "响应超时"})}
                 break
 
 
@@ -261,9 +288,9 @@ async def stream_reconnected_messages(
             payload = await asyncio.wait_for(response_queue.get(), timeout=5.0)
 
             msg_metadata = payload.metadata or {}
-            is_final = msg_metadata.get("is_final", False)
-            is_error = msg_metadata.get("error", False)
-            chunk_index = msg_metadata.get("chunk_index", 0)
+            is_final = msg_metadata.get(MSG_METADATA_IS_FINAL, False)
+            is_error = msg_metadata.get(MSG_METADATA_ERROR, False)
+            chunk_index = msg_metadata.get(MSG_METADATA_CHUNK_INDEX, 0)
             trace_id = payload.trace_id
 
             # Check if this is the final trace based on intent
@@ -273,7 +300,7 @@ async def stream_reconnected_messages(
 
             # Send payload to frontend
             yield {"data": json.dumps({
-                "type": "error" if is_error else "chunk",
+                "type": SSE_EVENT_TYPE_ERROR if is_error else SSE_EVENT_TYPE_CHUNK,
                 "role": role,
                 "content": payload.content,
                 "chunk_index": chunk_index,
@@ -295,7 +322,7 @@ async def stream_reconnected_messages(
 
 async def create_chat_event_generator(session_id: str, user_input: str, main_trace_id: str) -> AsyncGenerator[Dict[str, Any], None]:
     """Create event generator for new chat sessions"""
-    yield {"data": json.dumps({"type": "start", "trace_id": main_trace_id})}
+    yield {"data": json.dumps({"type": SSE_EVENT_TYPE_START, "trace_id": main_trace_id})}
 
     # Register response queue
     response_queue = stream_queue_manager.register_trace(main_trace_id)
@@ -318,18 +345,18 @@ async def create_chat_event_generator(session_id: str, user_input: str, main_tra
 
     except Exception as e:
         logger.error(f"Event generator error: {e}", exc_info=True)
-        yield {"data": json.dumps({"type": "error", "content": str(e)})}
+        yield {"data": json.dumps({"type": SSE_EVENT_TYPE_ERROR, "content": str(e)})}
     finally:
         # Clean up response queue
         stream_queue_manager.unregister_trace(main_trace_id, response_queue)
-        yield {"data": "[DONE]"}
+        yield {"data": SSE_EVENT_DONE}
 
 
 async def create_reconnect_event_generator(session_id: str, main_trace_id: str, intent: str) -> AsyncGenerator[Dict[str, Any], None]:
     """Create event generator for reconnected sessions"""
     # Send reconnection confirmation
     yield {"data": json.dumps({
-        "type": "reconnected",
+        "type": SSE_EVENT_TYPE_RECONNECTED,
         "session_id": session_id,
         "trace_id": main_trace_id
     })}
@@ -348,11 +375,11 @@ async def create_reconnect_event_generator(session_id: str, main_trace_id: str, 
 
     except Exception as e:
         logger.error(f"[Reconnect] Stream error: {e}", exc_info=True)
-        yield {"data": json.dumps({"type": "error", "content": str(e)})}
+        yield {"data": json.dumps({"type": SSE_EVENT_TYPE_ERROR, "content": str(e)})}
     finally:
         logger.info(f"[Reconnect] Cleanup response queue for trace_id: {main_trace_id}")
         stream_queue_manager.unregister_trace(main_trace_id, response_queue)
-        yield {"data": "[DONE]"}
+        yield {"data": SSE_EVENT_DONE}
 
 
 # ==================== API Endpoints ====================
@@ -362,14 +389,14 @@ async def chat(request: dict):
     """Chat endpoint with SSE streaming support"""
     user_input = request.get("message")
     session_id = request.get("session_id", "")
-    main_trace_id = "main_" + str(uuid.uuid4())
+    main_trace_id = TRACE_PREFIX_MAIN + str(uuid.uuid4())
 
     # Register session with metadata
     session_manager.add_session(session_id, {
-        "trace_id": main_trace_id,
-        "user_input": user_input,
-        "created_at": time.time(),
-        "status": "active"
+        SESSION_KEY_TRACE_ID: main_trace_id,
+        SESSION_KEY_USER_INPUT: user_input,
+        SESSION_KEY_CREATED_AT: time.time(),
+        SESSION_KEY_STATUS: SESSION_STATUS_ACTIVE
     })
     logger.info(f"[Chat] Session registered: {session_id}, trace_id: {main_trace_id}")
 
@@ -397,8 +424,8 @@ async def disconnect(request: dict):
     # Update session status to inactive
     metadata = session_manager.get_session_metadata(session_id)
     if metadata:
-        metadata["status"] = "disconnected"
-        metadata["disconnected_at"] = time.time()
+        metadata[SESSION_KEY_STATUS] = SESSION_STATUS_DISCONNECTED
+        metadata[SESSION_KEY_DISCONNECTED_AT] = time.time()
         session_manager.add_session(session_id, metadata)
 
     return JSONResponse(content={
@@ -444,7 +471,7 @@ async def reconnect(request: dict):
 
     # Get main_trace_id from session metadata
     metadata = session_manager.get_session_metadata(session_id)
-    main_trace_id = metadata.get("trace_id") if metadata else None
+    main_trace_id = metadata.get(SESSION_KEY_TRACE_ID) if metadata else None
 
     if not main_trace_id:
         logger.warning(f"[Reconnect] No active trace found for session: {session_id}")
@@ -455,23 +482,23 @@ async def reconnect(request: dict):
         }, status_code=404)
 
     # Get intent and sub-trace IDs from metadata
-    intent = metadata.get("intent", "")
-    weather_trace_id = metadata.get("weather_trace_id")
-    travel_trace_id = metadata.get("travel_trace_id")
+    intent = metadata.get(SESSION_KEY_INTENT, "")
+    weather_trace_id = metadata.get(SESSION_KEY_WEATHER_TRACE_ID)
+    travel_trace_id = metadata.get(SESSION_KEY_TRAVEL_TRACE_ID)
 
     # Check if session has already completed
-    status = metadata.get("status", "active")
-    if status == "completed":
+    status = metadata.get(SESSION_KEY_STATUS, SESSION_STATUS_ACTIVE)
+    if status == SESSION_STATUS_COMPLETED:
         logger.info(f"[Reconnect] Session already completed: {session_id}")
 
         async def completed_event_generator():
             """Send immediate completion for already-finished session"""
             yield {"data": json.dumps({
-                "type": "reconnected",
+                "type": SSE_EVENT_TYPE_RECONNECTED,
                 "session_id": session_id,
                 "trace_id": main_trace_id
             })}
-            yield {"data": "[DONE]"}
+            yield {"data": SSE_EVENT_DONE}
 
         return EventSourceResponse(completed_event_generator())
 
@@ -512,3 +539,4 @@ async def get_active_sessions():
         "count": len(active_sessions),
         "sessions": session_details
     })
+
