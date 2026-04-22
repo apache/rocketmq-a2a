@@ -348,7 +348,8 @@ async def create_chat_event_generator(session_id: str, user_input: str, main_tra
         yield {"data": json.dumps({"type": SSE_EVENT_TYPE_ERROR, "content": str(e)})}
     finally:
         # Clean up response queue
-        stream_queue_manager.unregister_trace(main_trace_id, response_queue)
+        # todo
+        # stream_queue_manager.unregister_trace(main_trace_id, response_queue)
         yield {"data": SSE_EVENT_DONE}
 
 

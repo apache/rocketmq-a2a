@@ -1,12 +1,12 @@
-"""Bailian AI service for travel itinerary generation"""
+"""Bailian AI service for weather information queries"""
 import logging
 import time
 
 import dashscope
 
 from common.models import MessagePayload, AgentRole
-from travel_agent.config.config import DASHSCOPE_API_KEY, APP_ID
-from travel_agent.rocketmq.mq_service import send_message
+from weather_agent.config.config import DASHSCOPE_API_KEY, APP_ID
+from weather_agent.rocketmq.mq_service import send_message
 
 logger = logging.getLogger(__name__)
 
@@ -42,31 +42,17 @@ def send_with_retry(topic: str, payload: MessagePayload, lite_topic: str, operat
     return False
 
 
-def generate_travel_itinerary_streaming(request: str, date_info: str, weather_info: str,
-                                        payload: MessagePayload) -> None:
+def query_weather_streaming(city: str, date_info: str, payload: MessagePayload) -> None:
     """
-    Call Bailian AI to generate travel itinerary with streaming output.
-    Creates weather-aware travel plans with incremental chunk delivery.
+    Call Bailian AI to query weather information with streaming output.
+    Delivers incremental text chunks in real-time via RocketMQ.
 
     Args:
-        request: Original user request for travel planning
-        date_info: Travel date information
-        weather_info: Weather information from weather agent
+        city: City name to query weather for
+        date_info: Target date for weather query
         payload: Original message payload for trace_id and topic info
     """
-    prompt = f"""请根据以下信息制定旅行行程规划：
-
-用户需求：{request}
-出行日期：{date_info}
-天气情况：{weather_info}
-
-请结合天气情况，为用户提供合理的行程安排建议。如果天气不佳，请提供室内活动备选方案。行程应包括：
-1. 每日详细时间安排
-2. 景点推荐（考虑天气因素）
-3. 交通建议
-4. 餐饮推荐
-5. 注意事项和温馨提示
-6. 雨天/恶劣天气的备选方案"""
+    prompt = f"请查询 {city} 在 {date_info} 的天气情况。"
 
     try:
         response = dashscope.Application.call(
@@ -93,7 +79,7 @@ def generate_travel_itinerary_streaming(request: str, date_info: str, weather_in
                     # Create chunk payload
                     chunk_payload = MessagePayload(
                         trace_id=payload.trace_id,
-                        role=AgentRole.TRAVEL,
+                        role=AgentRole.WEATHER,
                         content=incremental_text,
                         bind_topic=None,
                         lite_topic=None,
@@ -113,7 +99,7 @@ def generate_travel_itinerary_streaming(request: str, date_info: str, weather_in
                 # Send error payload
                 error_payload = MessagePayload(
                     trace_id=payload.trace_id,
-                    role=AgentRole.TRAVEL,
+                    role=AgentRole.WEATHER,
                     content=error_msg,
                     bind_topic=None,
                     lite_topic=None,
@@ -127,7 +113,7 @@ def generate_travel_itinerary_streaming(request: str, date_info: str, weather_in
         # Send final marker message
         final_payload = MessagePayload(
             trace_id=payload.trace_id,
-            role=AgentRole.TRAVEL,
+            role=AgentRole.WEATHER,
             content="",
             bind_topic=None,
             lite_topic=None,
@@ -142,7 +128,7 @@ def generate_travel_itinerary_streaming(request: str, date_info: str, weather_in
         # Send exception error payload
         error_payload = MessagePayload(
             trace_id=payload.trace_id,
-            role=AgentRole.TRAVEL,
+            role=AgentRole.WEATHER,
             content=error_msg,
             bind_topic=None,
             lite_topic=None,
