@@ -674,7 +674,13 @@
         console.log('[UI] Restored state - Last active agent key:', lastActiveAgentKey);
 
         isReconnecting = true;
+        isProcessing = true;
         updateConnectionStatus('connecting', '正在重新连接...');
+
+        // Disable input and send button during reconnection
+        const input = document.getElementById('user-input');
+        input.disabled = true;
+        sendBtn.disabled = true;
 
         try {
             const response = await fetch('/reconnect', {
@@ -722,6 +728,16 @@
                             // Clear preserved state after successful reconnection
                             preservedMessageElements = {};
                             preservedLastAgentKey = null;
+
+                            // Re-enable input after reconnection completes
+                            isConnected = true;
+                            isReconnecting = false;
+                            isProcessing = false;
+                            input.disabled = false;
+                            sendBtn.disabled = false;
+                            updateConnectionStatus('connected', '已连接');
+                            input.focus();
+
                             break;
                         }
 
@@ -836,6 +852,13 @@
                                 console.error('[UI] Error during reconnection:', obj);
                                 hideLoading();
                                 showToast('❌ 错误: ' + obj.content, 'error');
+
+                                // Re-enable input on error
+                                isConnected = true;
+                                isReconnecting = false;
+                                isProcessing = false;
+                                input.disabled = false;
+                                sendBtn.disabled = false;
                             }
 
                         } catch (e) {
@@ -845,18 +868,29 @@
                 }
             }
 
-            if (!hasReceivedConfirmation) {
+            // Fallback: if loop exits without [DONE], ensure input is re-enabled
+            if (isProcessing) {
                 isConnected = true;
                 isReconnecting = false;
+                isProcessing = false;
+                input.disabled = false;
+                sendBtn.disabled = false;
                 updateConnectionStatus('connected', '已连接');
-                showToast('✅ 重新连接成功', 'success');
+                if (!hasReceivedConfirmation) {
+                    showToast('✅ 重新连接成功', 'success');
+                }
             }
 
         } catch (error) {
             console.error('[UI] Reconnect error:', error);
             isReconnecting = false;
+            isProcessing = false;
             updateConnectionStatus('disconnected', '连接失败');
             showToast('❌ 重新连接失败: ' + error.message, 'error');
+
+            // Re-enable input on error
+            input.disabled = false;
+            sendBtn.disabled = false;
         } finally {
             currentReader = null;
             console.log('[UI] Reconnect finally complete');
