@@ -1,14 +1,8 @@
-import json
 import logging
-from typing import Optional
+from typing import Optional, List
 
 from rocketmq import (
-    ClientConfiguration,
-    ConsumeResult,
-    Credentials,
-    FilterExpression,
     LitePushConsumer,
-    Message,
     MessageListener,
     Producer,
     PushConsumer,
@@ -19,11 +13,26 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+def _validate_non_empty(value: str, param_name: str) -> None:
+    """
+    Validate that a string parameter is not empty.
+
+    Args:
+        value: String value to validate
+        param_name: Parameter name for error messages
+
+    Raises:
+        ValueError: If value is empty or whitespace-only
+    """
+    if not value or not value.strip():
+        logger.warning("Invalid %s: [%s]", param_name, value)
+        raise ValueError(f"{param_name} cannot be empty")
+
+
 def build_producer(
         endpoint: str,
         access_key: str,
-        secret_key: str,
-        group_id: str = "GID_PYTHON_PRODUCER_DEFAULT",
+        secret_key: str
 ) -> Producer:
     """
     Build and start a RocketMQ producer.
@@ -32,7 +41,6 @@ def build_producer(
         endpoint: RocketMQ service endpoint
         access_key: Access key for authentication
         secret_key: Secret key for authentication
-        group_id: Producer group ID (default: GID_PYTHON_PRODUCER_DEFAULT)
 
     Returns:
         Started Producer instance
@@ -42,17 +50,9 @@ def build_producer(
         Exception: If producer fails to start
     """
     # Validate required parameters
-    if not endpoint or not endpoint.strip():
-        logger.warning("Invalid endpoint: [%s]", endpoint)
-        raise ValueError("Endpoint cannot be empty")
-
-    if not access_key or not access_key.strip():
-        logger.warning("Invalid access_key")
-        raise ValueError("Access key cannot be empty")
-
-    if not secret_key or not secret_key.strip():
-        logger.warning("Invalid secret_key")
-        raise ValueError("Secret key cannot be empty")
+    _validate_non_empty(endpoint, "Endpoint")
+    _validate_non_empty(access_key, "Access key")
+    _validate_non_empty(secret_key, "Secret key")
 
     try:
         # Create credentials and configuration
@@ -63,29 +63,12 @@ def build_producer(
         producer = Producer(client_configuration=config)
         producer.startup()
 
-        logger.info("Producer started successfully. Endpoint: [%s], Group: [%s]", endpoint, group_id)
+        logger.info("Producer started successfully. Endpoint: [%s]", endpoint)
         return producer
 
     except Exception as e:
         logger.error("Failed to start Producer: %s", str(e))
         raise
-
-
-class SimpleMessageListener(MessageListener):
-    """Simple message listener that logs received messages."""
-
-    def consume(self, message: Message) -> ConsumeResult:
-        """
-        Process incoming message.
-
-        Args:
-            message: Received message from RocketMQ
-
-        Returns:
-            ConsumeResult.SUCCESS to acknowledge successful consumption
-        """
-        logger.info("Received message: %s", message)
-        return ConsumeResult.SUCCESS
 
 
 def build_lite_push_consumer(
@@ -94,7 +77,7 @@ def build_lite_push_consumer(
         secret_key: str,
         consumer_group: str,
         topic: str,
-        message_listener: Optional[MessageListener] = None,
+        message_listener: MessageListener,
 ) -> LitePushConsumer:
     """
     Build and start a RocketMQ lite push consumer.
@@ -105,7 +88,7 @@ def build_lite_push_consumer(
         secret_key: Secret key for authentication
         consumer_group: Consumer group ID
         topic: Topic to subscribe to
-        message_listener: Custom message listener (uses SimpleMessageListener if None)
+        message_listener: Custom message listener to handle incoming messages
 
     Returns:
         Started LitePushConsumer instance
@@ -115,21 +98,14 @@ def build_lite_push_consumer(
         Exception: If consumer fails to start
     """
     # Validate required parameters
-    if not endpoint or not endpoint.strip():
-        logger.warning("Invalid endpoint: [%s]", endpoint)
-        raise ValueError("Endpoint cannot be empty")
+    _validate_non_empty(endpoint, "Endpoint")
+    _validate_non_empty(consumer_group, "Consumer group")
+    _validate_non_empty(topic, "Topic")
 
-    if not consumer_group or not consumer_group.strip():
-        logger.warning("Invalid consumer_group: [%s]", consumer_group)
-        raise ValueError("Consumer group cannot be empty")
-
-    if not topic or not topic.strip():
-        logger.warning("Invalid topic: [%s]", topic)
-        raise ValueError("Topic cannot be empty")
-
-    # Use default listener if not provided
+    # Validate message listener is provided
     if message_listener is None:
-        message_listener = SimpleMessageListener()
+        logger.warning("Invalid message_listener: None")
+        raise ValueError("Message listener cannot be None")
 
     try:
         # Create credentials and configuration
@@ -187,18 +163,11 @@ def build_push_consumer(
         Exception: If consumer fails to start
     """
     # Validate required parameters
-    if not endpoint or not endpoint.strip():
-        logger.warning("Invalid endpoint: [%s]", endpoint)
-        raise ValueError("Endpoint cannot be empty")
+    _validate_non_empty(endpoint, "Endpoint")
+    _validate_non_empty(consumer_group, "Consumer group")
+    _validate_non_empty(topic, "Topic")
 
-    if not consumer_group or not consumer_group.strip():
-        logger.warning("Invalid consumer_group: [%s]", consumer_group)
-        raise ValueError("Consumer group cannot be empty")
-
-    if not topic or not topic.strip():
-        logger.warning("Invalid topic: [%s]", topic)
-        raise ValueError("Topic cannot be empty")
-
+    # Validate message listener is provided
     if message_listener is None:
         logger.warning("Invalid message_listener: None")
         raise ValueError("Message listener cannot be None")
@@ -208,11 +177,17 @@ def build_push_consumer(
         credentials = Credentials(access_key, secret_key)
         config = ClientConfiguration(endpoint, credentials)
 
-        # Initialize push consumer
-        consumer = PushConsumer(client_configuration=config, consumer_group=consumer_group,
-                                message_listener=message_listener, subscription={topic: FilterExpression(), })
+        # Initialize push consumer with subscription
+        consumer = PushConsumer(
+            client_configuration=config,
+            consumer_group=consumer_group,
+            message_listener=message_listener,
+            subscription={topic: FilterExpression()},
+        )
+
         # Start consumer
         consumer.startup()
+
         logger.info(
             "PushConsumer started successfully. Group: [%s], Topic: [%s], Endpoint: [%s]",
             consumer_group,
@@ -226,16 +201,229 @@ def build_push_consumer(
         raise
 
 
-def build_message(topic: str, body: str, keys: Optional[list] = None, tags: Optional[str] = None,
-                  lite_topic: Optional[str] = None) -> Message:
+import logging
+from typing import Optional, List
+
+from rocketmq import (
+    ClientConfiguration,
+    Credentials,
+    FilterExpression,
+    LitePushConsumer,
+    Message,
+    MessageListener,
+    Producer,
+    PushConsumer,
+)
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+def _validate_non_empty(value: str, param_name: str) -> None:
+    """
+    Validate that a string parameter is not empty.
+
+    Args:
+        value: String value to validate
+        param_name: Parameter name for error messages
+
+    Raises:
+        ValueError: If value is empty or whitespace-only
+    """
+    if not value or not value.strip():
+        logger.warning("Invalid %s: [%s]", param_name, value)
+        raise ValueError(f"{param_name} cannot be empty")
+
+
+def build_producer(
+        endpoint: str,
+        access_key: str,
+        secret_key: str
+) -> Producer:
+    """
+    Build and start a RocketMQ producer.
+
+    Args:
+        endpoint: RocketMQ service endpoint
+        access_key: Access key for authentication
+        secret_key: Secret key for authentication
+
+    Returns:
+        Started Producer instance
+
+    Raises:
+        ValueError: If required parameters are invalid
+        Exception: If producer fails to start
+    """
+    # Validate required parameters
+    _validate_non_empty(endpoint, "Endpoint")
+    _validate_non_empty(access_key, "Access key")
+    _validate_non_empty(secret_key, "Secret key")
+
+    try:
+        # Create credentials and configuration
+        credentials = Credentials(access_key, secret_key)
+        config = ClientConfiguration(endpoint, credentials)
+
+        # Initialize and start producer
+        producer = Producer(client_configuration=config)
+        producer.startup()
+
+        logger.info("Producer started successfully. Endpoint: [%s]", endpoint)
+        return producer
+
+    except Exception as e:
+        logger.error("Failed to start Producer: %s", str(e))
+        raise
+
+
+def build_lite_push_consumer(
+        endpoint: str,
+        access_key: str,
+        secret_key: str,
+        consumer_group: str,
+        topic: str,
+        message_listener: MessageListener,
+) -> LitePushConsumer:
+    """
+    Build and start a RocketMQ lite push consumer.
+
+    Args:
+        endpoint: RocketMQ service endpoint
+        access_key: Access key for authentication
+        secret_key: Secret key for authentication
+        consumer_group: Consumer group ID
+        topic: Topic to subscribe to
+        message_listener: Custom message listener to handle incoming messages
+
+    Returns:
+        Started LitePushConsumer instance
+
+    Raises:
+        ValueError: If required parameters are invalid
+        Exception: If consumer fails to start
+    """
+    # Validate required parameters
+    _validate_non_empty(endpoint, "Endpoint")
+    _validate_non_empty(consumer_group, "Consumer group")
+    _validate_non_empty(topic, "Topic")
+
+    # Validate message listener is provided
+    if message_listener is None:
+        logger.warning("Invalid message_listener: None")
+        raise ValueError("Message listener cannot be None")
+
+    try:
+        # Create credentials and configuration
+        credentials = Credentials(access_key, secret_key)
+        config = ClientConfiguration(endpoint, credentials)
+
+        # Initialize and start lite push consumer
+        consumer = LitePushConsumer(
+            client_configuration=config,
+            consumer_group=consumer_group,
+            bind_topic=topic,
+            message_listener=message_listener,
+        )
+        consumer.startup()
+
+        logger.info(
+            "LitePushConsumer started successfully. Group: [%s], Topic: [%s], Endpoint: [%s]",
+            consumer_group,
+            topic,
+            endpoint,
+        )
+        return consumer
+
+    except Exception as e:
+        logger.error("Failed to start LitePushConsumer: %s", str(e))
+        raise
+
+
+def build_push_consumer(
+        endpoint: str,
+        access_key: str,
+        secret_key: str,
+        consumer_group: str,
+        topic: str,
+        message_listener: MessageListener,
+        tag_expression: Optional[str] = None,
+) -> PushConsumer:
+    """
+    Build and start a RocketMQ push consumer with subscription support.
+
+    Args:
+        endpoint: RocketMQ service endpoint
+        access_key: Access key for authentication
+        secret_key: Secret key for authentication
+        consumer_group: Consumer group ID
+        topic: Topic to subscribe to
+        message_listener: Message listener to handle incoming messages
+        tag_expression: Optional tag filter expression (e.g., "TagA || TagB")
+
+    Returns:
+        Started PushConsumer instance
+
+    Raises:
+        ValueError: If required parameters are invalid
+        Exception: If consumer fails to start
+    """
+    # Validate required parameters
+    _validate_non_empty(endpoint, "Endpoint")
+    _validate_non_empty(consumer_group, "Consumer group")
+    _validate_non_empty(topic, "Topic")
+
+    # Validate message listener is provided
+    if message_listener is None:
+        logger.warning("Invalid message_listener: None")
+        raise ValueError("Message listener cannot be None")
+
+    try:
+        # Create credentials and configuration
+        credentials = Credentials(access_key, secret_key)
+        config = ClientConfiguration(endpoint, credentials)
+
+        # Initialize push consumer with subscription
+        consumer = PushConsumer(
+            client_configuration=config,
+            consumer_group=consumer_group,
+            message_listener=message_listener,
+            subscription={topic: FilterExpression()},
+        )
+
+        # Start consumer
+        consumer.startup()
+
+        logger.info(
+            "PushConsumer started successfully. Group: [%s], Topic: [%s], Endpoint: [%s]",
+            consumer_group,
+            topic,
+            endpoint,
+        )
+        return consumer
+
+    except Exception as e:
+        logger.error("Failed to start PushConsumer: %s", str(e))
+        raise
+
+
+def build_message(
+        topic: str,
+        body: str,
+        keys: Optional[List[str]] = None,
+        tags: Optional[str] = None,
+        lite_topic: Optional[str] = None
+) -> Message:
     """
     Build a RocketMQ message.
 
     Args:
         topic: Message topic
-        body: Message body as dictionary (will be JSON serialized)
+        body: Message body as string (already serialized)
         keys: Optional message keys for indexing
         tags: Optional message tags for filtering
+        lite_topic: Optional lightweight topic for session-based routing
 
     Returns:
         Configured Message instance ready to send
@@ -243,20 +431,20 @@ def build_message(topic: str, body: str, keys: Optional[list] = None, tags: Opti
     Raises:
         ValueError: If required parameters are invalid
         Exception: If message building fails
-        :param lite_topic:
     """
     # Validate required parameters
-    if not topic or not topic.strip():
-        logger.warning("Invalid topic: [%s]", topic)
-        raise ValueError("Topic cannot be empty")
+    _validate_non_empty(topic, "Topic")
+
     try:
-        # Serialize body to JSON bytes
+        # Encode body to UTF-8 bytes
         body_bytes = body.encode("utf-8")
 
         # Create and configure message
         msg = Message()
         msg.topic = topic
         msg.body = body_bytes
+
+        # Set lightweight topic if provided
         if lite_topic and lite_topic.strip():
             msg.lite_topic = lite_topic.strip()
 
@@ -275,3 +463,5 @@ def build_message(topic: str, body: str, keys: Optional[list] = None, tags: Opti
     except Exception as e:
         logger.error("Failed to build message: %s", str(e))
         raise
+
+
