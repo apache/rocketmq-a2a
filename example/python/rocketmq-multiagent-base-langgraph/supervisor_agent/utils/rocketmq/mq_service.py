@@ -1,7 +1,6 @@
 
 """RocketMQ consumer and producer management"""
 import asyncio
-import logging
 from typing import Optional
 
 from rocketmq import MessageListener, ConsumeResult, Message, LitePushConsumer

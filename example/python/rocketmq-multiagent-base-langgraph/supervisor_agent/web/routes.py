@@ -4,6 +4,7 @@ import uuid
 import time
 import asyncio
 from pathlib import Path
+from typing import Optional, AsyncGenerator, Dict, Any
 
 from fastapi import APIRouter
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -30,22 +31,20 @@ async def read_root():
         return f.read()
 
 
-@router.post("/chat")
-async def chat(request: dict):
-    """Chat endpoint with SSE streaming support"""
-    user_input = request.get("message")
-    session_id = request.get("session_id", "")
-    main_trace_id = "main_" + str(uuid.uuid4())
+# ==================== Core Business Logic ====================
 
-    # Register session with metadata
-    session_manager.add_session(session_id, {
-        "trace_id": main_trace_id,
-        "user_input": user_input,
-        "created_at": time.time()
-    })
-    logger.info(f"[Chat] Session registered: {session_id}, trace_id: {main_trace_id}")
-    subscribe_lite_topic(session_id)
-    # Initialize workflow state
+async def execute_langgraph_workflow(session_id: str, user_input: str, main_trace_id: str) -> Dict[str, Any]:
+    """
+    Execute LangGraph workflow and register sub-traces.
+
+    Args:
+        session_id: Session identifier
+        user_input: User's input message
+        main_trace_id: Main trace ID for this conversation
+
+    Returns:
+        Workflow execution result metadata
+    """
     initial_state = {
         "trace_id": main_trace_id,
         "session_id": session_id,
@@ -60,188 +59,326 @@ async def chat(request: dict):
         "weather_complete": False
     }
 
-    # Register response queue for streaming
-    response_queue = stream_queue_manager.register_trace(main_trace_id)
+    active_traces = set()
+    is_chat_mode = False
 
-    async def event_generator():
-        """Generate SSE events for real-time streaming"""
-        yield {"data": json.dumps({"type": "start", "trace_id": main_trace_id})}
+    try:
+        async for event in app_graph.astream(initial_state):
+            for node_name, output in event.items():
+                logger.info(f"Graph node executed: {node_name}, output: {output}")
+
+                # Detect chat mode
+                if node_name == "chat_node":
+                    is_chat_mode = True
+                    logger.info("Detected chat mode, will wait for streaming completion")
+
+                # Register weather sub-trace for streaming
+                if "weather_trace_id" in output and output["weather_trace_id"]:
+                    weather_tid = output["weather_trace_id"]
+                    active_traces.add(weather_tid)
+                    stream_queue_manager.register_sub_trace(weather_tid, main_trace_id)
+                    logger.info(f"Registered weather trace: {weather_tid} -> {main_trace_id}")
+
+                    # Save to session metadata for reconnection
+                    metadata = session_manager.get_session_metadata(session_id)
+                    if metadata:
+                        metadata["weather_trace_id"] = weather_tid
+                        session_manager.add_session(session_id, metadata)
+                        logger.info(f"[Session] Saved weather_trace_id to metadata: {weather_tid}")
+
+                # Register travel sub-trace for streaming
+                if "travel_trace_id" in output and output["travel_trace_id"]:
+                    travel_tid = output["travel_trace_id"]
+                    active_traces.add(travel_tid)
+                    stream_queue_manager.register_sub_trace(travel_tid, main_trace_id)
+                    logger.info(f"Registered travel trace: {travel_tid} -> {main_trace_id}")
+
+                    # Save to session metadata for reconnection
+                    metadata = session_manager.get_session_metadata(session_id)
+                    if metadata:
+                        metadata["travel_trace_id"] = travel_tid
+                        session_manager.add_session(session_id, metadata)
+                        logger.info(f"[Session] Saved travel_trace_id to metadata: {travel_tid}")
+
+    except Exception as e:
+        logger.error(f"Graph execution error: {e}", exc_info=True)
+        raise
+
+    return {
+        "active_traces": active_traces,
+        "is_chat_mode": is_chat_mode
+    }
+
+
+async def stream_messages_to_client(
+        main_trace_id: str,
+        response_queue: asyncio.Queue,
+        max_timeout: float = 120.0
+) -> AsyncGenerator[Dict[str, Any], None]:
+    """
+    Stream messages from queue to client via SSE.
+
+    Args:
+        main_trace_id: Main trace ID
+        response_queue: Queue containing message payloads
+        max_timeout: Maximum timeout in seconds
+
+    Yields:
+        SSE event dictionaries
+    """
+    active_traces = set()
+    completed_traces = set()
+    chat_stream_completed = False
+    stream_start_time = time.time()
+
+    while True:
+        # Check for direct chat response
+        chat_response = stream_queue_manager.get_chat_response(main_trace_id)
+        if chat_response:
+            logger.info(f"Sending chat response: {chat_response}")
+            yield {"data": json.dumps({
+                "type": "chunk",
+                "role": "assistant",
+                "content": chat_response,
+                "chunk_index": 0,
+                "is_final": True,
+                "sub_trace_id": main_trace_id
+            })}
+            break
 
         try:
-            active_traces = set()
-            completed_traces = set()
-            is_chat_mode = False
+            # Calculate remaining timeout
+            remaining_timeout = max_timeout - (time.time() - stream_start_time)
+            if remaining_timeout <= 0:
+                logger.warning(f"Overall timeout reached for trace_id: {main_trace_id}")
+                yield {"data": json.dumps({"type": "error", "content": "响应超时"})}
+                break
 
-            async def run_graph():
-                """Execute LangGraph workflow asynchronously"""
-                nonlocal is_chat_mode
-                try:
-                    async for event in app_graph.astream(initial_state):
-                        for node_name, output in event.items():
-                            logger.info(f"Graph node executed: {node_name}, output: {output}")
+            # Wait for message payload from queue
+            payload = await asyncio.wait_for(response_queue.get(), timeout=min(remaining_timeout, 5.0))
 
-                            # Detect chat mode
-                            if node_name == "chat_node":
-                                is_chat_mode = True
-                                logger.info("Detected chat mode, will wait for streaming completion")
+            # Extract metadata
+            msg_metadata = payload.metadata or {}
+            is_final = msg_metadata.get("is_final", False)
+            is_error = msg_metadata.get("error", False)
+            chunk_index = msg_metadata.get("chunk_index", 0)
 
-                            # Register weather sub-trace for streaming
-                            if "weather_trace_id" in output and output["weather_trace_id"]:
-                                weather_tid = output["weather_trace_id"]
-                                active_traces.add(weather_tid)
-                                stream_queue_manager.register_sub_trace(weather_tid, main_trace_id)
-                                logger.info(f"Registered weather trace: {weather_tid} -> {main_trace_id}")
+            sub_trace_id = payload.trace_id
+            role = payload.role.value if hasattr(payload.role, 'value') else str(payload.role)
 
-                                # Save to session metadata for reconnection
-                                metadata = session_manager.get_session_metadata(session_id)
-                                if metadata:
-                                    metadata["weather_trace_id"] = weather_tid
-                                    session_manager.add_session(session_id, metadata)
-                                    logger.info(f"[Session] Saved weather_trace_id to metadata: {weather_tid}")
+            # Handle error messages
+            if is_error:
+                yield {"data": json.dumps({
+                    "type": "error",
+                    "role": role,
+                    "content": payload.content,
+                    "chunk_index": chunk_index,
+                    "sub_trace_id": sub_trace_id
+                })}
+                completed_traces.add(sub_trace_id)
+                continue
 
-                            # Register travel sub-trace for streaming
-                            if "travel_trace_id" in output and output["travel_trace_id"]:
-                                travel_tid = output["travel_trace_id"]
-                                active_traces.add(travel_tid)
-                                stream_queue_manager.register_sub_trace(travel_tid, main_trace_id)
-                                logger.info(f"Registered travel trace: {travel_tid} -> {main_trace_id}")
+            # Stream content chunks
+            if payload.content:
+                yield {"data": json.dumps({
+                    "type": "chunk",
+                    "role": role,
+                    "content": payload.content,
+                    "chunk_index": chunk_index,
+                    "is_final": is_final,
+                    "sub_trace_id": sub_trace_id
+                })}
 
-                                # Save to session metadata for reconnection
-                                metadata = session_manager.get_session_metadata(session_id)
-                                if metadata:
-                                    metadata["travel_trace_id"] = travel_tid
-                                    session_manager.add_session(session_id, metadata)
-                                    logger.info(f"[Session] Saved travel_trace_id to metadata: {travel_tid}")
+            # Check if sub-trace or main trace is complete
+            if is_final:
+                if sub_trace_id != main_trace_id:
+                    # Sub-trace completed
+                    completed_traces.add(sub_trace_id)
+                    logger.info(
+                        f"Sub-trace completed: {sub_trace_id}, total completed: {len(completed_traces)}/{len(active_traces)}")
 
-                except Exception as e:
-                    logger.error(f"Graph execution error: {e}", exc_info=True)
-
-            # Start graph execution in background
-            graph_task = asyncio.create_task(run_graph())
-
-            stream_start_time = time.time()
-            max_timeout = 120.0
-            chat_stream_completed = False
-
-            # Stream responses to client
-            while True:
-                # Check for direct chat response
-                chat_response = stream_queue_manager.get_chat_response(main_trace_id)
-                if chat_response:
-                    logger.info(f"Sending chat response: {chat_response}")
-                    yield {"data": json.dumps({
-                        "type": "chunk",
-                        "role": "assistant",
-                        "content": chat_response,
-                        "chunk_index": 0,
-                        "is_final": True,
-                        "sub_trace_id": main_trace_id
-                    })}
+                    # Check if all sub-traces are done
+                    if active_traces and completed_traces >= active_traces:
+                        logger.info(f"All sub-traces completed for main trace: {main_trace_id}")
+                        break
+                else:
+                    # Main chat stream completed
+                    logger.info(f"Chat streaming completed for main trace: {main_trace_id}")
+                    chat_stream_completed = True
                     break
 
-                try:
-                    # Calculate remaining timeout
-                    remaining_timeout = max_timeout - (time.time() - stream_start_time)
-                    if remaining_timeout <= 0:
-                        logger.warning(f"Overall timeout reached for trace_id: {main_trace_id}")
-                        yield {"data": json.dumps({"type": "error", "content": "响应超时"})}
-                        break
+        except asyncio.TimeoutError:
+            # Retry checking for chat response on timeout
+            chat_response = stream_queue_manager.get_chat_response(main_trace_id)
+            if chat_response:
+                yield {"data": json.dumps({
+                    "type": "chunk",
+                    "role": "assistant",
+                    "content": chat_response,
+                    "chunk_index": 0,
+                    "is_final": True,
+                    "sub_trace_id": main_trace_id
+                })}
+                break
 
-                    # Wait for message payload from queue
-                    payload = await asyncio.wait_for(response_queue.get(), timeout=min(remaining_timeout, 5.0))
+            # Exit conditions
+            if chat_stream_completed:
+                logger.info("Chat stream already completed, exiting loop")
+                break
+            elif not active_traces:
+                continue
+            elif active_traces and completed_traces >= active_traces:
+                break
+            elif time.time() - stream_start_time > max_timeout:
+                logger.warning(f"Timeout waiting for messages for trace_id: {main_trace_id}")
+                yield {"data": json.dumps({"type": "error", "content": "响应超时"})}
+                break
 
-                    # Extract metadata
-                    metadata = payload.metadata or {}
-                    is_final = metadata.get("is_final", False)
-                    is_error = metadata.get("error", False)
-                    chunk_index = metadata.get("chunk_index", 0)
 
-                    sub_trace_id = payload.trace_id
-                    role = payload.role.value if hasattr(payload.role, 'value') else str(payload.role)
+async def stream_reconnected_messages(
+        main_trace_id: str,
+        response_queue: asyncio.Queue,
+        intent: str,
+        max_timeout: float = 120.0
+) -> AsyncGenerator[Dict[str, Any], None]:
+    """
+    Stream messages for reconnected client.
 
-                    # Handle error messages
-                    if is_error:
-                        yield {"data": json.dumps({
-                            "type": "error",
-                            "role": role,
-                            "content": payload.content,
-                            "chunk_index": chunk_index,
-                            "sub_trace_id": sub_trace_id
-                        })}
-                        completed_traces.add(sub_trace_id)
-                        continue
+    Args:
+        main_trace_id: Main trace ID
+        response_queue: Queue containing message payloads
+        intent: Intent type for determining final trace
+        max_timeout: Maximum timeout in seconds
 
-                    # Stream content chunks
-                    if payload.content:
-                        yield {"data": json.dumps({
-                            "type": "chunk",
-                            "role": role,
-                            "content": payload.content,
-                            "chunk_index": chunk_index,
-                            "is_final": is_final,
-                            "sub_trace_id": sub_trace_id
-                        })}
+    Yields:
+        SSE event dictionaries
+    """
+    start_time = time.time()
 
-                    # Check if sub-trace or main trace is complete
-                    if is_final:
-                        if sub_trace_id != main_trace_id:
-                            # Sub-trace completed
-                            completed_traces.add(sub_trace_id)
-                            logger.info(
-                                f"Sub-trace completed: {sub_trace_id}, total completed: {len(completed_traces)}/{len(active_traces)}")
+    while time.time() - start_time < max_timeout:
+        try:
+            # Wait for messages from RocketMQ consumer
+            payload = await asyncio.wait_for(response_queue.get(), timeout=5.0)
 
-                            # Check if all sub-traces are done
-                            if active_traces and completed_traces >= active_traces:
-                                logger.info(f"All sub-traces completed for main trace: {main_trace_id}")
-                                break
-                        else:
-                            # Main chat stream completed
-                            logger.info(f"Chat streaming completed for main trace: {main_trace_id}")
-                            chat_stream_completed = True
-                            break
+            msg_metadata = payload.metadata or {}
+            is_final = msg_metadata.get("is_final", False)
+            is_error = msg_metadata.get("error", False)
+            chunk_index = msg_metadata.get("chunk_index", 0)
+            trace_id = payload.trace_id
 
-                except asyncio.TimeoutError:
-                    # Retry checking for chat response on timeout
-                    chat_response = stream_queue_manager.get_chat_response(main_trace_id)
-                    if chat_response:
-                        yield {"data": json.dumps({
-                            "type": "chunk",
-                            "role": "assistant",
-                            "content": chat_response,
-                            "chunk_index": 0,
-                            "is_final": True,
-                            "sub_trace_id": main_trace_id
-                        })}
-                        break
+            # Check if this is the final trace based on intent
+            is_last_trace = intent and trace_id.startswith(intent)
 
-                    # Exit conditions
-                    if chat_stream_completed:
-                        logger.info("Chat stream already completed, exiting loop")
-                        break
-                    elif not graph_task.done() and not active_traces:
-                        continue
-                    elif active_traces and completed_traces >= active_traces:
-                        break
-                    elif time.time() - stream_start_time > max_timeout:
-                        logger.warning(f"Timeout waiting for messages for trace_id: {main_trace_id}")
-                        yield {"data": json.dumps({"type": "error", "content": "响应超时"})}
-                        break
+            role = payload.role.value if hasattr(payload.role, 'value') else str(payload.role)
 
-            # Wait for graph task to finish
-            try:
-                await asyncio.wait_for(graph_task, timeout=10.0)
-            except asyncio.TimeoutError:
-                logger.warning("Graph task timeout, continuing...")
+            # Send payload to frontend
+            yield {"data": json.dumps({
+                "type": "error" if is_error else "chunk",
+                "role": role,
+                "content": payload.content,
+                "chunk_index": chunk_index,
+                "is_final": is_final,
+                "sub_trace_id": trace_id
+            })}
 
-        except Exception as e:
-            logger.error(f"Event generator error: {e}", exc_info=True)
-            yield {"data": json.dumps({"type": "error", "content": str(e)})}
-        finally:
-            # Clean up response queue (keep session for potential reconnection)
-            stream_queue_manager.unregister_trace(main_trace_id, response_queue)
-            yield {"data": "[DONE]"}
+            # Stop if final message received for the last trace
+            if is_final and is_last_trace:
+                logger.info(f"[Reconnect] Final message received for trace: {main_trace_id}")
+                break
 
-    return EventSourceResponse(event_generator())
+        except asyncio.TimeoutError:
+            # Continue waiting for messages
+            continue
+
+
+# ==================== SSE Event Generators ====================
+
+async def create_chat_event_generator(session_id: str, user_input: str, main_trace_id: str) -> AsyncGenerator[Dict[str, Any], None]:
+    """Create event generator for new chat sessions"""
+    yield {"data": json.dumps({"type": "start", "trace_id": main_trace_id})}
+
+    # Register response queue
+    response_queue = stream_queue_manager.register_trace(main_trace_id)
+
+    try:
+        # Start LangGraph workflow in background
+        graph_task = asyncio.create_task(
+            execute_langgraph_workflow(session_id, user_input, main_trace_id)
+        )
+
+        # Stream messages to client
+        async for event in stream_messages_to_client(main_trace_id, response_queue):
+            yield event
+
+        # Wait for graph task to finish
+        try:
+            await asyncio.wait_for(graph_task, timeout=10.0)
+        except asyncio.TimeoutError:
+            logger.warning("Graph task timeout, continuing...")
+
+    except Exception as e:
+        logger.error(f"Event generator error: {e}", exc_info=True)
+        yield {"data": json.dumps({"type": "error", "content": str(e)})}
+    finally:
+        # Clean up response queue
+        stream_queue_manager.unregister_trace(main_trace_id, response_queue)
+        yield {"data": "[DONE]"}
+
+
+async def create_reconnect_event_generator(session_id: str, main_trace_id: str, intent: str) -> AsyncGenerator[Dict[str, Any], None]:
+    """Create event generator for reconnected sessions"""
+    # Send reconnection confirmation
+    yield {"data": json.dumps({
+        "type": "reconnected",
+        "session_id": session_id,
+        "trace_id": main_trace_id
+    })}
+
+    # Register response queue
+    response_queue = stream_queue_manager.register_trace(main_trace_id)
+
+    try:
+        # Subscribe to RocketMQ
+        subscribe_lite_topic(session_id)
+        logger.info(f"[Reconnect] Re-subscribed to session: {session_id}")
+
+        # Stream messages to client
+        async for event in stream_reconnected_messages(main_trace_id, response_queue, intent):
+            yield event
+
+    except Exception as e:
+        logger.error(f"[Reconnect] Stream error: {e}", exc_info=True)
+        yield {"data": json.dumps({"type": "error", "content": str(e)})}
+    finally:
+        logger.info(f"[Reconnect] Cleanup response queue for trace_id: {main_trace_id}")
+        stream_queue_manager.unregister_trace(main_trace_id, response_queue)
+        yield {"data": "[DONE]"}
+
+
+# ==================== API Endpoints ====================
+
+@router.post("/chat")
+async def chat(request: dict):
+    """Chat endpoint with SSE streaming support"""
+    user_input = request.get("message")
+    session_id = request.get("session_id", "")
+    main_trace_id = "main_" + str(uuid.uuid4())
+
+    # Register session with metadata
+    session_manager.add_session(session_id, {
+        "trace_id": main_trace_id,
+        "user_input": user_input,
+        "created_at": time.time(),
+        "status": "active"
+    })
+    logger.info(f"[Chat] Session registered: {session_id}, trace_id: {main_trace_id}")
+
+    # Subscribe to RocketMQ topic
+    subscribe_lite_topic(session_id)
+
+    return EventSourceResponse(
+        create_chat_event_generator(session_id, user_input, main_trace_id)
+    )
 
 
 @router.post("/disconnect")
@@ -257,21 +394,19 @@ async def disconnect(request: dict):
     except Exception as e:
         logger.error(f"[Disconnect] Failed to unsubscribe: {e}", exc_info=True)
 
-    # Note: Keep session in session_manager for potential reconnection
-    # Session will be auto-cleaned by timeout or explicit cleanup endpoint
-
     # Update session status to inactive
     metadata = session_manager.get_session_metadata(session_id)
     if metadata:
         metadata["status"] = "disconnected"
         metadata["disconnected_at"] = time.time()
-        session_manager.add_session(session_id, metadata)  # Update metadata
+        session_manager.add_session(session_id, metadata)
 
     return JSONResponse(content={
         "status": "success",
         "message": "Disconnected. Session kept for reconnection.",
         "session_id": session_id
     })
+
 
 @router.post("/end-session")
 async def end_session(request: dict):
@@ -310,7 +445,6 @@ async def reconnect(request: dict):
     # Get main_trace_id from session metadata
     metadata = session_manager.get_session_metadata(session_id)
     main_trace_id = metadata.get("trace_id") if metadata else None
-    intent = metadata.get("intent")
 
     if not main_trace_id:
         logger.warning(f"[Reconnect] No active trace found for session: {session_id}")
@@ -320,14 +454,32 @@ async def reconnect(request: dict):
             "session_id": session_id
         }, status_code=404)
 
-    # ✅ Step 1: Register response queue FIRST (before subscribing)
+    # Get intent and sub-trace IDs from metadata
+    intent = metadata.get("intent", "")
+    weather_trace_id = metadata.get("weather_trace_id")
+    travel_trace_id = metadata.get("travel_trace_id")
+
+    # Check if session has already completed
+    status = metadata.get("status", "active")
+    if status == "completed":
+        logger.info(f"[Reconnect] Session already completed: {session_id}")
+
+        async def completed_event_generator():
+            """Send immediate completion for already-finished session"""
+            yield {"data": json.dumps({
+                "type": "reconnected",
+                "session_id": session_id,
+                "trace_id": main_trace_id
+            })}
+            yield {"data": "[DONE]"}
+
+        return EventSourceResponse(completed_event_generator())
+
+    # Register response queue FIRST (before subscribing)
     response_queue = stream_queue_manager.register_trace(main_trace_id)
     logger.info(f"[Reconnect] Registered response queue for trace_id: {main_trace_id}")
 
-    # ✅ Step 1.5: Re-register any known sub-traces from session metadata
-    weather_trace_id = "weather_" + main_trace_id
-    travel_trace_id = "travel_" + main_trace_id
-
+    # Re-register any known sub-traces from session metadata
     if weather_trace_id:
         stream_queue_manager.register_sub_trace(weather_trace_id, main_trace_id)
         logger.info(f"[Reconnect] Re-registered weather sub-trace: {weather_trace_id} -> {main_trace_id}")
@@ -336,75 +488,9 @@ async def reconnect(request: dict):
         stream_queue_manager.register_sub_trace(travel_trace_id, main_trace_id)
         logger.info(f"[Reconnect] Re-registered travel sub-trace: {travel_trace_id} -> {main_trace_id}")
 
-    async def event_generator():
-        """Resume SSE streaming for reconnected client"""
-
-        # ✅ Step 2: Send reconnection confirmation to frontend
-        yield {"data": json.dumps({
-            "type": "reconnected",
-            "session_id": session_id,
-            "trace_id": main_trace_id
-        })}
-
-        # ✅ Step 3: NOW subscribe to RocketMQ (queue is ready)
-        try:
-            subscribe_lite_topic(session_id)
-            logger.info(f"[Reconnect] Re-subscribed to session: {session_id}")
-        except Exception as e:
-            logger.error(f"[Reconnect] Subscribe failed: {e}", exc_info=True)
-            yield {"data": json.dumps({
-                "type": "error",
-                "content": f"Failed to subscribe: {str(e)}"
-            })}
-            yield {"data": "[DONE]"}
-            return
-
-        try:
-            max_timeout = 120.0
-            start_time = time.time()
-
-
-            while time.time() - start_time < max_timeout:
-                try:
-                    # Wait for messages from RocketMQ consumer
-                    payload = await asyncio.wait_for(response_queue.get(), timeout=5.0)
-
-                    msg_metadata = payload.metadata or {}
-                    is_final = msg_metadata.get("is_final", False)
-                    is_error = msg_metadata.get("error", False)
-                    chunk_index = msg_metadata.get("chunk_index", 0)
-                    trace_id = payload.trace_id
-                    islast = trace_id.startswith(intent)
-
-                    role = payload.role.value if hasattr(payload.role, 'value') else str(payload.role)
-
-                    # Send payload to frontend
-                    yield {"data": json.dumps({
-                        "type": "error" if is_error else "chunk",
-                        "role": role,
-                        "content": payload.content,
-                        "chunk_index": chunk_index,
-                        "is_final": is_final,
-                        "sub_trace_id": payload.trace_id
-                    })}
-
-                    # Stop if final message received
-                    if is_final and islast:
-                        logger.info(f"[Reconnect] Final message received for trace: {main_trace_id}")
-                        break
-
-                except asyncio.TimeoutError:
-                    # Continue waiting for messages
-                    continue
-
-        except Exception as e:
-            logger.error(f"[Reconnect] Stream error: {e}", exc_info=True)
-            yield {"data": json.dumps({"type": "error", "content": str(e)})}
-        finally:
-            logger.info(f"[Reconnect] receive response queue for trace_id: {main_trace_id}")
-            yield {"data": "[DONE]"}
-
-    return EventSourceResponse(event_generator())
+    return EventSourceResponse(
+        create_reconnect_event_generator(session_id, main_trace_id, intent)
+    )
 
 
 @router.get("/sessions")
