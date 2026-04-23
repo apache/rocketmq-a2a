@@ -4,7 +4,7 @@ import time
 from typing import Set, Optional, Dict, Any
 from enum import Enum
 
-from common.rocketmq_utils import logger
+from common.rocketmq.rocketmq_utils import logger
 
 
 class SessionStatus(str, Enum):

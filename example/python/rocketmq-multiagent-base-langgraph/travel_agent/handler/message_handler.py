@@ -2,7 +2,7 @@
 import json
 import logging
 
-from common.models import MessagePayload, AgentRole
+from common.model.models import MessagePayload, AgentRole
 from travel_agent.bailian.bailian_service import generate_travel_itinerary_streaming
 from travel_agent.config.config import DEFAULT_DATE_INFO, DEFAULT_WEATHER_INFO
 from travel_agent.rocketmq.mq_service import send_message

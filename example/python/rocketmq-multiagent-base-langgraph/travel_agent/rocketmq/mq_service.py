@@ -4,8 +4,8 @@ from typing import Optional
 
 from rocketmq import MessageListener as RocketMQMessageListener, Message, ConsumeResult
 
-from common.models import MessagePayload
-from common.rocketmq_utils import build_push_consumer, build_producer, build_message
+from common.model.models import MessagePayload
+from common.rocketmq.rocketmq_utils import build_push_consumer, build_producer, build_message
 from travel_agent.config.config import ENDPOINT, ACCESS_KEY, SECRET_KEY, CONSUMER_GROUP, TRAVEL_AGENT_TOPIC
 
 logger = logging.getLogger(__name__)

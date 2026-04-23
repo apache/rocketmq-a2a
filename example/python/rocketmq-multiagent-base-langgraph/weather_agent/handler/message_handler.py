@@ -2,7 +2,7 @@
 import json
 import logging
 
-from common.models import MessagePayload, AgentRole
+from common.model.models import MessagePayload, AgentRole
 from weather_agent.bailian.bailian_service import query_weather_streaming
 from weather_agent.config.config import DEFAULT_DATE_INFO
 from weather_agent.rocketmq.mq_service import send_message

@@ -8,9 +8,7 @@ Build script for creating three independent deployable packages:
 All packages share a single .env file at the root level.
 """
 
-import os
 import shutil
-import subprocess
 import sys
 from pathlib import Path
 

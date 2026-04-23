@@ -5,8 +5,8 @@ from asyncio import Queue
 from collections import defaultdict
 from typing import Optional, List, Dict
 
-from common.models import MessagePayload
-from common.rocketmq_utils import logger
+from common.model.models import MessagePayload
+from common.rocketmq.rocketmq_utils import logger
 
 
 class StreamQueueManager:

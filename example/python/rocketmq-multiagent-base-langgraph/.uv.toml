@@ -1,2 +1,3 @@
 [venv]
-location = "project"  # 强制在项目内创建 .venv
+# Force creating .venv in the project directory
+location = "project"

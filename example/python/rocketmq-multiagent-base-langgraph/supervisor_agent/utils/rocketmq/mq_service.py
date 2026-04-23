@@ -4,8 +4,8 @@ from typing import Optional
 
 from rocketmq import MessageListener, ConsumeResult, Message, LitePushConsumer, Producer
 
-from common.models import MessagePayload
-from common.rocketmq_utils import logger, build_producer, build_message, build_lite_push_consumer
+from common.model.models import MessagePayload
+from common.rocketmq.rocketmq_utils import logger, build_producer, build_message, build_lite_push_consumer
 from supervisor_agent.utils.stream.stream_manager import stream_queue_manager
 from supervisor_agent.utils.config.config import (
     ROCKETMQ_ENDPOINT,

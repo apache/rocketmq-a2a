@@ -10,9 +10,8 @@ from fastapi import APIRouter
 from fastapi.responses import HTMLResponse, JSONResponse
 from sse_starlette.sse import EventSourceResponse
 
-from common.rocketmq_utils import logger
+from common.rocketmq.rocketmq_utils import logger
 from supervisor_agent.utils.constants.constants import (
-    INTENT,
     SESSION_KEY_TRACE_ID,
     SESSION_KEY_USER_INPUT,
     SESSION_KEY_CREATED_AT,

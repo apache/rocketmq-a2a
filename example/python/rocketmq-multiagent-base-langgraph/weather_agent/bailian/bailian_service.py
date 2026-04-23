@@ -4,7 +4,7 @@ import time
 
 import dashscope
 
-from common.models import MessagePayload, AgentRole
+from common.model.models import MessagePayload, AgentRole
 from weather_agent.config.config import DASHSCOPE_API_KEY, APP_ID
 from weather_agent.rocketmq.mq_service import send_message
 

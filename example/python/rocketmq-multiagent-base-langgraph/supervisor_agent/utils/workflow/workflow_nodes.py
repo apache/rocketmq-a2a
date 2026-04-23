@@ -11,8 +11,8 @@ from langchain_community.chat_models import ChatTongyi
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END
 
-from common.models import MessagePayload, AgentRole
-from common.rocketmq_utils import logger
+from common.model.models import MessagePayload, AgentRole
+from common.rocketmq.rocketmq_utils import logger
 from supervisor_agent.utils.config.config import (
     DASHSCOPE_API_KEY,
     WEATHER_AGENT_TOPIC,
