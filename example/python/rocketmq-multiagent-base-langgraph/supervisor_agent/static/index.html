@@ -362,6 +362,9 @@
     let preservedMessageElements = {};
     let preservedLastAgentKey = null;
 
+    // Track whether the last task completed with [DONE]
+    let lastTaskCompleted = false;
+
     // Show toast notification
     function showToast(message, type = 'info', duration = 3000) {
         const container = document.getElementById('toast-container');
@@ -471,6 +474,7 @@
         input.disabled = true;
         sendBtn.disabled = true;
         isProcessing = true;
+        lastTaskCompleted = false;
 
         activeMessageElements = {};
         lastActiveAgentKey = null;
@@ -509,10 +513,11 @@
 
                 for (const line of lines) {
                     if (line.startsWith('data: ')) {
-                        const data = line.slice(6);
+                        const data = line.slice(6).trim();
 
                         if (data === '[DONE]') {
                             console.log('[UI] Received [DONE]');
+                            lastTaskCompleted = true;
                             hideLoading();
 
                             Object.values(activeMessageElements).forEach(div => {
@@ -665,6 +670,19 @@
         }
 
         console.log('[UI] Reconnecting stream with session_id:', sessionId);
+        console.log('[UI] >>> lastTaskCompleted =', lastTaskCompleted);
+
+        // 🔑 If last task already completed with [DONE], no need to actually reconnect
+        // Just reset state locally so the user can start a new conversation.
+        if (lastTaskCompleted) {
+            console.log('[UI] Last task already completed, skipping backend reconnect');
+            isConnected = true;
+            updateConnectionStatus('connected', '已连接');
+            showToast('✅ 已就绪，可以开始新对话', 'success');
+            preservedMessageElements = {};
+            preservedLastAgentKey = null;
+            return;
+        }
 
         // 🔑 CRITICAL: Restore preserved state
         activeMessageElements = {...preservedMessageElements};
@@ -731,10 +749,11 @@
 
                 for (const line of lines) {
                     if (line.startsWith('data: ')) {
-                        const data = line.slice(6);
+                        const data = line.slice(6).trim();
 
                         if (data === '[DONE]') {
                             console.log('[UI] Reconnect stream completed');
+                            lastTaskCompleted = true;
 
                             Object.values(activeMessageElements).forEach(div => {
                                 const cursor = div.querySelector('.typing-cursor');
