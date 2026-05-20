@@ -138,16 +138,8 @@ def unsubscribe_lite_topic(session_id: str) -> None:
         if lite_push_consumer is None:
             logger.warning("Push consumer is not initialized, nothing to unsubscribe")
             return
-
+        lite_push_consumer.unsubscribe_lite(session_id)
         logger.info(f"[Unsubscribe] Session ID: {session_id}")
-
-        # Note: LitePushConsumer doesn't have a direct unsubscribe method
-        # To truly unsubscribe, you would need to:
-        # 1. Shutdown the current consumer: lite_push_consumer.shutdown()
-        # 2. Recreate it without the session_id subscription
-        #
-        # For now, we just log the unsubscribe request
-        # Application-level filtering should handle unsubscribed sessions
 
         logger.info(f"Unsubscribe request logged for session: {session_id}")
 

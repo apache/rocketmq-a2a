@@ -139,6 +139,7 @@ async def execute_langgraph_workflow(session_id: str, user_input: str, main_trac
 async def stream_messages_to_client(
         main_trace_id: str,
         response_queue: asyncio.Queue,
+        graph_task: asyncio.Task = None,
         max_timeout: float = 120.0
 ) -> AsyncGenerator[Dict[str, Any], None]:
     """
@@ -147,6 +148,7 @@ async def stream_messages_to_client(
     Args:
         main_trace_id: Main trace ID
         response_queue: Queue containing message payloads
+        graph_task: Background workflow task for completion detection
         max_timeout: Maximum timeout in seconds
 
     Yields:
@@ -156,6 +158,19 @@ async def stream_messages_to_client(
     completed_traces = set()
     chat_stream_completed = False
     stream_start_time = time.time()
+
+    def _sync_active_traces_from_graph() -> None:
+        """Pull active_traces from completed graph_task to enable exit detection."""
+        nonlocal active_traces
+        if active_traces or not graph_task or not graph_task.done():
+            return
+        try:
+            result = graph_task.result()
+            if result and result.get("active_traces"):
+                active_traces = set(result["active_traces"])
+                logger.info(f"Synced active_traces from graph_task: {active_traces}")
+        except Exception as e:
+            logger.debug(f"Could not retrieve graph_task result yet: {e}")
 
     while True:
         # Check for direct chat response
@@ -180,8 +195,8 @@ async def stream_messages_to_client(
                 yield {"data": json.dumps({"type": SSE_EVENT_TYPE_ERROR, "content": "响应超时"})}
                 break
 
-            # Wait for message payload from queue
-            payload = await asyncio.wait_for(response_queue.get(), timeout=min(remaining_timeout, 5.0))
+            # Wait for message payload from queue (short poll for fast graph-done detection)
+            payload = await asyncio.wait_for(response_queue.get(), timeout=min(remaining_timeout, 1.0))
 
             # Extract metadata
             msg_metadata = payload.metadata or {}
@@ -220,6 +235,8 @@ async def stream_messages_to_client(
                 if sub_trace_id != main_trace_id:
                     # Sub-trace completed
                     completed_traces.add(sub_trace_id)
+                    # Refresh active_traces from graph_task (if it has finished)
+                    _sync_active_traces_from_graph()
                     logger.info(
                         f"Sub-trace completed: {sub_trace_id}, total completed: {len(completed_traces)}/{len(active_traces)}")
 
@@ -251,6 +268,14 @@ async def stream_messages_to_client(
             if chat_stream_completed:
                 logger.info("Chat stream already completed, exiting loop")
                 break
+            elif graph_task and graph_task.done():
+                # Graph finished — sync active_traces and exit if all sub-traces have completed
+                _sync_active_traces_from_graph()
+                if not active_traces or completed_traces >= active_traces:
+                    logger.info(f"Graph task completed, ending stream for trace_id: {main_trace_id}")
+                    break
+                # Still waiting for remaining sub-trace messages from RocketMQ
+                continue
             elif not active_traces:
                 continue
             elif active_traces and completed_traces >= active_traces:
@@ -333,8 +358,15 @@ async def create_chat_event_generator(session_id: str, user_input: str, main_tra
         )
 
         # Stream messages to client
-        async for event in stream_messages_to_client(main_trace_id, response_queue):
+        async for event in stream_messages_to_client(main_trace_id, response_queue, graph_task):
             yield event
+
+        # Streaming completed normally - mark session as completed
+        metadata = session_manager.get_session_metadata(session_id)
+        if metadata:
+            metadata[SESSION_KEY_STATUS] = SESSION_STATUS_COMPLETED
+            session_manager.add_session(session_id, metadata)
+            logger.info(f"[Chat] Session marked as completed: {session_id}")
 
         # Wait for graph task to finish
         try:
@@ -346,8 +378,12 @@ async def create_chat_event_generator(session_id: str, user_input: str, main_tra
         logger.error(f"Event generator error: {e}", exc_info=True)
         yield {"data": json.dumps({"type": SSE_EVENT_TYPE_ERROR, "content": str(e)})}
     finally:
+        # Cancel graph task if still running (e.g., client disconnected)
+        if not graph_task.done():
+            graph_task.cancel()
+            logger.info(f"[Disconnect] Cancelled graph_task for trace_id: {main_trace_id}")
         # Clean up response queue
-        # stream_queue_manager.unregister_trace(main_trace_id, response_queue)
+        stream_queue_manager.unregister_trace(main_trace_id, response_queue)
         yield {"data": SSE_EVENT_DONE}
 
 
@@ -420,10 +456,12 @@ async def disconnect(request: dict):
     except Exception as e:
         logger.error(f"[Disconnect] Failed to unsubscribe: {e}", exc_info=True)
 
-    # Update session status to inactive
+    # Update session status to inactive (but don't overwrite "completed" status)
     metadata = session_manager.get_session_metadata(session_id)
     if metadata:
-        metadata[SESSION_KEY_STATUS] = SESSION_STATUS_DISCONNECTED
+        current_status = metadata.get(SESSION_KEY_STATUS)
+        if current_status != SESSION_STATUS_COMPLETED:
+            metadata[SESSION_KEY_STATUS] = SESSION_STATUS_DISCONNECTED
         metadata[SESSION_KEY_DISCONNECTED_AT] = time.time()
         session_manager.add_session(session_id, metadata)
 

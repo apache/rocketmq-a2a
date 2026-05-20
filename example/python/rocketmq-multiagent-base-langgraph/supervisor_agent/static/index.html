@@ -692,6 +692,24 @@
             });
 
             if (!response.ok) {
+                // Special case: 404 means no active session exists yet
+                // (e.g. user clicked disconnect before any chat). Treat as a
+                // graceful reset back to "ready" state so the user can start chatting.
+                if (response.status === 404) {
+                    console.log('[UI] No active session on backend, resetting to ready state');
+                    isConnected = true;
+                    isReconnecting = false;
+                    isProcessing = false;
+                    input.disabled = false;
+                    sendBtn.disabled = false;
+                    updateConnectionStatus('connected', '已连接');
+                    showToast('✅ 已就绪，可以开始新对话', 'success');
+                    // Clear any preserved state since there is nothing to resume
+                    preservedMessageElements = {};
+                    preservedLastAgentKey = null;
+                    input.focus();
+                    return;
+                }
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
@@ -885,8 +903,11 @@
             console.error('[UI] Reconnect error:', error);
             isReconnecting = false;
             isProcessing = false;
-            updateConnectionStatus('disconnected', '连接失败');
-            showToast('❌ 重新连接失败: ' + error.message, 'error');
+            // Restore connected state so the user can still start a new chat.
+            // The /chat endpoint creates a fresh session anyway.
+            isConnected = true;
+            updateConnectionStatus('connected', '已连接');
+            showToast('⚠️ 重新连接失败，可直接开始新对话', 'error');
 
             // Re-enable input on error
             input.disabled = false;
