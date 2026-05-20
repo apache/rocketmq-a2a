@@ -170,14 +170,14 @@ python scripts/build_packages.py
 
 #### 1. 基本参数介绍
 
-| 参数名称 | 基本介绍 | 是否必填 |
-|-------|------------------|------|
-| ROCKETMQ_ENDPOINT | RocketMQ 服务接入点 | 是 |
-| ROCKETMQ_ACCESS_KEY | RocketMQ 账号(AK) | 否(公网实例需要) |
-| ROCKETMQ_SECRET_KEY | RocketMQ 密码(SK) | 否(公网实例需要) |
-| DASHSCOPE_API_KEY | 百炼平台调用 apiKey | 是 |
-| APP_ID_WEATHER | 天气助手应用 appId | 是 |
-| APP_ID_TRAVEL | 行程助手应用 appId | 是 |
+| 参数名称 | 基本介绍 | 是否必填    |
+|-------|------------------|---------|
+| ROCKETMQ_ENDPOINT | RocketMQ 服务接入点 | 是       |
+| ROCKETMQ_ACCESS_KEY | RocketMQ 账号(AK) | 否 |
+| ROCKETMQ_SECRET_KEY | RocketMQ 密码(SK) | 否 |
+| DASHSCOPE_API_KEY | 百炼平台调用 apiKey | 是       |
+| APP_ID_WEATHER | 天气助手应用 appId | 是       |
+| APP_ID_TRAVEL | 行程助手应用 appId | 是       |
 
 #### 2. 配置环境变量
 

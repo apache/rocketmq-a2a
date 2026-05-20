@@ -517,25 +517,3 @@ async def reconnect(request: dict):
     return EventSourceResponse(
         create_reconnect_event_generator(session_id, main_trace_id, intent)
     )
-
-
-@router.get("/sessions")
-async def get_active_sessions():
-    """Get all active sessions for debugging/monitoring"""
-    active_sessions = session_manager.get_active_sessions()
-    session_details = []
-
-    # Build session details with metadata
-    for session_id in active_sessions:
-        metadata = session_manager.get_session_metadata(session_id)
-        session_details.append({
-            "session_id": session_id,
-            "metadata": metadata
-        })
-
-    return JSONResponse(content={
-        "status": "success",
-        "count": len(active_sessions),
-        "sessions": session_details
-    })
-

@@ -5,7 +5,7 @@ from typing import Optional
 from rocketmq import MessageListener, ConsumeResult, Message, LitePushConsumer, Producer
 
 from common.model.models import MessagePayload
-from common.rocketmq.rocketmq_utils import logger, build_producer, build_message, build_lite_push_consumer
+from common.rocketmq.rocketmq_utils import logger, build_producer, build_message, build_lite_push_consumer, _validate_non_empty
 from supervisor_agent.utils.stream.stream_manager import stream_queue_manager
 from supervisor_agent.utils.config.config import (
     ROCKETMQ_ENDPOINT,
@@ -126,8 +126,13 @@ def unsubscribe_lite_topic(session_id: str) -> None:
 
     Args:
         session_id: The session ID (lite topic) to unsubscribe from
+
+    Raises:
+        ValueError: If session_id is empty or whitespace-only
     """
     global lite_push_consumer
+
+    _validate_non_empty(session_id, "Session ID")
 
     try:
         if lite_push_consumer is None:
@@ -160,9 +165,12 @@ def subscribe_lite_topic(session_id: str) -> None:
 
     Raises:
         RuntimeError: If push consumer is not initialized
+        ValueError: If session_id is empty or whitespace-only
         Exception: If subscription fails
     """
     global lite_push_consumer
+
+    _validate_non_empty(session_id, "Session ID")
 
     if lite_push_consumer is None:
         error_msg = "Push consumer is not initialized. Call init_rocketmq() first."
