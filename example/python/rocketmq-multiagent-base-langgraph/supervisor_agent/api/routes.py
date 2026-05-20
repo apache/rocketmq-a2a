@@ -378,10 +378,18 @@ async def create_chat_event_generator(session_id: str, user_input: str, main_tra
         logger.error(f"Event generator error: {e}", exc_info=True)
         yield {"data": json.dumps({"type": SSE_EVENT_TYPE_ERROR, "content": str(e)})}
     finally:
-        # Cancel graph task if still running (e.g., client disconnected)
+        # NOTE: Do NOT cancel graph_task on client disconnect.
+        # Keep the LangGraph workflow running in the background, blocked on
+        # result_store polling. When the user calls /reconnect, the consumer
+        # re-subscribes the per-session lite_topic, the RocketMQ broker
+        # redelivers the messages buffered during the disconnected window
+        # (resuming from the consumer-group offset), result_store gets
+        # populated, and the workflow naturally advances (e.g. weather ->
+        # travel). The node-level 300s timeout still bounds the worst case.
         if not graph_task.done():
-            graph_task.cancel()
-            logger.info(f"[Disconnect] Cancelled graph_task for trace_id: {main_trace_id}")
+            logger.info(
+                f"[Disconnect] Client disconnected, keep graph_task running for trace_id: {main_trace_id}"
+            )
         # Clean up response queue
         stream_queue_manager.unregister_trace(main_trace_id, response_queue)
         yield {"data": SSE_EVENT_DONE}
