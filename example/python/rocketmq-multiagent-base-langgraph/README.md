@@ -180,11 +180,12 @@ python scripts/build_packages.py
 编辑 `dist/.env` 文件,填入您的配置:
 
 ```env
-=== Aliyun Bailian Configuration ===
+#=== Aliyun Bailian Configuration ===
 DASHSCOPE_API_KEY=your_bailian_api_key
-Worker application IDs
-APP_ID_WEATHER=your_weather_agent_app_id APP_ID_TRAVEL=your_travel_agent_app_id
-=== RocketMQ Configuration ===
+# Worker application IDs
+APP_ID_WEATHER=your_weather_agent_app_id
+APP_ID_TRAVEL=your_travel_agent_app_id
+#=== RocketMQ Configuration ===
 ROCKETMQ_ENDPOINT=your_rocketmq_endpoint
 ROCKETMQ_ACCESS_KEY=your_access_key
 ROCKETMQ_SECRET_KEY=your_secret_key
