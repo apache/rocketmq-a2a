@@ -94,20 +94,42 @@ def send_message(topic: str, payload: MessagePayload, lite_topic: str) -> None:
         lite_topic: Lite topic for message routing
 
     Raises:
+        ValueError: If topic, payload, or lite_topic is empty/None
         RuntimeError: If producer is not initialized
-        Exception: If message sending fails
+        Exception: If all retry attempts fail
     """
+    if not topic or not topic.strip():
+        raise ValueError("Topic cannot be empty")
+
+    if payload is None:
+        raise ValueError("Payload cannot be None")
+
+    if not lite_topic or not lite_topic.strip():
+        raise ValueError("Lite topic cannot be empty")
+
     if producer is None:
         raise RuntimeError("Producer not initialized. Call init_rocketmq() first.")
 
-    try:
-        body = payload.to_json()
-        msg = build_message(topic=topic, body=body, lite_topic=lite_topic)
-        ret = producer.send(msg)
-        logger.debug(f"Message sent - Topic: {topic}, MsgId: {ret.message_id}")
-    except Exception as e:
-        logger.error(f"Failed to send message: {e}", exc_info=True)
-        raise
+    max_retries = 3
+    last_exception = None
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            body = payload.to_json()
+            msg = build_message(topic=topic, body=body, lite_topic=lite_topic)
+            ret = producer.send(msg)
+            logger.debug(f"Message sent - Topic: {topic}, MsgId: {ret.message_id}")
+            return
+        except Exception as e:
+            last_exception = e
+            if attempt < max_retries:
+                logger.warning(f"Send failed (attempt {attempt}/{max_retries}): {e}, retrying in 0.5s...")
+                import time
+                time.sleep(0.5)
+            else:
+                logger.error(f"Failed to send message after {max_retries} attempts: {e}", exc_info=True)
+
+    raise last_exception
 
 
 def shutdown() -> None:

@@ -1,9 +1,6 @@
 # Build output
 dist/
 
-# Environment variables
-.env
-
 # Python
 __pycache__/
 *.py[cod]

@@ -12,8 +12,8 @@ import shutil
 import sys
 from pathlib import Path
 
-# Project root directory
-PROJECT_ROOT = Path(__file__).parent
+# Project root directory (parent of scripts/)
+PROJECT_ROOT = Path(__file__).parent.parent
 BUILD_DIR = PROJECT_ROOT / "dist"
 
 
@@ -46,9 +46,13 @@ def create_package_structure(package_name: str, modules: list):
         else:
             print(f"  ✗ Warning: {module} not found")
 
-    # Copy requirements.txt
-    shutil.copy2(PROJECT_ROOT / "requirements.txt", package_dir / "requirements.txt")
-    print("  ✓ Copied requirements.txt")
+    # Copy pyproject.toml and uv.lock for uv sync
+    shutil.copy2(PROJECT_ROOT / "pyproject.toml", package_dir / "pyproject.toml")
+    print("  ✓ Copied pyproject.toml")
+    uv_lock = PROJECT_ROOT / "uv.lock"
+    if uv_lock.exists():
+        shutil.copy2(uv_lock, package_dir / "uv.lock")
+        print("  ✓ Copied uv.lock")
 
     return package_dir
 
@@ -70,19 +74,13 @@ set -e
 
 echo "Starting Supervisor Agent..."
 
-# Install dependencies using uv (faster and better dependency resolution)
+# Install dependencies using uv
 if ! command -v uv &> /dev/null; then
-    echo "Installing uv..."
-    pip install uv
+    echo "Error: uv is not installed. Please install it first: https://docs.astral.sh/uv/getting-started/installation/"
+    exit 1
 fi
 
-if [ ! -d "venv" ]; then
-    echo "Creating virtual environment with uv..."
-    uv venv venv
-fi
-
-source venv/bin/activate
-uv pip install -r requirements.txt
+uv sync
 
 # Load environment variables from shared .env file
 if [ -f "../.env" ]; then
@@ -93,7 +91,7 @@ if [ -f "../.env" ]; then
 fi
 
 # Start the application
-python -m supervisor_agent.supervisor_agent_start
+uv run -m supervisor_agent.supervisor_agent_start
 """)
     startup_script.chmod(0o755)
     print("  ✓ Created start.sh")
@@ -119,19 +117,13 @@ set -e
 
 echo "Starting Travel Agent..."
 
-# Install dependencies using uv (faster and better dependency resolution)
+# Install dependencies using uv
 if ! command -v uv &> /dev/null; then
-    echo "Installing uv..."
-    pip install uv
+    echo "Error: uv is not installed. Please install it first: https://docs.astral.sh/uv/getting-started/installation/"
+    exit 1
 fi
 
-if [ ! -d "venv" ]; then
-    echo "Creating virtual environment with uv..."
-    uv venv venv
-fi
-
-source venv/bin/activate
-uv pip install -r requirements.txt
+uv sync
 
 # Load environment variables from shared .env file
 if [ -f "../.env" ]; then
@@ -142,7 +134,7 @@ if [ -f "../.env" ]; then
 fi
 
 # Start the application
-python -m travel_agent.travel_agent_start
+uv run -m travel_agent.travel_agent_start
 """)
     startup_script.chmod(0o755)
     print("  ✓ Created start.sh")
@@ -168,19 +160,13 @@ set -e
 
 echo "Starting Weather Agent..."
 
-# Install dependencies using uv (faster and better dependency resolution)
+# Install dependencies using uv
 if ! command -v uv &> /dev/null; then
-    echo "Installing uv..."
-    pip install uv
+    echo "Error: uv is not installed. Please install it first: https://docs.astral.sh/uv/getting-started/installation/"
+    exit 1
 fi
 
-if [ ! -d "venv" ]; then
-    echo "Creating virtual environment with uv..."
-    uv venv venv
-fi
-
-source venv/bin/activate
-uv pip install -r requirements.txt
+uv sync
 
 # Load environment variables from shared .env file
 if [ -f "../.env" ]; then
@@ -191,7 +177,7 @@ if [ -f "../.env" ]; then
 fi
 
 # Start the application
-python -m weather_agent.weather_agent_start
+uv run -m weather_agent.weather_agent_start
 """)
     startup_script.chmod(0o755)
     print("  ✓ Created start.sh")
@@ -243,7 +229,7 @@ def main():
         print(f"  cd {BUILD_DIR}/weather-agent && ./start.sh")
         print("\nNote: All services share the same .env file in dist/")
         print("      Edit dist/.env to configure all services")
-        print("\nTip: Using 'uv' for faster dependency installation")
+        print("\nPrerequisite: Install uv (https://docs.astral.sh/uv/getting-started/installation/)")
 
     except Exception as e:
         print(f"\n❌ Build failed: {e}", file=sys.stderr)

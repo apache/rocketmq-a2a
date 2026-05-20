@@ -146,10 +146,6 @@ Amap Maps
 ```shell
 uv sync
 ```
-或者使用 pip:
-```shell
-pip install -r requirements.txt
-```
 
 ## 编译打包
 
