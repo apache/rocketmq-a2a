@@ -30,7 +30,7 @@ dependencies = [
     "httpcore==1.0.9",
     "httpx==0.28.1",
     "httpx-sse==0.4.3",
-    "idna==3.11",
+    "idna==3.15",
     "importlib-metadata==8.7.1",
     "jsonpatch==1.33",
     "jsonpointer==3.0.0",
