@@ -1,0 +1,3 @@
+[venv]
+# Force creating .venv in the project directory
+location = "project"
