@@ -87,11 +87,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import static io.a2a.util.Utils.OBJECT_MAPPER;
 import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.METHOD;
-import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.buildLitePushConsumer;
-import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.buildMessageForResponse;
-import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.buildProducer;
-import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.buildPushConsumer;
-import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.toJsonString;
+import static org.apache.rocketmq.a2a.common.util.RocketMQUtil.buildLitePushConsumer;
+import static org.apache.rocketmq.a2a.common.util.RocketMQUtil.buildMessageForResponse;
+import static org.apache.rocketmq.a2a.common.util.RocketMQUtil.buildProducer;
+import static org.apache.rocketmq.a2a.common.util.RocketMQUtil.buildPushConsumer;
+import static org.apache.rocketmq.a2a.common.util.RocketMQUtil.toJsonString;
 
 /**
  * An A2A-protocol-compliant service router implemented on top of RocketMQ.

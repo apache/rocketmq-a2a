@@ -25,7 +25,7 @@ import io.a2a.spec.AgentSkill;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.ROCKETMQ_PROTOCOL;
-import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.formatRocketMQServiceUrl;
+import static org.apache.rocketmq.a2a.common.util.RocketMQUtil.formatRocketMQServiceUrl;
 
 /**
  * Producer for the public {@link AgentCard} that describes this service's capabilities.

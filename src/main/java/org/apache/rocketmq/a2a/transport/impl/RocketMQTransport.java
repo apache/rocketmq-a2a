@@ -79,16 +79,16 @@ import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.GET_TA
 import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.LIST_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE;
 import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.SEND_MESSAGE_RESPONSE_REFERENCE;
 import static org.apache.rocketmq.a2a.common.constant.RocketMQA2AConstant.SET_TASK_PUSH_NOTIFICATION_CONFIG_RESPONSE_REFERENCE;
-import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.LITE_TOPIC_USE_DEFAULT_RECOVER_MAP;
-import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.MESSAGE_STREAM_RESPONSE_MAP;
-import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.RECOVER_MESSAGE_STREAM_RESPONSE_MAP;
-import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.checkConfigParam;
-import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.getResult;
-import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.getOrCreateLitePushConsumer;
-import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.getOrCreateProducer;
-import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.parseAgentCardAddition;
-import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.sendRocketMQRequest;
-import static org.apache.rocketmq.a2a.common.uitl.RocketMQUtil.unmarshalResponse;
+import static org.apache.rocketmq.a2a.common.util.RocketMQUtil.LITE_TOPIC_USE_DEFAULT_RECOVER_MAP;
+import static org.apache.rocketmq.a2a.common.util.RocketMQUtil.MESSAGE_STREAM_RESPONSE_MAP;
+import static org.apache.rocketmq.a2a.common.util.RocketMQUtil.RECOVER_MESSAGE_STREAM_RESPONSE_MAP;
+import static org.apache.rocketmq.a2a.common.util.RocketMQUtil.checkConfigParam;
+import static org.apache.rocketmq.a2a.common.util.RocketMQUtil.getResult;
+import static org.apache.rocketmq.a2a.common.util.RocketMQUtil.getOrCreateLitePushConsumer;
+import static org.apache.rocketmq.a2a.common.util.RocketMQUtil.getOrCreateProducer;
+import static org.apache.rocketmq.a2a.common.util.RocketMQUtil.parseAgentCardAddition;
+import static org.apache.rocketmq.a2a.common.util.RocketMQUtil.sendRocketMQRequest;
+import static org.apache.rocketmq.a2a.common.util.RocketMQUtil.unmarshalResponse;
 
 /**
  * A RocketMQ-based implementation of the {@link ClientTransport} interface for A2A protocol communication.
