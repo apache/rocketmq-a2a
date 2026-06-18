@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.a2a.common.uitl;
+package org.apache.rocketmq.a2a.common.util;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
