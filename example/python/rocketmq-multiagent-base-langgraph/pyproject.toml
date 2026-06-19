@@ -42,7 +42,7 @@ dependencies = [
     "langgraph-checkpoint==2.1.2",
     "langgraph-prebuilt==0.6.5",
     "langgraph-sdk==0.2.9",
-    "langsmith==0.4.37",
+    "langsmith==0.8.18",
     "marshmallow==3.26.2",
     "multidict==6.7.1",
     "mypy-extensions==1.1.0",
