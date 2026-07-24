@@ -646,9 +646,13 @@ public class RocketMQUtil {
         Map<String, A2AResponseFuture> msgIdAndAsyncTypedMap = MESSAGE_RESPONSE_MAP.computeIfAbsent(namespace, k -> new ConcurrentHashMap<>());
         CompletableFuture<String> completableFuture = new CompletableFuture<>();
         msgIdAndAsyncTypedMap.put(responseMessageId, new A2AResponseFuture(completableFuture, typeReference));
-        String result = completableFuture.get(120, TimeUnit.SECONDS);
-        msgIdAndAsyncTypedMap.remove(responseMessageId);
-        return result;
+        try {
+            return completableFuture.get(120, TimeUnit.SECONDS);
+        } finally {
+            // Always remove the pending entry; otherwise a timeout/failure/interrupt would leak it
+            // in the static MESSAGE_RESPONSE_MAP forever.
+            msgIdAndAsyncTypedMap.remove(responseMessageId);
+        }
     }
 
     /**
