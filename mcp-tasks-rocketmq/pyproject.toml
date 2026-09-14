@@ -1,0 +1,53 @@
+[project]
+name = "mcp-tasks-rocketmq"
+version = "0.1.0"
+description = "MCP Tasks extension (SEP-2663) on a RocketMQ LiteTopic backend: dispatcher, worker pool, and one ledger channel per task."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+keywords = ["mcp", "tasks", "rocketmq", "extension"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+dependencies = [
+    "mcp>=2.2.0,<3",
+    "rocketmq-python-client>=5.1.1",
+    "starlette>=0.27",
+    "uvicorn>=0.31.1; sys_platform != 'emscripten'",
+]
+
+# `mcp>=2.2.0` is the floor because the plugin composes the SDK's extension
+# points (`mcp.server.extension`, `mcp.server.context`, `mcp.server.mcpserver`),
+# which the 1.x series does not carry. `<3` because those points are what this
+# plugin is built on, so a major bump needs a look rather than a resolve.
+# `rocketmq-python-client>=5.1.1` supplies `LitePushConsumer`.
+#
+# `starlette` / `uvicorn` are declared rather than inherited from `mcp`: the
+# `--http` entry point imports them directly, so they are this package's own
+# requirement. The bounds and the emscripten marker mirror `mcp`'s, which keeps
+# the declaration honest without narrowing what a consumer can resolve.
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.0",
+    "logfire>=3.0.0",
+    "opentelemetry-sdk>=1.39.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mcp_tasks_rocketmq"]
+
+[tool.pytest.ini_options]
+filterwarnings = ["ignore::DeprecationWarning"]

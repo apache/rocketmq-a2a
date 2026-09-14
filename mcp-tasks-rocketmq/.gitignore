@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.venv/
+.ruff_cache/
+.pytest_cache/
+.idea/
+*.egg-info/
+dist/
+.coverage
+*.log
+.DS_Store
+
+# A library pins nothing: the lock is a local development artifact, and a
+# consumer resolves `mcp` / `rocketmq-python-client` against its own constraints.
+uv.lock

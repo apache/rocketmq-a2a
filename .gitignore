@@ -28,6 +28,16 @@ build/
 ### VS Code ###
 .vscode/
 
+### Python ###
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+.coverage
+
 ### Mac OS ###
 .DS_Store
 
