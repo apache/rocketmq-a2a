@@ -4,6 +4,13 @@ This project aims to help developers quickly integrate [Apache RocketMQ](http://
 
 The choice of communication middleware is very important when building a distributed Agent architecture with high availability and scalability.
 
+## Repository Layout
+
+This repository hosts two peer modules:
+
+- [rocketmq-a2a/](rocketmq-a2a/) — the Java A2A transport (`RocketMQTransport`, `RocketMQA2AServerRoutes`) with its Maven build and samples under `example/`. Build with `mvn -B package --file rocketmq-a2a/pom.xml` from the repository root.
+- [mcp-tasks-rocketmq/](mcp-tasks-rocketmq/) — the Python MCP Tasks extension on a RocketMQ LiteTopic backend, published to PyPI as `mcp-tasks-rocketmq`.
+
 ## Features
 
 - Enable Asynchronous Communication and Logical Decoupling
@@ -71,21 +78,25 @@ quarkus.index-dependency.rocketmq-a2a.artifact-id=rocketmq-a2a
 ## Samples
 ### 1.[Apache RocketMQ](http://rocketmq.apache.org/) + [A2A](https://github.com/a2aproject/a2a-java) + [Google ADK(Agent Development Kit)](https://github.com/google/adk-java) sample
 
-Please see the [rocketmq-multiagent-base-adk](example/java/rocketmq-multiagent-base-adk).
+Please see the [rocketmq-multiagent-base-adk](rocketmq-a2a/example/java/rocketmq-multiagent-base-adk).
 
 ### 2.[Apache RocketMQ](http://rocketmq.apache.org/) + [A2A](https://github.com/a2aproject/a2a-java) + [AgentScope](https://github.com/agentscope-ai) sample
 
-Please see the [rocketmq-multiagent-base-agentscope](example/java/rocketmq-multiagent-base-agentscope).
+Please see the [rocketmq-multiagent-base-agentscope](rocketmq-a2a/example/java/rocketmq-multiagent-base-agentscope).
 
 ### 3.[Apache RocketMQ](http://rocketmq.apache.org/) + Session state consistency sample
 
-Please see the [rocketmq-multiagent-session-consistency](example/java/rocketmq-multiagent-session-consistency).
+Please see the [rocketmq-multiagent-session-consistency](rocketmq-a2a/example/java/rocketmq-multiagent-session-consistency).
 
 ### 4.[Apache RocketMQ](http://rocketmq.apache.org/) + [LangGraph](https://github.com/langchain-ai/langgraph) sample
 
-Please see the [rocketmq-multiagent-base-langgraph](example/python/rocketmq-multiagent-base-langgraph).
+Please see the [rocketmq-multiagent-base-langgraph](rocketmq-a2a/example/python/rocketmq-multiagent-base-langgraph).
 
+## MCP Tasks Extension
 
+[mcp-tasks-rocketmq](mcp-tasks-rocketmq/) implements the [MCP Tasks extension](https://github.com/modelcontextprotocol/modelcontextprotocol) (SEP-2663) on top of Apache RocketMQ LiteTopic: a RocketMQ worker pool executes agent tasks, and each task maps to one lite channel that serves as its ledger. It is a peer of the Java A2A transport in this repository and is published to PyPI as `mcp-tasks-rocketmq`.
+
+See [mcp-tasks-rocketmq/README.md](mcp-tasks-rocketmq/README.md) for usage, and [mcp-tasks-rocketmq/examples/](mcp-tasks-rocketmq/examples/) for runnable examples.
 
 ## Contributing
 

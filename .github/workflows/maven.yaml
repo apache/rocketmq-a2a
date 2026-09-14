@@ -27,7 +27,7 @@ jobs:
           distribution: "corretto"
           cache: "maven"
       - name: Build with Maven
-        run: mvn -B package --file pom.xml
+        run: mvn -B package --file rocketmq-a2a/pom.xml
 
       - name: Upload JVM crash logs
         if: failure()

@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="880" viewBox="0 0 1600 880">
+  <defs>
+    <marker id="ar-blue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#2563eb"/></marker>
+    <marker id="ar-green" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#16a34a"/></marker>
+    <marker id="ar-purple" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#9333ea"/></marker>
+    <marker id="ar-gray" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#6b7280"/></marker>
+    <marker id="ar-slate" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#475569"/></marker>
+  </defs>
+  <rect x="0" y="0" width="1600" height="880" fill="#ffffff"/>
+  <text x="800" y="42" font-size="19" font-weight="700" fill="#111827" text-anchor="middle">MCP Tasks on one topic: the ledger topology</text>
+  <text x="800" y="68" font-size="12.5" fill="#374151" text-anchor="middle">One kind of deployment unit: the MCP server replica. A worker runs inside each one, so more replicas means more workers - there is no separate worker cluster.</text>
+  <rect x="260" y="130" width="1240" height="200" rx="10" fill="#fbfbfc" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <text x="278" y="122" font-size="13.5" font-weight="700" fill="#111827">RocketMQ Broker</text>
+  <text x="1498" y="122" font-size="11" fill="#374151" text-anchor="end">topic: mcp-tasks · LiteTopic</text>
+  <rect x="300" y="200" width="260" height="100" rx="8" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+  <text x="430" y="226" font-size="12.5" fill="#111827" font-weight="600" text-anchor="middle">plain index (parent queue)</text>
+  <text x="430" y="248" font-size="10.5" fill="#374151" text-anchor="middle">ConsumeQueue + tagsCode</text>
+  <text x="430" y="268" font-size="10.5" fill="#374151" text-anchor="middle">FilterExpression("command")</text>
+  <text x="430" y="286" font-size="10.5" fill="#374151" text-anchor="middle">the broker filters state out</text>
+  <rect x="660" y="200" width="240" height="100" rx="8" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="780" y="242" font-size="13" fill="#111827" font-weight="600" text-anchor="middle">one write → two indexes</text>
+  <text x="780" y="268" font-size="10.5" fill="#374151" text-anchor="middle">m.topic ／ m.lite_topic ／ m.tag</text>
+  <rect x="1170" y="200" width="320" height="100" rx="8" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5"/>
+  <text x="1330" y="226" font-size="12.5" fill="#111827" font-weight="600" text-anchor="middle">lite index　t-&lt;taskId&gt;　= the task ledger</text>
+  <text x="1330" y="248" font-size="10.5" fill="#111827" text-anchor="middle">1st: submit · working　　2nd: state · terminal</text>
+  <text x="1330" y="268" font-size="10.5" fill="#374151" text-anchor="middle">every record is a whole snapshot → read the last</text>
+  <text x="1330" y="286" font-size="10.5" fill="#374151" text-anchor="middle">ledger lifetime = lite TTL + message retention</text>
+  <rect x="40" y="610" width="150" height="110" rx="8" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="115" y="646" font-size="14" fill="#111827" font-weight="600" text-anchor="middle">MCP Client</text>
+  <text x="115" y="670" font-size="11" fill="#374151" text-anchor="middle">call_tool()</text>
+  <text x="115" y="692" font-size="11" fill="#374151" text-anchor="middle">resolver polls</text>
+  <rect x="260" y="430" width="620" height="300" rx="10" fill="#fbfbfc" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <text x="570" y="422" font-size="13.5" font-weight="700" fill="#111827" text-anchor="middle">MCP server replica A · one process</text>
+  <text x="420" y="422" font-size="11" fill="#374151" text-anchor="end">created this task</text>
+  <rect x="300" y="460" width="260" height="120" rx="8" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+  <text x="314" y="484" font-size="12.5" fill="#111827" font-weight="600">worker.consume()</text>
+  <text x="314" y="506" font-size="10.5" fill="#2563eb" font-weight="600">in-process, not a separate cluster</text>
+  <text x="314" y="528" font-size="10.5" fill="#374151">group=mcp-tasks-workers</text>
+  <text x="314" y="548" font-size="10.5" fill="#374151">(CLUSTERING, shared by all replicas)</text>
+  <text x="314" y="568" font-size="10.5" fill="#16a34a" font-weight="600">done → publishes state (tag=state) = ⑤</text>
+  <rect x="600" y="460" width="260" height="120" rx="8" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5"/>
+  <text x="614" y="484" font-size="12.5" fill="#111827" font-weight="600">tailer.consume()</text>
+  <text x="614" y="506" font-size="10.5" fill="#374151">group=…-tailer-&lt;replica&gt; (one each)</text>
+  <text x="614" y="528" font-size="10.5" fill="#374151">takes submit and state, no TAG filter</text>
+  <text x="614" y="548" font-size="10.5" fill="#374151">snapshot overwrites store, terminal drops</text>
+  <rect x="300" y="610" width="260" height="90" rx="8" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+  <text x="314" y="634" font-size="12.5" fill="#111827" font-weight="600">dispatcher.dispatch()</text>
+  <text x="314" y="656" font-size="10.5" fill="#374151">subscribe_lite(t-&lt;id&gt;) first - a choice</text>
+  <text x="314" y="676" font-size="10.5" fill="#374151">send(tag=command); handle waits for ack</text>
+  <rect x="600" y="610" width="260" height="90" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="614" y="634" font-size="12.5" fill="#111827" font-weight="600">store ＋ tasks/get</text>
+  <text x="614" y="656" font-size="10.5" fill="#374151">the creator always hits → answers</text>
+  <text x="614" y="676" font-size="10.5" fill="#374151">affinity is a fast path, not required</text>
+  <rect x="920" y="430" width="580" height="300" rx="10" fill="#fbfbfc" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <text x="1200" y="422" font-size="13.5" font-weight="700" fill="#111827" text-anchor="middle">MCP server replica B · one process</text>
+  <text x="1495" y="422" font-size="11" fill="#374151" text-anchor="end">same code, same deployment as A</text>
+  <rect x="950" y="460" width="240" height="120" rx="8" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+  <text x="964" y="484" font-size="12.5" fill="#111827" font-weight="600">worker.consume()</text>
+  <text x="964" y="506" font-size="10.5" fill="#2563eb" font-weight="600">in-process, not a cluster</text>
+  <text x="964" y="528" font-size="10.5" fill="#374151">same group, competing with A</text>
+  <text x="964" y="548" font-size="10.5" fill="#374151">more replicas = more capacity</text>
+  <rect x="1210" y="460" width="240" height="120" rx="8" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5"/>
+  <text x="1224" y="484" font-size="12.5" fill="#111827" font-weight="600">tailer.consume()</text>
+  <text x="1224" y="506" font-size="10.5" fill="#374151">its own group; joins on a miss</text>
+  <text x="1224" y="528" font-size="10.5" fill="#374151">snapshot overwrites store</text>
+  <text x="1224" y="548" font-size="10.5" fill="#374151">a terminal record drops the tail</text>
+  <rect x="950" y="610" width="240" height="90" rx="8" fill="#f8fafc" stroke="#d1d5db" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="964" y="634" font-size="12.5" fill="#6b7280" font-weight="600">dispatcher.dispatch()</text>
+  <text x="964" y="656" font-size="10.5" fill="#6b7280">present here too (symmetric);</text>
+  <text x="964" y="676" font-size="10.5" fill="#6b7280">not this task's creator, unused</text>
+  <rect x="1210" y="610" width="240" height="90" rx="8" fill="#faf5ff" stroke="#d8b4fe" stroke-width="1.5"/>
+  <text x="1224" y="634" font-size="12.5" fill="#111827" font-weight="600">tasks/get ＋ store</text>
+  <text x="1224" y="656" font-size="10.5" fill="#374151">hit → answer; miss → join the tail</text>
+  <text x="1224" y="676" font-size="10.5" fill="#374151">history → 200ms settle → last one</text>
+  <path d="M 190,665 L 296,665" fill="none" stroke="#6b7280" stroke-width="1.7" marker-end="url(#ar-gray)"/>
+  <text x="260" y="726" font-size="10.5" fill="#374151" font-weight="600" text-anchor="middle">① call_tool() → creates a task</text>
+  <path d="M 300,640 L 214,640 L 214,150 L 700,150 L 700,196" fill="none" stroke="#2563eb" stroke-width="1.7" marker-end="url(#ar-blue)"/>
+  <text x="450" y="144" font-size="10.5" fill="#2563eb" font-weight="600" text-anchor="middle">② dispatcher writes submit (command)</text>
+  <text x="450" y="188" font-size="10.5" fill="#16a34a" font-weight="600" text-anchor="middle">⑤ worker writes state (the outcome)</text>
+  <path d="M 656,250 L 564,250" fill="none" stroke="#475569" stroke-width="1.7" marker-end="url(#ar-slate)"/>
+  <path d="M 904,250 L 1166,250" fill="none" stroke="#475569" stroke-width="1.7" marker-end="url(#ar-slate)"/>
+  <text x="610" y="222" font-size="10.5" fill="#475569" font-weight="600" text-anchor="middle">③ plain index</text>
+  <text x="1035" y="222" font-size="10.5" fill="#475569" font-weight="600" text-anchor="middle">③ lite index (the ledger)</text>
+  <path d="M 430,304 L 430,456" fill="none" stroke="#2563eb" stroke-width="1.7" marker-end="url(#ar-blue)"/>
+  <text x="414" y="399" font-size="10.5" fill="#2563eb" font-weight="600" text-anchor="end">④ command to the creator</text>
+  <path d="M 500,304 L 500,390 L 720,390 A 10 10 0 0 1 740,390 L 1070,390 L 1070,456" fill="none" stroke="#2563eb" stroke-width="1.7" marker-end="url(#ar-blue)"/>
+  <text x="600" y="378" font-size="10.5" fill="#2563eb" font-weight="600" text-anchor="middle">④ command to replica B (same group)</text>
+  <path d="M 300,520 L 232,520 L 232,170 L 780,170 L 780,196" fill="none" stroke="#16a34a" stroke-width="1.7" marker-end="url(#ar-green)"/>
+  <path d="M 1210,304 L 1210,350 L 730,350 L 730,456" fill="none" stroke="#16a34a" stroke-width="1.7" marker-end="url(#ar-green)"/>
+  <text x="746" y="409" font-size="10.5" fill="#16a34a" font-weight="600" text-anchor="start">⑥ creator's tail (pre-joined)</text>
+  <path d="M 1330,304 L 1330,456" fill="none" stroke="#9333ea" stroke-width="1.7" marker-end="url(#ar-purple)"/>
+  <text x="1314" y="399" font-size="10.5" fill="#9333ea" font-weight="600" text-anchor="end">⑦ reader joins on a miss</text>
+  <path d="M 730,584 L 730,606" fill="none" stroke="#16a34a" stroke-width="1.7" marker-end="url(#ar-green)"/>
+  <path d="M 1330,584 L 1330,606" fill="none" stroke="#9333ea" stroke-width="1.7" marker-end="url(#ar-purple)"/>
+  <path d="M 115,720 L 115,760 L 1330,760 L 1330,704" fill="none" stroke="#6b7280" stroke-width="1.7" stroke-dasharray="5,4" marker-end="url(#ar-gray)"/>
+  <text x="740" y="754" font-size="11.5" fill="#374151" text-anchor="middle">tasks/get can land on any replica (no Mcp-Name affinity needed): a store hit answers it, a miss joins the tail - and a first subscription is pushed the whole history</text>
+  <path d="M 40,806 L 68,806" fill="none" stroke="#2563eb" stroke-width="1.7" marker-end="url(#ar-blue)"/>
+  <text x="76" y="810" font-size="12" fill="#374151">command plane · tag=command</text>
+  <path d="M 280,806 L 308,806" fill="none" stroke="#16a34a" stroke-width="1.7" marker-end="url(#ar-green)"/>
+  <text x="316" y="810" font-size="12" fill="#374151">state plane · tag=state</text>
+  <path d="M 470,806 L 498,806" fill="none" stroke="#9333ea" stroke-width="1.7" marker-end="url(#ar-purple)"/>
+  <text x="506" y="810" font-size="12" fill="#374151">ledger tail · a first join gets the history</text>
+  <path d="M 760,806 L 788,806" fill="none" stroke="#6b7280" stroke-width="1.7" stroke-dasharray="5,4" marker-end="url(#ar-gray)"/>
+  <text x="796" y="810" font-size="12" fill="#374151">tasks/get polling</text>
+  <text x="40" y="840" font-size="11.5" fill="#374151">Both replicas are the same code and the same deployment: dispatcher, worker, tailer and store all live in one process. The two blue ④ lines are competing consumption within one CLUSTERING group - replica B's worker runs tasks too.</text>
+  <text x="40" y="862" font-size="11.5" fill="#374151">A creator and a reader run the same tailer; only the moment they join differs. A lite offset is per (group, channel), so every replica gets a tailer group of its own. Reading the last record assumes idempotent tools: a rerun does not overturn a terminal one.</text>
+</svg>
