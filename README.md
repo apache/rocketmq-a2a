@@ -1,5 +1,15 @@
 # RocketMQ-A2A
 
+## This Repository Has Been Migrated to [apache/rocketmq-ai](https://github.com/apache/rocketmq-ai)
+
+**rocketmq-a2a is now maintained in [apache/rocketmq-ai](https://github.com/apache/rocketmq-ai).**
+
+**Please open issues, submit pull requests, and follow releases in the new repository.**
+
+**This repository is no longer actively maintained.**
+
+---
+
 This project aims to help developers quickly integrate [Apache RocketMQ](http://rocketmq.apache.org/) with [A2A](https://github.com/a2aproject/a2a-java).
 
 The choice of communication middleware is very important when building a distributed Agent architecture with high availability and scalability.
